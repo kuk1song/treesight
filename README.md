@@ -95,7 +95,7 @@ Questions, ideas and bugs: [open an issue](https://github.com/kuk1song/treesight
 
 ## Development
 
-Tests, checks, pull requests and releases are in [CONTRIBUTING.md](CONTRIBUTING.md). The design and its reasons are in [docs/design.md](docs/design.md) (in Chinese), and the data formats in [schema/](schema/).
+Tests, checks, pull requests and releases are in [CONTRIBUTING.md](CONTRIBUTING.md). The design and its reasons are in [docs/design.md](docs/design.md), and the data formats in [schema/](schema/).
 
 ## License
 

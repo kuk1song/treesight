@@ -95,7 +95,7 @@
 
 ## 开发
 
-测试、检查、PR 和发版流程见 [CONTRIBUTING.md](CONTRIBUTING.md)(英文)。设计和理由见 [docs/design.md](docs/design.md),数据格式见 [schema/](schema/)。
+测试、检查、PR 和发版流程见 [CONTRIBUTING.md](CONTRIBUTING.md),设计和理由见 [docs/design.md](docs/design.md)(两份都是英文),数据格式见 [schema/](schema/)。
 
 ## 许可证
 
