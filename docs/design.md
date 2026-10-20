@@ -69,7 +69,7 @@ Every colour difference also has a shape difference (WCAG 1.4.1): done is a fill
 ### Navigation
 
 - Hash routes: `#p` is the project view and `#s=<first 8 characters of a session id>` a session; without a hash, the page shows the session this build is about, else the current session, and the project view while that session has no tree. Reloads and bookmarks land on the same view, and the browser's back button works (NN/g: the back button is the user's lifeline).
-- Back to the project: a vertical tab "Whole project" on the left edge, without an arrow, that slides out a little on hover; in a window narrower than 1020 pixels it becomes an ordinary button at the top left. Going back after coming from the project pops the history instead of pushing another entry. With only two levels, there is no full breadcrumb (NN/g).
+- Back to the project: a vertical tab "Whole project" on the left edge, without an arrow, that slides out a little on hover; in a window narrower than 1020 pixels, where the tab would cover the tree, it becomes a button at the top left on its own line above the legend, with an arrow (‹), so it does not read as one of the legend's items (changed 2026-10-20; it used to share the legend's row). Going back after coming from the project pops the history instead of pushing another entry. With only two levels, there is no full breadcrumb (NN/g).
 
 ### Legend
 

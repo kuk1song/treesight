@@ -21,7 +21,9 @@ button{font:inherit;color:inherit}
 .back{all:unset;cursor:pointer;position:fixed;left:0;top:96px;z-index:5;writing-mode:vertical-rl;letter-spacing:.3em;font-size:12.5px;color:var(--mut);background:var(--panel);border-radius:0 10px 10px 0;padding:14px 7px;transition:padding .15s ease-out,color .15s}
 .back:hover,.back:focus-visible{color:var(--ink);padding-left:10px}.back[hidden]{display:none}
 html:not([lang^="zh"]) .back{letter-spacing:.08em}
-@media (max-width:1020px){.back{position:static;writing-mode:horizontal-tb;letter-spacing:0!important;border-radius:8px;padding:5px 11px;font-size:13.5px}.back:hover,.back:focus-visible{padding-left:11px}}
+/* narrower than the side tab needs: a button above the legend, with an arrow so it reads as the way back, not as a legend item */
+@media (max-width:1020px){.back{position:static;writing-mode:horizontal-tb;letter-spacing:0!important;border-radius:8px;padding:5px 11px;font-size:13.5px}.back:hover,.back:focus-visible{padding-left:11px}
+  .back::before{content:'‹';margin-right:7px}.back:not([hidden])+.legend{flex-basis:100%}}
 .legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--mut)}
 .legend span{display:inline-flex;align-items:center;gap:5px}
 .legend .scr{width:10px;height:10px;border-radius:50%;border:2.2px solid var(--scar-m);display:inline-block}
