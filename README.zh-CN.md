@@ -14,7 +14,7 @@
 
 它就在你自己的 Claude Code 里运行:没有服务器,不用注册账号,不用另配 API 密钥,页面不发任何网络请求。
 
-VIDEO_ZH
+https://github.com/user-attachments/assets/612410b1-4171-4112-ae3d-9b58128cd13a
 
 <sub>本仓库里编造的示例项目的中文版(由 `dev/make_sample.py --sample recipe-box-zh` 生成,视频由 `dev/record_demo.mjs` 录制)。天数按示例数据自己的日期计算,页面界面跟随浏览器的语言。</sub>
 

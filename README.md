@@ -14,7 +14,7 @@ Three weeks on, it is hard to remember what a session settled and what it left h
 
 It runs inside your own Claude Code: no server, no account, no extra API key, and the page makes no network requests.
 
-VIDEO_EN
+https://github.com/user-attachments/assets/988f3282-941d-4178-9bd8-f0a427e952a4
 
 <sub>The made-up sample project in this repository (`docs/demo.html`, built by `dev/make_sample.py`; the video is recorded by `dev/record_demo.mjs`). Day counts run to the sample's own date, and the page's interface follows the browser's language.</sub>
 
