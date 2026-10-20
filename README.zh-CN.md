@@ -1,21 +1,21 @@
+![treesight 的 logo:一棵小树,两个绿点表示做完,一个空心圈表示还没完](docs/logo.svg)
+
 # treesight
 
 [English](README.md) | **中文**
 
-把 Claude Code 的会话画成树来看:每个会话做完了什么、查清了什么,整个项目还有什么没完。
+**把 Claude Code 的会话画成树来看:每个会话做完了什么,整个项目还有什么没完。**
 
-会话一多,三周前那个会话定下了什么、还欠着什么,就很难想起来。treesight 读你本机的会话记录,让 Claude 挑出每个会话的地标(做完的事、查清的事、中间卡在哪)和没完的事(你来办的,或在等别人的),画在一个本地页面上。整个项目所有会话的待完成汇成一张清单:在等谁、等了几天、哪些过期了、哪件挡住了哪件。
+过了三周,很难想起一个会话定下了什么、还欠着什么。treesight 读你本机的会话记录,让 Claude 挑出每个会话的地标(做完的事、查清的事、中间卡在哪)和没完的事(你来办的,或在等别人的),画在一个本地页面上。整个项目所有会话的待完成汇成一张清单:在等谁、等了几天、哪些过期了、哪件挡住了哪件。
+
+它就在你自己的 Claude Code 里运行:没有服务器,不用注册账号,不用另配 API 密钥,页面不发任何网络请求。
 
 > [!NOTE]
 > 非官方,与 Anthropic 无关。早期版本:只在 Claude Code 里用,只有深色。
 
-<p align="center">
-  <img src="docs/demo-tree.png" alt="一个会话画成的树:树干上四个节点;其中一个展开,显示中间卡了约 1.5 小时,并列出带时刻的三行(卡在、应对、结果);较早的一个发现被后来的节点推翻,划掉了" width="760">
-</p>
-<p align="center">
-  <img src="docs/demo-open.png" alt="项目视图与待完成抽屉:按已失效、待你确认、after the trip、没定时间分段;一件等待的事写着先放着、已 35 天" width="760">
-</p>
-<p align="center"><sub>本仓库里编造的示例项目(<code>docs/demo.html</code>,由 <code>dev/make_sample.py</code> 生成),2026-10-20 截图,天数按那天算。截图是英文界面;浏览器首选中文时页面自动用中文。</sub></p>
+![一个会话的树从树根长出来;一个节点展开,显示中间卡了约 1.5 小时,列出卡在、应对、结果三行和各自的时刻;然后是整个项目的待完成,按已失效、待你确认、after the trip、没定时间分段](docs/demo.gif)
+
+<sub>本仓库里编造的示例项目(`docs/demo.html`,由 `dev/make_sample.py` 生成),2026-10-20 录制,天数按那天算。动图是英文界面;浏览器首选中文时页面自动用中文。</sub>
 
 ## 快速开始
 
@@ -26,21 +26,18 @@
    /plugin install treesight@treesight
    ```
 
-   Claude Code 2.1.275 及以上可以一步装好:`/plugin install treesight --marketplace kuk1song/treesight`。
+2. 打开想看的会话(比如用 `claude --resume`),运行 `/treesight:treesight`。
 
-2. 在想看的会话里运行:
-
-   ```
-   /treesight:treesight
-   ```
-
-   几秒后(实测 7 到 12 秒)页面打开,先显示已有的内容,并写明这个会话正在生成。提炼在后台跑,你可以接着干活;页面会自己刷新,生成完就显示新的树。如果上一次还没跑完你又运行 `/treesight:treesight`,Claude Code 会让第二次在前台跑,你的对话要等它做完。
-
-3. 画同一项目的别的会话,在后面加它的 id 或标题里的词:`/treesight:treesight 0a182a7b` 或 `/treesight:treesight release`。还没生成树的会话在项目页上会写明要运行的命令。
-
-4. 手动改页面:`/treesight:treesight close <条目里的词>`,或 `reopen`、`hide`、`set <条目> when=旅行回来后`(可改的字段:label、line、kind、due、when、who、rank、score、blocked_by)。你改的永远优先于提炼的结果。
+3. 几秒内(实测 7 到 12 秒)浏览器打开页面。后台跑完后,会话的树就出现在页面上,多数会话要几分钟(见[花费](#花费));这期间你可以接着干活。
 
 需要 Claude Code(在 2.1.299 上测过)、3.9 及以上的 `python3`(macOS 自带的就行)、macOS 或 Linux。Windows 没测过。
+
+## 用法
+
+- **画同一项目的别的会话:** 在命令后加它的 id 或标题里的词,如 `/treesight:treesight 0a182a7b` 或 `/treesight:treesight release`。项目页列出所有会话,还没生成树的会写明要运行的命令。
+- **再运行一次** 只读会话里新增的内容。上一次还没跑完时再运行,Claude Code 会让第二次在前台跑,你的对话要等它做完。
+- **手动改页面:** `/treesight:treesight close <条目里的词>`,或 `reopen`、`hide`、`set <条目> when=旅行回来后`(可改的字段:label、line、kind、due、when、who、rank、score、blocked_by)。你改的永远优先于提炼的结果。
+- **一步安装:** Claude Code 2.1.275 及以上可以用 `/plugin install treesight --marketplace kuk1song/treesight` 一步装好两条命令。
 
 ## 怎么工作
 
@@ -91,6 +88,10 @@
 - 会话记录的格式是 Claude Code 内部的,任何版本都可能变;所有读取都集中在 `scripts/transcript.py`。
 - 页面自己不能提炼:要在 Claude Code 里运行命令,再刷新页面。
 - 只有深色。Windows 没测过。
+
+## 求助
+
+问题、建议和 bug:[开一个 issue](https://github.com/kuk1song/treesight/issues/new/choose);bug 表单会提醒你不要贴会话里的任何内容。安全问题见 [SECURITY.md](SECURITY.md)。
 
 ## 开发
 

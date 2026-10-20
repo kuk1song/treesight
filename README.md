@@ -1,21 +1,21 @@
+![treesight logo: a small tree with two done dots and one open ring](docs/logo.svg)
+
 # treesight
 
 **English** | [中文](README.zh-CN.md)
 
-See your Claude Code sessions as trees: what each one got done, what it found out, and what is still open across the project.
+**See your Claude Code sessions as trees: what each one got done, and what is still open across the project.**
 
-Once sessions pile up, it is hard to remember what a session from three weeks ago settled and what it left hanging. treesight reads the session transcripts on your machine, has Claude pick out each session's landmarks (things done, things found out, where it got stuck) and its open items (yours to do, or waiting on someone), and draws them on a local page. The open items of every session in the project end up in one list: who you are waiting on and for how long, what is overdue, what is blocked by what.
+Three weeks on, it is hard to remember what a session settled and what it left hanging. treesight reads the session transcripts on your machine, has Claude pick out each session's landmarks (things done, things found out, where it got stuck) and its open items (yours to do, or waiting on someone), and draws them on a local page. The open items of every session in the project end up in one list: who you are waiting on and for how long, what is overdue, what is blocked by what.
+
+It runs inside your own Claude Code: no server, no account, no extra API key, and the page makes no network requests.
 
 > [!NOTE]
 > Unofficial and not affiliated with Anthropic. Early release: works in Claude Code only, dark theme only.
 
-<p align="center">
-  <img src="docs/demo-tree.png" alt="A session drawn as a tree: four nodes along a trunk; one node is expanded to show it was stuck about 1.5 hours, with three timed rows (stuck, response, result); an earlier finding is struck through because a later node overturned it" width="760">
-</p>
-<p align="center">
-  <img src="docs/demo-open.png" alt="The project view with the open-items drawer: items grouped as no longer possible, to confirm, after the trip, and no time set; one waiting item shows it was put off 35 days ago" width="760">
-</p>
-<p align="center"><sub>The made-up sample project in this repository (<code>docs/demo.html</code>, built by <code>dev/make_sample.py</code>), captured on 2026-10-20, so day counts run to that date. The screenshots show the English interface; browsers that prefer Chinese get the page in Chinese.</sub></p>
+![A session's tree grows from its root; one node opens to show it was stuck about 1.5 hours, with the stuck, response and result rows and their times; then the project's open items, grouped as no longer possible, to confirm, after the trip, and no time set](docs/demo.gif)
+
+<sub>The made-up sample project in this repository (`docs/demo.html`, built by `dev/make_sample.py`), recorded on 2026-10-20, so day counts run to that date. Browsers that prefer Chinese get the page in Chinese.</sub>
 
 ## Quick start
 
@@ -26,21 +26,18 @@ Once sessions pile up, it is hard to remember what a session from three weeks ag
    /plugin install treesight@treesight
    ```
 
-   On Claude Code 2.1.275 or later, `/plugin install treesight --marketplace kuk1song/treesight` does both in one step.
+2. Open a session you want to see (for example with `claude --resume`) and run `/treesight:treesight`.
 
-2. In the session you want to see, run:
-
-   ```
-   /treesight:treesight
-   ```
-
-   A few seconds later (7 to 12 seconds in testing) the page opens with what is already known and says the session is being drawn. Extraction runs in the background, so you can keep working; the page reloads itself and shows the new tree when it is done. If you start another `/treesight:treesight` while one is still running, Claude Code runs the second one in the foreground, so your conversation waits until it is done.
-
-3. To draw another session of the same project, add its id or words from its title: `/treesight:treesight 0a182a7b` or `/treesight:treesight release`. Sessions without a tree show up on the project page with the command to run.
-
-4. To correct the page by hand: `/treesight:treesight close <words from the item>`, or `reopen`, `hide`, or `set <item> when=after the trip` (fields: label, line, kind, due, when, who, rank, score, blocked_by). Your corrections always win over extraction.
+3. Within seconds (7 to 12 in testing) your browser opens the page. The session's tree appears there when the background run is done, which takes a few minutes for most sessions (see [What it costs](#what-it-costs)); you can keep working meanwhile.
 
 Needs Claude Code (tested with 2.1.299), `python3` 3.9 or later (the one that comes with macOS works), and macOS or Linux. Windows is untested.
+
+## Using it
+
+- **Another session of the same project:** add its id or words from its title, as in `/treesight:treesight 0a182a7b` or `/treesight:treesight release`. The project page lists every session; the ones without a tree show the command to run.
+- **Running it again** reads only what is new in the session. If you start it while a run is still going, Claude Code runs the second one in the foreground, so your conversation waits until it is done.
+- **Correcting the page:** `/treesight:treesight close <words from the item>`, or `reopen`, `hide`, or `set <item> when=after the trip` (fields: label, line, kind, due, when, who, rank, score, blocked_by). Your corrections always win over extraction.
+- **One-step install:** on Claude Code 2.1.275 or later, `/plugin install treesight --marketplace kuk1song/treesight` does both install commands at once.
 
 ## How it works
 
@@ -91,6 +88,10 @@ Checked against each project's own README or docs on 2026-10-15.
 - The transcript format is internal to Claude Code and may change in any release; all reading of it is in `scripts/transcript.py`.
 - The page cannot run the extraction itself: run the command in Claude Code, then reload the page.
 - Dark theme only. Windows is untested.
+
+## Help
+
+Questions, ideas and bugs: [open an issue](https://github.com/kuk1song/treesight/issues/new/choose); the bug form asks you not to paste anything from your sessions. For a security problem, see [SECURITY.md](SECURITY.md).
 
 ## Development
 
