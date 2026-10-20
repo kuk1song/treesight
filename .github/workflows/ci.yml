@@ -43,6 +43,8 @@ jobs:
         run: python dev/palcheck.py
       - name: Both READMEs have the same sections
         run: test "$(grep -c '^## ' README.md)" = "$(grep -c '^## ' README.zh-CN.md)"
+      - name: plugin.json's version has its CHANGELOG section
+        run: python dev/check_release.py
   plugin:
     runs-on: ubuntu-latest
     steps:

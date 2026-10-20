@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Contributing guide, bug report form and pull request template. Releases are published by a workflow that first checks that the tag, `plugin.json` and this file agree; Dependabot keeps the pinned GitHub Actions current.
+
 ## 0.1.0 (2026-10-20)
 
 First public release.

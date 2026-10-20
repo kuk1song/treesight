@@ -94,14 +94,7 @@ Checked against each project's own README or docs on 2026-10-15.
 
 ## Development
 
-```bash
-python3 -m unittest discover -s tests     # tests, standard library only
-python3 dev/make_sample.py                # rebuild docs/demo.html from the made-up project in fixtures/
-python3 dev/palcheck.py                   # colour contrast check
-claude plugin validate --strict .         # in a clean checkout
-```
-
-The design and its reasons are in [docs/design.md](docs/design.md) (in Chinese). The data formats are in [schema/](schema/).
+Tests, checks, pull requests and releases are in [CONTRIBUTING.md](CONTRIBUTING.md). The design and its reasons are in [docs/design.md](docs/design.md) (in Chinese), and the data formats in [schema/](schema/).
 
 ## License
 

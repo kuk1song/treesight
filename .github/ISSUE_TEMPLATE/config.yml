@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security problem privately
+    url: https://github.com/kuk1song/treesight/security/advisories/new
+    about: For anything that could run session text as code, reach the network, or leave secrets unmasked. Please do not open a public issue.

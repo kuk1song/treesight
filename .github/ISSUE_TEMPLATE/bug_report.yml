@@ -1,0 +1,44 @@
+name: Bug report
+description: Something treesight did wrong, or a page that looks wrong.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not paste text from your own sessions, file paths, emails, addresses or keys. Describe the session in general terms instead, or reproduce the problem with the made-up project in `fixtures/`.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to reproduce
+      description: The command you ran (for example `/treesight:treesight release`) and what you did before it.
+  - type: textarea
+    id: report
+    attributes:
+      label: treesight's report or error
+      description: The lines treesight printed in your conversation, with anything private removed.
+      render: text
+  - type: input
+    id: claude
+    attributes:
+      label: Claude Code version
+      description: Output of `claude --version`.
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      description: Output of `python3 --version`.
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [macOS, Linux, Windows, Other]
+    validations:
+      required: true

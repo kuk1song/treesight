@@ -1,0 +1,12 @@
+# Keeps the GitHub Actions in .github/workflows up to date; they are pinned to commit SHAs with the tag as a comment.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7    # a new release waits a week before it is proposed
+    groups:
+      actions:
+        patterns: ["*"]
