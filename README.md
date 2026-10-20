@@ -12,7 +12,7 @@ Do you find it hard, after a while, to recall how a session went and its details
 
 treesight runs as a plugin inside your AI: no server, no account, no extra API key, and the page makes no network requests.
 
-https://github.com/user-attachments/assets/988f3282-941d-4178-9bd8-f0a427e952a4
+https://github.com/user-attachments/assets/6feeb3f9-d0c9-48d9-b1da-ba560d523305
 
 ## Install
 

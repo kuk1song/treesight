@@ -12,7 +12,7 @@
 
 treesight 作为一个插件运行在你的 AI 里:没有服务器,不用注册账号,不用另配 API 密钥,页面不发任何网络请求。
 
-https://github.com/user-attachments/assets/dc7d8f6f-ee47-469f-ae73-b06f0c23c02f
+https://github.com/user-attachments/assets/0a444cd4-862b-46be-88c0-ca7809ce20d4
 
 ## 安装
 
