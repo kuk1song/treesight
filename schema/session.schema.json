@@ -41,7 +41,7 @@
     "open": {"type": "array", "items": {"$ref": "#/$defs/open"}}
   },
   "$defs": {
-    "by": {"description": "Who added it: the model, with message id and quote, or the user by hand. Items from before the ledger may lack the quote.", "enum": ["model", "user"]},
+    "by": {"description": "Who added it: the model, with message id and quote, or the user by hand, without a quote (reserved: no command adds items yet).", "enum": ["model", "user"]},
     "node": {
       "$ref": "common.schema.json#/$defs/nodeBody",
       "required": ["id", "by"],

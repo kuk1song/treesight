@@ -69,6 +69,36 @@ class Cli(unittest.TestCase):
         self.assertEqual(code, 0)
         return out, res
 
+    def test_a_finished_run_leaves_no_work_files(self):
+        code, out = run("prepare", *self.common)
+        with open(out["extract"], "w", encoding="utf-8") as f:
+            f.write("{not json")                     # the run fails: apply keeps the files so the model could retry
+        code, res = run("apply", *self.common)
+        self.assertNotEqual(code, 0)
+        digest = out["extract"].replace(".extract.json", ".digest.txt")
+        self.assertTrue(os.path.exists(digest) and os.path.exists(out["extract"]))
+        code, _ = run("build", "--done", "--session", S1, *self.common)
+        self.assertEqual(code, 0)
+        self.assertFalse(os.path.exists(digest) or os.path.exists(out["extract"]))
+
+    def test_errors_come_back_as_json(self):
+        code, out = run("build", "--current", S1, "--cache", "/dev/null/x")     # a path that cannot be a folder
+        self.assertEqual((code, out["ok"]), (1, False), out)
+        self.first_run()
+        code, out = run("edit", "set", "Ask Maya", "--field", "rank", *self.common)
+        self.assertIn("expected FIELD=VALUE", out["error"])
+        code, out = run("edit", "set", "Ask Maya", "--field", "rank=first", *self.common)
+        self.assertIn("whole number", out["error"])
+
+    def test_an_existing_folder_keeps_its_mode(self):
+        d = os.path.join(self.tmp, "shared")
+        os.makedirs(d)
+        os.chmod(d, 0o755)
+        ledger.private_dir(d)
+        self.assertEqual(oct(os.stat(d).st_mode & 0o777), "0o755")
+        new = ledger.private_dir(os.path.join(self.tmp, "fresh"))
+        self.assertEqual(oct(os.stat(new).st_mode & 0o777), "0o700")
+
     def test_find_session(self):
         f = treesight.find_session
         self.assertIn(S1, f("", S1))

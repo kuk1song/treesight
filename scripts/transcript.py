@@ -11,7 +11,7 @@ every run in the current session find "new" content.
 
 Usage:
   python3 transcript.py meta   <session.jsonl>
-  python3 transcript.py digest <session.jsonl> [--after MSG_UUID] [--until TIME] [--known LEDGER_VIEW.json] [--max-chars N]
+  python3 transcript.py digest <session.jsonl> [--after MSG_UUID] [--until TIME] [--known KNOWN.json] [--max-chars N]
 """
 import argparse
 import datetime
@@ -23,6 +23,11 @@ import sys
 _SECRETS = [
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----", re.S),
     re.compile(r"\b(?:sk|pk|rk)-[A-Za-z0-9_-]{20,}"),                      # OpenAI, Anthropic and similar API keys
+    re.compile(r"\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,}"),             # Stripe secret and restricted keys
+    re.compile(r"\bglpat-[A-Za-z0-9_-]{20,}"),                             # GitLab personal access token
+    re.compile(r"\bnpm_[A-Za-z0-9]{36}\b"),                                # npm access token
+    re.compile(r"\bhf_[A-Za-z0-9]{30,}\b"),                                # Hugging Face token
+    re.compile(r"\bya29\.[A-Za-z0-9_-]{20,}"),                             # Google OAuth access token
     re.compile(r"\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{30,}|\bgithub_pat_[A-Za-z0-9_]{40,}"),
     re.compile(r"\bxox[abposr]-[A-Za-z0-9-]{10,}"),                        # Slack
     re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),                          # AWS access key id
@@ -31,6 +36,7 @@ _SECRETS = [
     # a name with token, password, secret or api key in it (DB_PASSWORD, client_secret, "password" in JSON), then a value
     re.compile(r"(?i)\b[a-z0-9_]*(?:token|password|passwd|secret|api[_-]?key)[a-z0-9_]*['\"]?\s*[:=]\s*['\"]?(?![0-9]+\b)[^\s'\"]{8,}"),
     re.compile(r"\bBearer\s+[A-Za-z0-9._~+/=-]{16,}"),
+    re.compile(r"(?i)\bauthorization:\s*basic\s+[A-Za-z0-9+/]{8,}={0,2}"),   # HTTP basic credentials
     re.compile(r"\b[a-z][a-z0-9+.-]*://[^\s/:@]+:[^\s/@]+@"),              # credentials inside a URL
     re.compile(r"\b(?:vless|vmess|trojan|ss|ssr|hysteria2?|tuic)://\S+"),  # proxy share links
 ]

@@ -1,4 +1,4 @@
-"""The page build: escaping, the CSP hash, the public-page guard, colours in step with dev/palettes.json, and the sample project.
+"""The page build: escaping, the CSP hash, the public-page guard, colours in step with dev/palettes.json, and the sample projects.
 Run: python3 -m unittest discover -s tests"""
 import base64
 import glob
@@ -136,9 +136,27 @@ class Render(unittest.TestCase):
         with open(build.TEMPLATE, encoding="utf-8") as f:
             html = f.read()
         fn = re.search(r"waitingOn:(x=>'在等'[^,]*),", html).group(1)
-        r = subprocess.run([node, "-e", "const f=%s;console.log(JSON.stringify(['Alex','老周','3 号'].map(f)))" % fn], capture_output=True, text=True)
+        r = subprocess.run([node, "-e", "const f=%s;console.log(JSON.stringify(['Alex','Émile','老周','3 号'].map(f)))" % fn], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertEqual(json.loads(r.stdout), ["在等 Alex", "在等老周", "在等 3 号"])
+        self.assertEqual(json.loads(r.stdout), ["在等 Alex", "在等 Émile", "在等老周", "在等 3 号"])
+
+    def test_english_counts_one_day(self):
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node not installed")
+        with open(build.TEMPLATE, encoding="utf-8") as f:
+            html = f.read()
+        fn = re.findall(r"day:(n=>[^,]*?(?:\([^)]*\))?[^,]*?),storyHint", html)[1]     # the second W is the English one
+        r = subprocess.run([node, "-e", "const f=%s;console.log(JSON.stringify([1,2].map(f)))" % fn], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(json.loads(r.stdout), ["1 day", "2 days"])
+
+    def test_the_page_states_the_scripts_numbers(self):
+        """The page says how often it reloads and when a run seems to have stopped; those numbers live in the scripts."""
+        with open(build.TEMPLATE, encoding="utf-8") as f:
+            html = f.read()
+        self.assertEqual((html.count("every %d s" % build.REFRESH_S), html.count("每 %d 秒" % build.REFRESH_S)), (2, 2))
+        self.assertIn("+%d)*1000" % treesight.JOB_GRACE_S, html)
 
     def test_both_languages_have_the_same_words(self):
         with open(build.TEMPLATE, encoding="utf-8") as f:
@@ -176,6 +194,24 @@ class Kept(unittest.TestCase):
         self.assertEqual((len(s["nodes"]), len(s["open"])), (len(self.ext["nodes"]), len(self.ext["open"])))
         self.assertEqual(d["project"]["path"], meta["cwd"])
         self.assertNotIn("gone", build.page_data(FOLDER)["sessions"][0])
+
+    def test_kept_times_skip_dates_without_a_time(self):
+        """Ledgers from before 2026-10-16 keep no session metadata; an item raised on a date alone must not become first_at."""
+        led = {"meta": {}, "nodes": [], "last_run": {"at": "2026-10-01T08:00:00Z"}}
+        state = {"open": [{"session": "s", "raised_at": "2026-09-14"}, {"session": "s", "raised_at": "2026-09-20T10:00:00Z"}]}
+        m = build._kept_meta("s", led, state)
+        self.assertEqual((m["first_at"], m["last_at"]), ("2026-09-20T10:00:00Z", "2026-09-20T10:00:00Z"))
+
+    def test_a_long_title_with_addresses_still_builds(self):
+        """A mask can be longer than what it hides, so a title is scrubbed before it is cut to length."""
+        src = glob.glob(os.path.join(FOLDER, "fd14e71a-*.jsonl"))[0]
+        dst = os.path.join(self.gone, os.path.basename(src))
+        shutil.copy(src, dst)
+        with open(dst, "a", encoding="utf-8") as f:
+            f.write(json.dumps({"type": "custom-title", "customTitle": "write to " + "a@b.co " * 32, "sessionId": os.path.basename(src)[:-6]}) + "\n")
+        t = build.page_data(self.gone)["sessions"][0]["title"]
+        self.assertLessEqual(len(t), 200)
+        self.assertIn("[email]", t)
 
     def test_a_session_on_disk_without_prompts_is_not_called_gone(self):
         meta, entries = transcript.read_session(self.path)
@@ -224,7 +260,7 @@ class Sample(unittest.TestCase):
             shutil.rmtree(out)
 
     def test_demo_page(self):
-        """The README demo: every kind of node and open item the page can show, in a made-up web-app project."""
+        """The README demo, a made-up web-app project: done and found nodes, one that got stuck, and open items in each group the drawer has."""
         d = self.build("recipe-box")
         self.assertEqual(d["today"], d["asof"])          # day counts run to the sample's own date
         s = {x["id"][:8]: x for x in d["sessions"]}

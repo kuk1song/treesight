@@ -7,8 +7,16 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0               # the whole history, to check that the tag is on main
+          persist-credentials: false   # publishing uses GH_TOKEN below, not git
+      - name: The tag points at a commit on main
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+      - name: Tests
+        run: python3 -m unittest discover -s tests
       - name: The tag, plugin.json and CHANGELOG.md agree
         run: python3 dev/check_release.py --tag "$GITHUB_REF_NAME" --notes "$RUNNER_TEMP/notes.md"
       - name: Publish the GitHub release with the CHANGELOG section as notes

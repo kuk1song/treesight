@@ -300,8 +300,8 @@ def do_build(a):
     # Under the project lock from the job marks to the written page: two builds at once (two runs finishing, or a
     # run's progress page and another's result) must not let the one that read the older state write last.
     with ledger.project_lock(key):
-        if sid and a.done:
-            _remove(_job_path(cache, key, sid))     # this run is over, finished or not
+        if sid and a.done:                          # this run is over, finished or not: its mark and work files go
+            _remove(_job_path(cache, key, sid), *work_paths(key, sid))
         res = build.write_page(folder, out, current, pending=live_jobs(cache, key) or None, focus=sid)
     if a.open:
         build.open_page(res)
@@ -331,9 +331,16 @@ def _resolve_target(key, action, target):
 def edit(a):
     path = find_session(a.session, a.current)
     key = ledger.project_key(path)
-    fields = dict(f.split("=", 1) for f in a.fields)
+    fields = {}
+    for f in a.fields:
+        if "=" not in f:
+            raise Problem("--field %r: expected FIELD=VALUE" % f)
+        k, v = f.split("=", 1)
+        fields[k.strip()] = v.strip()
     for k in ("rank", "score"):
         if fields.get(k):
+            if not re.fullmatch(r"-?\d+", fields[k]):
+                raise Problem("%s must be a whole number, not %r" % (k, fields[k]))
             fields[k] = int(fields[k])
     return ledger.edit(key, a.action, _resolve_target(key, a.action, " ".join(a.target)), fields)
 
@@ -366,7 +373,6 @@ def main(argv=None):
     cmds["show"].add_argument("--part", type=int, default=1)
     cmds["apply"].add_argument("--model")
     cmds["build"].add_argument("--open", action="store_true")
-    cmds["build"].add_argument("--pending", action="store_true", help="kept for older skill text; runs in progress are always shown")
     cmds["build"].add_argument("--done", action="store_true", help="the run for --session is over, so stop showing it as in progress")
     cmds["edit"].add_argument("action", choices=["close", "reopen", "hide", "set"])
     cmds["edit"].add_argument("target", nargs="+", help="an id, or words from the item's label")
@@ -375,7 +381,7 @@ def main(argv=None):
     t0 = time.time()
     try:
         res = {"prepare": prepare, "show": show, "apply": apply, "build": do_build, "edit": edit, "list": list_sessions}[a.cmd](a)
-    except (Problem, ValueError) as e:
+    except (Problem, ValueError, OSError) as e:     # the skill reads {"ok": false} rather than a traceback
         print(json.dumps({"ok": False, "error": str(e)}, ensure_ascii=False))
         return 1
     if res is not None:

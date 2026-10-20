@@ -267,7 +267,7 @@ class Ledger(unittest.TestCase):
         self.assertNotIn("after this digest starts", d2)
         self.assertNotIn("later records", d2)
 
-    def test_close_of_unknown_or_closed_item_is_refused(self):
+    def test_close_of_an_unknown_item_is_refused(self):
         self.first()
         by = self.labels(ledger.load(PROJECT))
         d2 = transcript.digest(T2)
