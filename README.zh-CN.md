@@ -14,7 +14,7 @@
 
 treesight 会读整个会话的内容，并生成一棵树：做完了什么、查清了什么、中间卡在哪，以及还没做完的事。它作为一个插件运行在你的 AI 里：没有服务器，不用注册账号，不用另配 API 密钥，页面不发任何网络请求。
 
-https://github.com/user-attachments/assets/0a444cd4-862b-46be-88c0-ca7809ce20d4
+https://github.com/user-attachments/assets/95d57e06-07b8-4ce7-9ff3-70431c2fad89
 
 ## 安装
 
