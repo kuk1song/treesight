@@ -14,7 +14,7 @@
 
 treesight 就在你自己的 AI 里运行(目前是 Claude Code):没有服务器,不用注册账号,不用另配 API 密钥,页面不发任何网络请求。
 
-https://github.com/user-attachments/assets/612410b1-4171-4112-ae3d-9b58128cd13a
+https://github.com/user-attachments/assets/dc7d8f6f-ee47-469f-ae73-b06f0c23c02f
 
 ## 安装
 
