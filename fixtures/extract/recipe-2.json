@@ -1,0 +1,124 @@
+{
+ "schema": "treesight/extract@1",
+ "session": "0c0f810a-baaf-50cb-bf29-d8b405abbf9c",
+ "through": "318bd440-7e61-5370-b6c5-a94222758db6",
+ "nodes": [
+  {
+   "ref": "n1",
+   "kind": "done",
+   "label": "Photos moved to the storage bucket",
+   "line": "New photos go to the storage bucket, and the 37 photos already on disk were copied over.",
+   "score": 4,
+   "at": "2026-09-23T09:19:52.000Z",
+   "msg": "6d64b1f7-4d09-5805-8f07-020b119a0c44",
+   "evidence": [
+    {
+     "quote": "Sam sent the storage keys.",
+     "kind": "prompt",
+     "msg": "145b7e82-b152-5ef4-acb9-227076dac11a",
+     "at": "2026-09-23T09:01:14.000Z"
+    },
+    {
+     "quote": "Photos now go to the storage bucket, and the 37 photos already on disk were copied over.",
+     "kind": "reply",
+     "msg": "6d64b1f7-4d09-5805-8f07-020b119a0c44",
+     "at": "2026-09-23T09:19:52.000Z"
+    }
+   ]
+  },
+  {
+   "ref": "n2",
+   "kind": "done",
+   "label": "1.2 is live with photo upload",
+   "line": "You deployed 1.2, and the site is live with photo upload.",
+   "score": 5,
+   "at": "2026-09-23T09:44:08.000Z",
+   "msg": "30a0c6ce-ae42-528f-be23-f31346b9d5b7",
+   "evidence": [
+    {
+     "quote": "Deployed 1.2. The site is live with photo upload.",
+     "kind": "prompt",
+     "msg": "30a0c6ce-ae42-528f-be23-f31346b9d5b7",
+     "at": "2026-09-23T09:44:08.000Z"
+    }
+   ]
+  }
+ ],
+ "open": [
+  {
+   "ref": "o1",
+   "kind": "todo",
+   "label": "Write the 1.2 announcement",
+   "line": "A short blog post on 1.2 that you plan to write on Friday, about photo upload and photos that show the right way up.",
+   "due": "2026-09-25",
+   "rank": 1,
+   "raised_at": "2026-09-23T10:20:15.000Z",
+   "msg": "7d7e496f-a3e4-5fb9-aac9-537e54f5d3a3",
+   "evidence": [
+    {
+     "quote": "Let's write a short announcement for 1.2 on the blog. I'll do it on Friday.",
+     "kind": "prompt",
+     "msg": "7d7e496f-a3e4-5fb9-aac9-537e54f5d3a3",
+     "at": "2026-09-23T10:20:15.000Z"
+    },
+    {
+     "quote": "The highlights would be photo upload and photos that now show the right way up.",
+     "kind": "reply",
+     "msg": "231c5395-02ac-5463-9047-8ec65a767fa2",
+     "at": "2026-09-23T10:21:00.000Z"
+    }
+   ]
+  },
+  {
+   "ref": "o2",
+   "kind": "wait",
+   "label": "Alex's test on Android",
+   "line": "Alex offered to test 1.2 on his Android phone, and you are waiting for his results.",
+   "who": "Alex",
+   "raised_at": "2026-09-23T10:35:40.000Z",
+   "msg": "cd12b641-2bdc-5111-a0d1-9b08022e51bc",
+   "evidence": [
+    {
+     "quote": "Alex offered to test 1.2 on his Android phone. Waiting for his results.",
+     "kind": "prompt",
+     "msg": "cd12b641-2bdc-5111-a0d1-9b08022e51bc",
+     "at": "2026-09-23T10:35:40.000Z"
+    }
+   ]
+  }
+ ],
+ "close": [
+  {
+   "id": "0c4f931d-o1",
+   "status": "done",
+   "sure": true,
+   "quote": "Sam sent the storage keys.",
+   "msg": "145b7e82-b152-5ef4-acb9-227076dac11a",
+   "at": "2026-09-23T09:01:14.000Z"
+  },
+  {
+   "id": "0c4f931d-o3",
+   "status": "done",
+   "sure": true,
+   "quote": "Deployed 1.2. The site is live with photo upload.",
+   "msg": "30a0c6ce-ae42-528f-be23-f31346b9d5b7",
+   "at": "2026-09-23T09:44:08.000Z"
+  },
+  {
+   "id": "0c4f931d-o5",
+   "status": "expired",
+   "sure": true,
+   "quote": "I never signed up for the meetup demo and the meetup was on September 20, so that's off.",
+   "msg": "baa8b478-fee3-59e4-8cb7-ff1f52aa0b68",
+   "at": "2026-09-23T09:50:31.000Z"
+  },
+  {
+   "id": "0c4f931d-o2",
+   "status": "done",
+   "sure": false,
+   "quote": "I think Lena said the layout looks fine on her phone, but I can't find her message.",
+   "msg": "95abe5a1-5ea3-5073-be30-e1a3baf9b7d5",
+   "at": "2026-09-23T10:05:47.000Z"
+  }
+ ]
+}

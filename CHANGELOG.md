@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- README: a shorter tagline about recalling a session, not tied to one agent, written separately in Chinese; where treesight runs, in two sentences, with the full list and its sources in `docs/design.md`.
+- Page: the Chinese interface puts a space between 在等 and a name in Latin letters (在等 Alex).
+- README: a shorter tagline about recalling an AI session, not tied to one agent, written separately in Chinese; where treesight runs, in two sentences, with the full list and its sources in `docs/design.md`.
+- README demo: a 21-second video with step captions, in English and in Chinese, of a made-up recipe website (`fixtures/src/recipe-*.json`) instead of the tide-table GIF; readers can pause and scrub it. `dev/record_demo.mjs` records it from the sample page, whose day counts now run to the sample's own date.
 - Page: in a window narrower than 1020 pixels, the way back to the whole project is a button with an arrow on its own line, instead of a plain button in the legend's row that looked like one of its items.
 - README: a centered header; a logo that grows once, pings its open ring twice and is still within about 4 seconds (its resting state is the finished tree, so it shows whole where animation does not run); Install first, with the one-step command in Claude Code, the command a coding agent can run in a terminal, and how to update; details and measurements left to `docs/design.md` instead of repeated; the comparison table folded.
 

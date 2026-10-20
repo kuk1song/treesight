@@ -12,7 +12,8 @@ Python 3.9 or later and the standard library only. Two tests of the page's scrip
 
 ```bash
 python3 -m unittest discover -s tests     # tests
-python3 dev/make_sample.py                # rebuild docs/demo.html from fixtures/
+python3 dev/make_sample.py                # rebuild docs/demo.html (the recipe-box demo) from fixtures/
+node dev/record_demo.mjs en|zh            # record the README video (needs ffmpeg and chrome-headless-shell)
 python3 dev/palcheck.py                   # colour contrast of the page
 python3 dev/check_release.py              # plugin.json's version has its CHANGELOG section
 claude plugin validate --strict .         # in a clean checkout

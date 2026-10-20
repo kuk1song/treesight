@@ -114,6 +114,32 @@ class Render(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(r.stdout.split(), [str(v).lower() for v in cases.values()])
 
+    def test_a_sample_counts_days_to_its_own_date(self):
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node not installed")
+        with open(build.TEMPLATE, encoding="utf-8") as f:
+            html = f.read()
+        time = html[html.index("/* ---------- time"):html.index("/* an item marked no longer possible")]
+        script = "".join("{const D=%s;%s;console.log(ago('2026-09-20'))}" % (json.dumps(d), time)
+                         for d in ({"today": "2026-10-03T09:00:00Z"}, {}))
+        r = subprocess.run([node, "-e", script], capture_output=True, text=True, env=dict(os.environ, TZ="UTC"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        fixed, live = r.stdout.split()
+        self.assertEqual(fixed, "13")
+        self.assertGreater(int(live), 13)            # without a date of its own, the page counts to the viewer's today
+
+    def test_chinese_puts_a_space_before_a_latin_name(self):
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node not installed")
+        with open(build.TEMPLATE, encoding="utf-8") as f:
+            html = f.read()
+        fn = re.search(r"waitingOn:(x=>'在等'[^,]*),", html).group(1)
+        r = subprocess.run([node, "-e", "const f=%s;console.log(JSON.stringify(['Alex','老周','3 号'].map(f)))" % fn], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(json.loads(r.stdout), ["在等 Alex", "在等老周", "在等 3 号"])
+
     def test_both_languages_have_the_same_words(self):
         with open(build.TEMPLATE, encoding="utf-8") as f:
             html = f.read()
@@ -186,16 +212,45 @@ class Palette(unittest.TestCase):
 
 
 class Sample(unittest.TestCase):
-    def test_sample_page(self):
+    def build(self, sample):
         out = tempfile.mkdtemp(prefix="treesight-page-")
         try:
-            r = subprocess.run([sys.executable, os.path.join(ROOT, "dev", "make_sample.py"), "--out", os.path.join(out, "demo.html")],
+            r = subprocess.run([sys.executable, os.path.join(ROOT, "dev", "make_sample.py"), "--sample", sample, "--out", os.path.join(out, "demo.html")],
                                capture_output=True, text=True)
             self.assertEqual(r.returncode, 0, r.stderr)
             with open(os.path.join(out, "demo.html"), encoding="utf-8") as f:
-                d = data_block(f.read())
+                return data_block(f.read())
         finally:
             shutil.rmtree(out)
+
+    def test_demo_page(self):
+        """The README demo: every kind of node and open item the page can show, in a made-up web-app project."""
+        d = self.build("recipe-box")
+        self.assertEqual(d["today"], d["asof"])          # day counts run to the sample's own date
+        s = {x["id"][:8]: x for x in d["sessions"]}
+        self.assertEqual(sorted(s), ["0c0f810a", "0c4f931d", "12517ac7"])
+        self.assertFalse(s["12517ac7"]["generated"])
+        self.assertEqual(d["current"][:8], "0c0f810a")
+        first = s["0c4f931d"]
+        self.assertEqual(sorted(n["kind"] for n in first["nodes"]), ["done", "done", "done", "found"])
+        self.assertEqual(sum(1 for n in first["nodes"] if n.get("story")), 1)
+        self.assertEqual(sorted(o["state"] for o in first["open"]), ["confirm", "open", "open", "stale"])
+        self.assertEqual((s["0c0f810a"]["last_run"]["closed"], s["0c0f810a"]["last_run"]["flagged"]), (2, 2))
+
+    def test_demo_page_in_chinese(self):
+        """The same story written in Chinese, for the Chinese README's video: same shape, Chinese text."""
+        d = self.build("recipe-box-zh")
+        s = {x["id"][:8]: x for x in d["sessions"]}
+        self.assertEqual(sorted(s), ["706417bf", "e3b89c9b", "e704c371"])
+        first = s["706417bf"]
+        self.assertEqual(sorted(n["kind"] for n in first["nodes"]), ["done", "done", "done", "found"])
+        self.assertEqual(sorted(o["state"] for o in first["open"]), ["confirm", "open", "open", "stale"])
+        self.assertEqual((s["e3b89c9b"]["last_run"]["closed"], s["e3b89c9b"]["last_run"]["flagged"]), (2, 2))
+        self.assertTrue(all(re.search("[\u4e00-\u9fff]", n["label"]) for n in first["nodes"]))
+
+    def test_sample_page(self):
+        d = self.build("tidepool")
+        self.assertEqual(d["today"], "2026-09-24T09:00:00Z")
         s = {x["id"][:8]: x for x in d["sessions"]}
         self.assertEqual(sorted(s), ["0a182a7b", "953c0ab1", "fd14e71a"])
         self.assertTrue(s["953c0ab1"]["generated"] and s["0a182a7b"]["generated"])

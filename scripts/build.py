@@ -115,9 +115,11 @@ def page_data(folder, current=None, now=None, pending=None, focus=None):
             raise ValueError("session %s does not match session.schema.json:\n  %s" % (m["id"], "\n  ".join(errs[:10])))
         sessions.append(doc)
     cwd = next((m["cwd"] for m in metas if m.get("cwd")), None) or key
-    now = now or datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    fixed, now = now is not None, now or datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     data = {"schema": "treesight/page@1", "asof": now, "current": current,
             "project": {"path": transcript.scrub(cwd), "name": os.path.basename(cwd.rstrip("/")) or cwd}, "sessions": sessions}
+    if fixed:       # a made-up sample: day counts run to its own date, not to whenever someone opens it
+        data["today"] = now
     if sessions:     # the earliest start of any session (the page lists them by last activity)
         data["project"]["first_at"] = min((s["first_at"] for s in sessions), key=transcript.instant)
     if focus:
@@ -210,7 +212,7 @@ def main(argv=None):
     ap.add_argument("--project", required=True)
     ap.add_argument("--current")
     ap.add_argument("--out")
-    ap.add_argument("--now", help="fixed build time, for reproducible sample pages")
+    ap.add_argument("--now", help="fixed build time for reproducible sample pages; the page counts days to it")
     ap.add_argument("--public", action="store_true", help="fail if any IPv4 address or email remains")
     ap.add_argument("--open", action="store_true", help="open the page in the default browser")
     ap.add_argument("--pending", help="JSON list of {session, title, estimate_s, started_at}: sessions being extracted now; "

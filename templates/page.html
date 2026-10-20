@@ -153,7 +153,7 @@ const W=ZH?{
   foot:d=>'目前只有深色 · 时刻为本地时间 · 数据截至 '+d,count:n=>'待完成 '+n+' 件',overdueN:n=>' · 已过期 '+n,staleN:n=>' · 已失效 '+n,show:' · 显示时间轴 ▸',hide:' · 收起时间轴 ◂',
   none:'没有待完成的事',cover:(g,m)=>'来自已生成的 '+g+' 个会话'+(m?' · 另有 '+m+' 个还没生成':''),
   bOverdue:'已过期',bStale:'已失效',bBoth:'已过期或失效',bConfirm:'待你确认',bNoTime:'没定时间',byRaised:'以下按提出先后',stale:'已失效 · 关掉?',lateDays:n=>'过期 '+n+' 天',
-  firstYou:x=>'先要你「'+x+'」',waitingOn:x=>'在等'+x,putOff:'先放着',since:(d,n)=>' · 自 '+d+' · 已等 '+n+' 天',raised:d=>d+' 提出',confirm:'看起来已做完 · 待你确认',
+  firstYou:x=>'先要你「'+x+'」',waitingOn:x=>'在等'+(/^[A-Za-z0-9]/.test(x)?' ':'')+x,putOff:'先放着',since:(d,n)=>' · 自 '+d+' · 已等 '+n+' 天',raised:d=>d+' 提出',confirm:'看起来已做完 · 待你确认',
   from:x=>'来自「'+x+'」',lgTodo:'待办(你来)',lgWait:'等待(在等别人或先放着)',
   stuck:(q,d)=>'卡了'+(q==='at_least'?'至少 ':'约 ')+d,min:n=>n+' 分钟',hr:n=>n+' 小时',day:n=>n+' 天',storyHint:'点开看经过',rows:['卡在','应对','结果'],temp:'临时',
   unknownT:'时刻不详',approx:t=>'约 '+t,before:t=>t+' 前',shelved:'决定不做',merged:n=>'这里合了 '+n+' 件相关的事',overturned:x=>'↺ 推翻了「'+x+'」',overturnedBy:x=>'后来被「'+x+'」推翻',
@@ -181,8 +181,9 @@ const W=ZH?{
   pendingLate:'This is taking much longer than expected and may have stopped. Run /treesight:treesight again in Claude Code; if it is still running, it will say so.',
   gone:'Claude Code has deleted this session’s transcript; this is what the ledger kept.'};
 /* ---------- time: stored as ISO with year, shown in local time ---------- */
-const pad=n=>String(n).padStart(2,'0'),TODAY=new Date();
+const pad=n=>String(n).padStart(2,'0');
 const parse=s=>/T/.test(s)?new Date(s):new Date(s+'T00:00:00');
+const TODAY=D.today?parse(D.today):new Date();   /* a sample page counts days to its own date */
 const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const fdate=s=>{const d=parse(s);return d.getFullYear()===TODAY.getFullYear()?pad(d.getMonth()+1)+'-'+pad(d.getDate()):ymd(d)};
 const ftime=s=>fdate(s)+' '+pad(parse(s).getHours())+':'+pad(parse(s).getMinutes());

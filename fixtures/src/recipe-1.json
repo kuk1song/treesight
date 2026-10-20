@@ -1,0 +1,143 @@
+{
+ "note": "Made up for the treesight README demo. No real person, project or session. Times are UTC.",
+ "project": "/home/dev/recipe-box",
+ "session": "recipe-1",
+ "version": "2.1.299",
+ "events": [
+  {
+   "t": "2026-09-14T09:02:10Z",
+   "k": "prompt",
+   "text": "Let's add photo upload to recipe-box. One photo per recipe is enough for now, shown at the top of the recipe page."
+  },
+  {
+   "t": "2026-09-14T09:04:31Z",
+   "k": "tool",
+   "text": "Read app/routes/recipes.py"
+  },
+  {
+   "t": "2026-09-14T09:12:08Z",
+   "k": "tool",
+   "text": "Write app/routes/photos.py"
+  },
+  {
+   "t": "2026-09-14T09:19:45Z",
+   "k": "reply",
+   "text": "Photo upload is in. Each recipe page now has an Upload photo button, and the photo shows at the top of the recipe. All 22 tests pass, including 4 new ones for uploads."
+  },
+  {
+   "t": "2026-09-14T09:41:12Z",
+   "k": "prompt",
+   "text": "Uploading a photo from my phone fails. Small test images work, but a real photo just says Upload failed."
+  },
+  {
+   "t": "2026-09-14T09:44:50Z",
+   "k": "tool",
+   "text": "Grep upload_limit"
+  },
+  {
+   "t": "2026-09-14T09:58:03Z",
+   "k": "reply",
+   "text": "The web server rejects uploads over 1 MB, and photos from a phone are usually 3 to 6 MB. Raising the limit in the server config should fix it."
+  },
+  {
+   "t": "2026-09-14T10:02:26Z",
+   "k": "prompt",
+   "text": "Raise it to 10 MB."
+  },
+  {
+   "t": "2026-09-14T10:06:40Z",
+   "k": "reply",
+   "text": "Done: the server now accepts uploads up to 10 MB. Try your phone photo again."
+  },
+  {
+   "t": "2026-09-14T10:31:15Z",
+   "k": "prompt",
+   "text": "Still failing, same message."
+  },
+  {
+   "t": "2026-09-14T10:40:02Z",
+   "k": "away",
+   "text": "You're adding photo upload to recipe-box. Phone photos still fail after the server limit went up to 10 MB; next is finding what else rejects them."
+  },
+  {
+   "t": "2026-09-14T10:52:37Z",
+   "k": "reply",
+   "text": "Found a second limit: the app itself also capped uploads at 1 MB. I raised it to 10 MB as well and added a test that uploads a 6 MB photo."
+  },
+  {
+   "t": "2026-09-14T11:08:20Z",
+   "k": "prompt",
+   "text": "Works now. A 6 MB photo from my phone uploaded fine."
+  },
+  {
+   "t": "2026-09-14T11:15:02Z",
+   "k": "prompt",
+   "text": "The photo shows up sideways though."
+  },
+  {
+   "t": "2026-09-14T11:22:48Z",
+   "k": "reply",
+   "text": "Phones save the rotation as a separate tag instead of turning the pixels, and the page ignored that tag. I now turn each photo the right way up when it is uploaded."
+  },
+  {
+   "t": "2026-09-14T11:30:10Z",
+   "k": "prompt",
+   "text": "Perfect, it's the right way up now."
+  },
+  {
+   "t": "2026-09-14T11:40:05Z",
+   "k": "prompt",
+   "text": "Sam has the keys for the photo storage bucket. I asked him this morning and he said he'd send them this week. Until then photos stay on the server's disk."
+  },
+  {
+   "t": "2026-09-14T11:41:30Z",
+   "k": "reply",
+   "text": "OK. Photos stay on disk for now, and once Sam's keys arrive I'll move them to the bucket."
+  },
+  {
+   "t": "2026-09-14T11:52:44Z",
+   "k": "prompt",
+   "text": "Lena is checking the new photo layout on her phone. I'll wait for her feedback before the release."
+  },
+  {
+   "t": "2026-09-14T11:53:20Z",
+   "k": "reply",
+   "text": "Got it: the release waits for Lena's feedback on the layout."
+  },
+  {
+   "t": "2026-09-14T12:01:09Z",
+   "k": "prompt",
+   "text": "Shrinking photos before saving would be nice, but let's leave that until after the launch."
+  },
+  {
+   "t": "2026-09-14T12:01:50Z",
+   "k": "reply",
+   "text": "Noted: shrinking photos is for after the launch."
+  },
+  {
+   "t": "2026-09-14T12:10:33Z",
+   "k": "prompt",
+   "text": "I want to demo recipe-box at the web meetup on September 20. I'll sign up for a demo slot this week."
+  },
+  {
+   "t": "2026-09-14T12:11:05Z",
+   "k": "reply",
+   "text": "Good luck with the demo. Photo upload should make a nice one."
+  },
+  {
+   "t": "2026-09-14T12:18:47Z",
+   "k": "prompt",
+   "text": "One more thing: deleting a recipe should delete its photo too."
+  },
+  {
+   "t": "2026-09-14T12:19:20Z",
+   "k": "reply",
+   "text": "Noted: deleting a recipe should also remove its photo. It isn't done yet."
+  },
+  {
+   "t": "2026-09-14T12:19:30Z",
+   "k": "title",
+   "text": "Add photo upload to recipes"
+  }
+ ]
+}

@@ -4,7 +4,7 @@
 
 # treesight
 
-**一眼想起每个 AI 编程会话做了什么、还有什么没完。**
+**一眼想起每个 AI 会话做了什么、还有什么没完。**
 
 [English](README.md) · **中文**
 
@@ -14,9 +14,9 @@
 
 它就在你自己的 Claude Code 里运行:没有服务器,不用注册账号,不用另配 API 密钥,页面不发任何网络请求。
 
-![一个会话的树从树根长出来;一个节点展开,显示中间卡了约 1.5 小时,列出卡在、应对、结果三行和各自的时刻;然后是整个项目的待完成,按已失效、待你确认、after the trip、没定时间分段](docs/demo.gif)
+https://github.com/user-attachments/assets/612410b1-4171-4112-ae3d-9b58128cd13a
 
-<sub>本仓库里编造的示例项目(`docs/demo.html`,由 `dev/make_sample.py` 生成),2026-10-20 录制,天数按那天算。动图是英文界面;浏览器的首选语言里中文排在英文前面时,页面用中文。</sub>
+<sub>本仓库里编造的示例项目的中文版(由 `dev/make_sample.py --sample recipe-box-zh` 生成,视频由 `dev/record_demo.mjs` 录制)。天数按示例数据自己的日期计算,页面界面跟随浏览器的语言。</sub>
 
 > [!NOTE]
 > 非官方,与 Anthropic 无关。早期版本:只在 Claude Code 里用,只有深色。
