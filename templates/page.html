@@ -181,8 +181,9 @@ const W=ZH?{
   pendingLate:'This is taking much longer than expected and may have stopped. Run /treesight:treesight again in Claude Code; if it is still running, it will say so.',
   gone:'Claude Code has deleted this session’s transcript; this is what the ledger kept.'};
 /* ---------- time: stored as ISO with year, shown in local time ---------- */
-const pad=n=>String(n).padStart(2,'0'),TODAY=new Date();
+const pad=n=>String(n).padStart(2,'0');
 const parse=s=>/T/.test(s)?new Date(s):new Date(s+'T00:00:00');
+const TODAY=D.today?parse(D.today):new Date();   /* a sample page counts days to its own date */
 const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const fdate=s=>{const d=parse(s);return d.getFullYear()===TODAY.getFullYear()?pad(d.getMonth()+1)+'-'+pad(d.getDate()):ymd(d)};
 const ftime=s=>fdate(s)+' '+pad(parse(s).getHours())+':'+pad(parse(s).getMinutes());

@@ -1,0 +1,78 @@
+{
+ "note": "Made up for the treesight README demo. No real person, project or session. Times are UTC.",
+ "project": "/home/dev/recipe-box",
+ "session": "recipe-2",
+ "version": "2.1.299",
+ "events": [
+  {
+   "t": "2026-09-23T09:00:20Z",
+   "k": "custom_title",
+   "text": "release 1.2"
+  },
+  {
+   "t": "2026-09-23T09:01:14Z",
+   "k": "prompt",
+   "text": "Sam sent the storage keys. Let's move the photos to the bucket and get 1.2 out."
+  },
+  {
+   "t": "2026-09-23T09:06:30Z",
+   "k": "tool",
+   "text": "Read app/storage.py"
+  },
+  {
+   "t": "2026-09-23T09:19:52Z",
+   "k": "reply",
+   "text": "Photos now go to the storage bucket, and the 37 photos already on disk were copied over. All 24 tests pass."
+  },
+  {
+   "t": "2026-09-23T09:44:08Z",
+   "k": "prompt",
+   "text": "Deployed 1.2. The site is live with photo upload."
+  },
+  {
+   "t": "2026-09-23T09:50:31Z",
+   "k": "prompt",
+   "text": "I never signed up for the meetup demo and the meetup was on September 20, so that's off."
+  },
+  {
+   "t": "2026-09-23T09:51:02Z",
+   "k": "reply",
+   "text": "Understood, the meetup demo is off."
+  },
+  {
+   "t": "2026-09-23T10:05:47Z",
+   "k": "prompt",
+   "text": "I think Lena said the layout looks fine on her phone, but I can't find her message."
+  },
+  {
+   "t": "2026-09-23T10:06:20Z",
+   "k": "reply",
+   "text": "When you find it, tell me if she asked for any changes."
+  },
+  {
+   "t": "2026-09-23T10:20:15Z",
+   "k": "prompt",
+   "text": "Let's write a short announcement for 1.2 on the blog. I'll do it on Friday."
+  },
+  {
+   "t": "2026-09-23T10:21:00Z",
+   "k": "reply",
+   "text": "The highlights would be photo upload and photos that now show the right way up."
+  },
+  {
+   "t": "2026-09-23T10:35:40Z",
+   "k": "prompt",
+   "text": "Alex offered to test 1.2 on his Android phone. Waiting for his results."
+  },
+  {
+   "t": "2026-09-23T10:36:10Z",
+   "k": "reply",
+   "text": "OK, waiting for Alex's results."
+  },
+  {
+   "t": "2026-09-23T10:36:20Z",
+   "k": "title",
+   "text": "Release 1.2 with photo upload"
+  }
+ ]
+}
