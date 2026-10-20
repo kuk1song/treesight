@@ -16,10 +16,10 @@ const LANGS = {
       'Open a node: where it got stuck, for how long, and the quote behind it',
       'The project: everything still open, from every session, in one list']},
   zh: {sample: 'recipe-box-zh', session: '706417bf', node: '手机照片能上传了', locale: 'zh-CN', out: 'treesight-tour-zh.mp4',
-    cover: {steps: ['会话的树', '点开一个节点', '所有还没完的事'], foot: '用一个编造的菜谱网站演示一遍'},
+    cover: {steps: ['会话的树', '点开一个节点', '所有还没做完的事'], foot: '用一个编造的菜谱网站演示一遍'},
     captions: ['在会话里运行 /treesight:treesight,它的树会在本地页面上长出来',
       '点开一个节点:卡在哪、卡了多久,以及原话',
-      '整个项目:所有会话里还没完的事,一张清单']},
+      '整个项目:所有会话里还没做完的事,一张清单']},
 };
 const W = 1100, H = 688, DPR = 2, FPS = 30, DT = 1000 / FPS, SCROLL = 170;   // wider than the page's 1020 px breakpoint
 
