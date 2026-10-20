@@ -34,7 +34,7 @@ claude plugin install treesight --marketplace kuk1song/treesight
 
 It works in Claude Code on your own computer: tested in the terminal, while the desktop app's Code tab and the IDE extensions should work but are untested. It does not run in cloud sessions, Cowork, claude.ai chat or other coding agents ([details](docs/design.md#5-delivery)).
 
-treesight also needs `python3` 3.9 or later (the one that comes with macOS works) on macOS or Linux; Windows is untested. Tested with Claude Code 2.1.299. Updates are off by default for a marketplace like this one: turn them on in `/plugin`, or run `claude plugin update treesight@treesight`.
+treesight also needs `python3` 3.9 or later (Apple's, from the Command Line Tools, works) on macOS or Linux; Windows is untested. Tested with Claude Code 2.1.299. Updates are off by default for a marketplace like this one: turn them on in `/plugin`, or run `claude plugin update treesight@treesight`, then `/reload-plugins` or a new session.
 
 ## Use
 
@@ -48,13 +48,13 @@ Within seconds treesight asks your browser to open the page, and the session's t
 
 - **Another session of this project:** add its id or words from its title, as in `/treesight:treesight 0a182a7b` or `/treesight:treesight release`. The project page lists every session; the ones without a tree show the command to run.
 - **Run it again** to read only what is new. A run started while another is still going runs in the foreground, so your conversation waits for it.
-- **Correct the page:** `/treesight:treesight close <words from the item>`, or `reopen`, `hide`, or `set <item> when=after the trip` (fields: label, line, kind, due, when, who, rank, score, blocked_by). Your corrections always win.
+- **Correct the page:** `/treesight:treesight close <words from an item's label>`, or `reopen`, `hide`, or `set <item> when=after the trip` (fields: label, line, kind, due, when, who, rank, score, blocked_by). Your corrections always win.
 
 ## How it works
 
 1. **Read:** a script reads the transcript in `~/.claude/projects` without any model, removes common secret formats, and masks IPv4 addresses and emails.
 2. **Extract:** a subagent in the background picks out the nodes and open items with your own model and account, leaving your conversation as it is. Each must quote the session word for word.
-3. **Check and save:** a script checks every quote against the message it cites, then appends the result to a local ledger. Later runs read only what is new; closes the model is unsure about wait for you to confirm.
+3. **Check and save:** a script checks every quote against the message it cites, then appends the result to a local ledger. Later runs read only what is new, and when the model is not sure an item is finished, it waits for you to confirm.
 4. **Draw:** a script builds one static page per project. No model is involved.
 
 The skill pre-approves only two things: running its own script, and writing its result under `~/.cache/treesight`. Anything else follows your usual permission settings. What is shortened, what is checked and where each file lives are in [docs/design.md](docs/design.md).
@@ -63,11 +63,11 @@ The skill pre-approves only two things: running its own script, and writing its 
 
 - The page makes no network requests. Its Content Security Policy allows no network access and no script but its own, and session text sits in a non-executing block, so it cannot run as code.
 - The digest reaches the model the same way your conversation does: same account, same provider, after common secret formats are removed and IPv4 addresses and emails are masked.
-- treesight sends nothing anywhere else. Its ledger (in `~/.local/share/treesight/` by default) stays after you uninstall the plugin; delete that folder to remove what treesight recorded.
+- treesight sends nothing anywhere else. Its ledger (in `~/.local/share/treesight/` by default) stays after you uninstall the plugin; delete that folder and `~/.cache/treesight` to remove what treesight kept.
 
 ## Time and cost
 
-Extraction counts against your Claude Code plan. treesight favours finding every open item over speed, so it runs at xhigh effort with your session's model. Measured on 2026-10-16 with Opus 5.5, as API-price equivalents: a 15-prompt session took 3.1 minutes ($0.64), and a 73-prompt session with 7 compactions took 21 minutes ($8.50) and found all 17 items on that session's own last to-do list. Later runs read only what is new, and redrawing the page uses no model. All measurements: [docs/design.md](docs/design.md#6-known-limits-and-what-remains-to-verify).
+Extraction counts against your Claude Code plan. treesight favours finding every open item over speed, so it runs at xhigh effort with your session's model. Measured on 2026-10-16 with Opus 5.5, as API-price equivalents: a 15-prompt session took 3.1 minutes ($0.64), and a 73-prompt session with 7 compactions took 21 minutes ($8.50) and found all 17 items on that session's own last to-do list. Later runs read only what is new, and a run with nothing new costs one short model turn. All measurements: [docs/design.md](docs/design.md#6-known-limits-and-what-remains-to-verify).
 
 ## Limitations
 

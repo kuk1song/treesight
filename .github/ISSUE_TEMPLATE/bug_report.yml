@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Please do not paste text from your own sessions, file paths, emails, addresses or keys. Describe the session in general terms instead, or reproduce the problem with the made-up project in `fixtures/`.
+        Please do not paste text from your own sessions, file paths, emails, addresses or keys. Describe the session in general terms instead.
   - type: textarea
     id: what
     attributes:

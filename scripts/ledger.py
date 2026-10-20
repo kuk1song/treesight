@@ -181,9 +181,11 @@ def project_dir(key):
 
 
 def private_dir(path):
-    """Make a folder only the user can read: the ledger and work files hold text from sessions."""
-    os.makedirs(path, exist_ok=True)
-    os.chmod(path, 0o700)
+    """Make a folder only the user can read: the ledger and work files hold text from sessions. Only a folder made
+    here is restricted; one that already exists keeps its mode, so a wrong path passed in is never changed."""
+    if not os.path.isdir(path):
+        os.makedirs(path, exist_ok=True)
+        os.chmod(path, 0o700)
     return path
 
 
@@ -521,9 +523,17 @@ def main(argv=None):
         print()
         return 0
     if a.cmd == "edit":
-        fields = dict(f.split("=", 1) for f in a.fields)
-        if "rank" in fields or "score" in fields:
-            fields.update({k: int(fields[k]) for k in ("rank", "score") if k in fields})
+        fields = {}
+        for f in a.fields:
+            if "=" not in f:
+                raise SystemExit("--field %r: expected FIELD=VALUE" % f)
+            k, v = f.split("=", 1)
+            fields[k.strip()] = v.strip()
+        for k in ("rank", "score"):
+            if fields.get(k):       # an empty value clears the field, as in treesight.py
+                if not re.fullmatch(r"-?\d+", fields[k]):
+                    raise SystemExit("%s must be a whole number, not %r" % (k, fields[k]))
+                fields[k] = int(fields[k])
         print(json.dumps(edit(a.project, a.action, a.target, fields), ensure_ascii=False))
         return 0
     with open(a.extract, encoding="utf-8") as f:

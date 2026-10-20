@@ -42,7 +42,8 @@ function chromium() {
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'treesight-demo-'));
 const frames = path.join(tmp, 'frames'); fs.mkdirSync(frames);
-const run = (cmd, args) => { const r = spawnSync(cmd, args, {cwd: ROOT, encoding: 'utf8'}); if (r.status) throw new Error(cmd + ' failed:\n' + r.stderr); return r };
+const run = (cmd, args) => { const r = spawnSync(cmd, args, {cwd: ROOT, encoding: 'utf8'});
+  if (r.error || r.status !== 0) throw new Error(cmd + ' failed: ' + (r.error ? r.error.message : r.stderr)); return r };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // the page, built from the fixtures the same way the plugin builds pages; it counts days to the sample's own date
@@ -123,7 +124,7 @@ try {
     const scroll = async (dy, ms) => { const k = Math.round(ms / DT), y0 = dry ? 0 : await js('scrollY');
       for (let i = 1; i <= k; i++) { if (!dry) await js(`scrollTo(0,${y0 + dy * ease(i / k)})`); await f() } };
     const fade = async (to, ms) => { const k = Math.round(ms / DT), o0 = cop; for (let i = 1; i <= k; i++) { cop = o0 + (to - o0) * i / k; await f() } };
-    // 1: the tree grows, slowed to about 2.4 s
+    // 1: the tree grows: its first 0.3 s at normal speed, the rest slowed, about 2 s in all
     await hold(300); await hold(2400, 1000 / 2400); await hold(900);
     // 2: open the node that got stuck, then its quotes
     step = 2; let r = await at(`[...document.querySelectorAll('.node')].find(b=>b.textContent.includes(${JSON.stringify(L.node)}))`);

@@ -10,7 +10,8 @@ machine secrets, IPv4 addresses and emails are masked; with --public the build a
 Sessions come from the transcripts on disk and from the ledger: a session whose transcript Claude Code has
 deleted (after 30 days by default) is still drawn from what the ledger kept, marked as gone.
 
-Usage: python3 build.py --project PROJECT [--current SESSION_ID] [--focus SESSION_ID] [--out FILE] [--public] [--open]
+Usage: python3 build.py --project PROJECT [--current SESSION_ID] [--focus SESSION_ID] [--out FILE] [--now TIME] [--pending JSON]
+                        [--public] [--open]
 PROJECT is the transcript folder (~/.claude/projects/<key>) or one of its .jsonl files.
 """
 import argparse
@@ -68,7 +69,7 @@ def _kept_meta(sid, led, state):
     else (ledgers written before 2026-10-16 store none) what its nodes and items tell."""
     m = led.get("meta") or {}
     ats = [n["at"] for n in led["nodes"]] + [o["raised_at"] for o in state["open"] if o.get("session") == sid]
-    ats = sorted(ats) or [led["last_run"]["at"]]
+    ats = sorted((x for x in ats if "T" in x), key=transcript.instant) or [led["last_run"]["at"]]   # times only: first_at and last_at are datetimes
     return {"id": sid, "title": m.get("title"), "custom_title": bool(m.get("custom_title")),
             "first_at": m.get("first_at") or ats[0], "last_at": m.get("last_at") or ats[-1],
             "prompts": m.get("prompts") or {"total": 0, "substantive": 0}, "compactions": m.get("compactions") or 0,
@@ -95,14 +96,14 @@ def page_data(folder, current=None, now=None, pending=None, focus=None):
     sessions = []
     for m in metas:
         led = state["sessions"].get(m["id"])
-        doc = {"schema": "treesight/session@1", "id": m["id"], "title": _clip(m["title"] or m["id"][:8], 200),
+        doc = {"schema": "treesight/session@1", "id": m["id"], "title": _clip(transcript.scrub(m["title"] or m["id"][:8]), 200),
                "custom_title": m["custom_title"], "first_at": m["first_at"], "last_at": m["last_at"],
                "prompts": m["prompts"], "compactions": m["compactions"], "generated": bool(led and led["runs"]),
                "nodes": [], "open": []}
         if m.get("gone"):
             doc["gone"] = True
         if m["line"]:
-            doc["summary"] = _clip(m["line"], 600)
+            doc["summary"] = _clip(transcript.scrub(m["line"]), 600)   # scrubbed first: a mask can be longer than what it hides
         if led and led["runs"]:
             doc["through"] = led["through"]
             doc["nodes"] = led["nodes"]

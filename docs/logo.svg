@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="72" height="72" role="img" aria-label="treesight logo: a small tree with two done dots and one open ring">
 <style>
-/* waits 0.9 s (on GitHub the image often loads before the page first paints), grows in about 1.6 s, then the open
+/* waits about 0.95 s (on GitHub the image can load before the page first paints; 0.8 s earlier when measured on 2026-10-20), grows in about 1.6 s, then the open
    ring pings twice; all motion ends by 4.6 s. The base styles are the finished tree, so a renderer that runs no
    animation, or a reader who asks for less motion, sees it whole */
 .d{stroke-dasharray:1 2;animation:draw .45s cubic-bezier(.45,.05,.35,1) backwards}

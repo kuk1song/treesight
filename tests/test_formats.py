@@ -168,6 +168,12 @@ class Transcript(unittest.TestCase):
                            ("max_tokens: 4096", "max_tokens: 4096"), ("output_tokens: 123456789", "output_tokens: 123456789"),
                            ("password reset email sent", "password reset email sent")):
             self.assertEqual(s(text), want, text)
+        # provider formats, built at run time so that no file in the repository holds a string shaped like a real key
+        for token in ("sk_" + "live_" + "a1" * 12, "rk_" + "test_" + "b2" * 12, "glpat-" + "c3" * 10, "npm_" + "d4" * 18,
+                      "hf_" + "e5" * 16, "ya29." + "f6" * 12):
+            self.assertEqual(s("token " + token + " end"), "token [secret] end", token)
+        self.assertEqual(s("Authorization: Basic " + "dXNlcjpwYXNz" * 2), "[secret]")
+        self.assertEqual(s("npm_modules and hf_hub are names, not keys"), "npm_modules and hf_hub are names, not keys")
 
     def test_compaction_keeps_pending_tasks(self):
         long = "x " * 3000
