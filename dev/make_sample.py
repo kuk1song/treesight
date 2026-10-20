@@ -2,10 +2,10 @@
 """Build a sample page from a made-up project, the way the plugin would:
 digest each session after what the ledger holds, check and append the stored extraction, build the page.
 
-recipe-box (the default) is the README demo, docs/demo.html; tidepool is the project the tests and the
-measurements in docs/design.md use. The ledger goes to a temporary TREESIGHT_HOME, removed afterwards,
+recipe-box (the default) is the README demo, docs/demo.html, and recipe-box-zh the same story in Chinese for the
+Chinese README's video; tidepool is the project the tests and the measurements in docs/design.md use. The ledger goes to a temporary TREESIGHT_HOME, removed afterwards,
 so nothing of the user's own data is touched.
-Usage: python3 dev/make_sample.py [--sample recipe-box|tidepool] [--out docs/demo.html]
+Usage: python3 dev/make_sample.py [--sample recipe-box|recipe-box-zh|tidepool] [--out docs/demo.html]
 """
 import argparse
 import glob
@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.join(ROOT, "scripts"))
 # time, which is also the date the page counts days to, so the page is the same every time and for everyone
 SAMPLES = {
     "recipe-box": ("-home-dev-recipe-box", [("0c4f931d", "recipe-1.json"), ("0c0f810a", "recipe-2.json")], "2026-10-03T09:00:00Z"),
+    "recipe-box-zh": ("-home-chen-recipe-box", [("706417bf", "recipe-zh-1.json"), ("e3b89c9b", "recipe-zh-2.json")], "2026-10-03T09:00:00Z"),
     "tidepool": ("-home-dev-tidepool", [("953c0ab1", "tidepool-1.json"), ("0a182a7b", "tidepool-2.json")], "2026-09-24T09:00:00Z"),
 }
 

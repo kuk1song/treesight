@@ -1,0 +1,28 @@
+{
+ "note": "Made up for the treesight README demo (the Chinese version of recipe-box). No real person, project or session. Times are UTC.",
+ "project": "/home/chen/recipe-box",
+ "session": "recipe-zh-3",
+ "version": "2.1.299",
+ "events": [
+  {
+   "t": "2026-10-02T12:10:20Z",
+   "k": "prompt",
+   "text": "登录测试大概十次里失败一次。能查一下原因吗？"
+  },
+  {
+   "t": "2026-10-02T12:16:05Z",
+   "k": "reply",
+   "text": "和时钟有关：测试刚好跨过一秒的边界时，令牌会被当成过期。我在测试里把时钟固定住了。"
+  },
+  {
+   "t": "2026-10-02T12:20:44Z",
+   "k": "prompt",
+   "text": "谢谢，连续跑了 20 次都是绿的。"
+  },
+  {
+   "t": "2026-10-02T12:20:50Z",
+   "k": "title",
+   "text": "修好不稳定的登录测试"
+  }
+ ]
+}
