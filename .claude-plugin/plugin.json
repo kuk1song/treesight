@@ -1,6 +1,6 @@
 {
   "name": "treesight",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Recall what each session did and what it left open: a tree per session and one list of what is still open across the project, on a local page with no network requests.",
   "author": {"name": "kuk1song", "url": "https://github.com/kuk1song"},
   "homepage": "https://github.com/kuk1song/treesight",

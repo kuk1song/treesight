@@ -1,13 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.1.3 (2026-10-20)
 
 - Page: the Chinese interface uses full-width Chinese punctuation (：，；？（）), as Chinese typography guides ask.
 - Secret scrubbing also removes Stripe secret and restricted keys, GitLab, npm and Hugging Face tokens, Google OAuth access tokens and HTTP basic credentials.
 - A run's digest and extraction are deleted when the run ends, also when it fails, instead of staying until the next run.
 - The page still builds when a session title or summary holds addresses or secrets near the length limit (they are now masked before being cut), and when an old ledger has items raised on a date without a time.
 - Page: long file names and paths wrap instead of running off a narrow screen; English says "1 day"; the Chinese interface ends its sentences with 。, says 已过 n 天 for put-off items as well as waits, and spaces Latin names that start with an accented letter.
-- The command line answers every failure, including file system errors, with `{"ok": false, "error": …}` that the skill reads, and `set` explains a field without `=` or a rank that is not a whole number.
+- The command line also answers file system errors with `{"ok": false, "error": …}`, which the skill reads, and `set` explains a field without `=` or a rank that is not a whole number.
 - treesight restricts only the folders it creates; a folder that already exists keeps its permissions.
 - README: the opening is a question, then what treesight does and that it runs as a plugin inside your AI; the logo waits 0.9 s before it grows, so the growth is not over before GitHub shows the page; the top note became one line under License and "dark theme only" a limitation; the caption under the video is gone; a run with nothing new is said to cost one short model turn; the Chinese README uses full-width punctuation and says 没做完.
 - Demo: both demo projects live in /home/kuki/recipe-box; the Chinese one reads more naturally (为菜谱添加照片上传功能, 旋转方向单独存储, 删菜谱也删照片); the video cover shows the logo, the name and the three steps; both videos re-recorded.
