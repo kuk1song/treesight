@@ -1,5 +1,5 @@
 """dev/check_release.py, the check that plugin.json's version, its CHANGELOG section and a release tag agree.
-Run: python3 -m unittest -v"""
+Run: python3 -m unittest discover -s tests"""
 import contextlib
 import io
 import os

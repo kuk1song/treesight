@@ -5,7 +5,7 @@
 - The page's interface language is the first of the browser's preferred languages that the page has (Chinese or English), instead of only the first preferred language.
 - The design document (`docs/design.md`) is now in English.
 - README: a logo, a five-second animation of the sample page in place of the two screenshots, a three-step quick start, a Using it section and where to get help. Images use Markdown syntax.
-- Contributing guide, bug report form and pull request template. Releases are published by a workflow that first checks that the tag, `plugin.json` and this file agree; Dependabot keeps the pinned GitHub Actions current.
+- Contributing guide, bug report form and pull request template. Releases are published by a workflow that first checks that the tag, `plugin.json` and `CHANGELOG.md` agree; Dependabot keeps the pinned GitHub Actions current.
 
 ## 0.1.0 (2026-10-20)
 

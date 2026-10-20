@@ -15,7 +15,7 @@ It runs inside your own Claude Code: no server, no account, no extra API key, an
 
 ![A session's tree grows from its root; one node opens to show it was stuck about 1.5 hours, with the stuck, response and result rows and their times; then the project's open items, grouped as no longer possible, to confirm, after the trip, and no time set](docs/demo.gif)
 
-<sub>The made-up sample project in this repository (`docs/demo.html`, built by `dev/make_sample.py`), recorded on 2026-10-20, so day counts run to that date. Browsers that prefer Chinese get the page in Chinese.</sub>
+<sub>The made-up sample project in this repository (`docs/demo.html`, built by `dev/make_sample.py`), recorded on 2026-10-20, so day counts run to that date. The animation shows the English interface; the page is in Chinese when the browser lists Chinese before English among its preferred languages.</sub>
 
 ## Quick start
 
@@ -28,7 +28,7 @@ It runs inside your own Claude Code: no server, no account, no extra API key, an
 
 2. Open a session you want to see (for example with `claude --resume`) and run `/treesight:treesight`.
 
-3. Within seconds (7 to 12 in testing) your browser opens the page. The session's tree appears there when the background run is done, which takes a few minutes for most sessions (see [What it costs](#what-it-costs)); you can keep working meanwhile.
+3. Within seconds (7 to 12 in testing) treesight asks your browser to open the page. The session's tree appears there when the background run is done, which takes a few minutes for most sessions (see [What it costs](#what-it-costs)); you can keep working meanwhile.
 
 Needs Claude Code (tested with 2.1.299), `python3` 3.9 or later (the one that comes with macOS works), and macOS or Linux. Windows is untested.
 
@@ -37,7 +37,7 @@ Needs Claude Code (tested with 2.1.299), `python3` 3.9 or later (the one that co
 - **Another session of the same project:** add its id or words from its title, as in `/treesight:treesight 0a182a7b` or `/treesight:treesight release`. The project page lists every session; the ones without a tree show the command to run.
 - **Running it again** reads only what is new in the session. If you start it while a run is still going, Claude Code runs the second one in the foreground, so your conversation waits until it is done.
 - **Correcting the page:** `/treesight:treesight close <words from the item>`, or `reopen`, `hide`, or `set <item> when=after the trip` (fields: label, line, kind, due, when, who, rank, score, blocked_by). Your corrections always win over extraction.
-- **One-step install:** on Claude Code 2.1.275 or later, `/plugin install treesight --marketplace kuk1song/treesight` does both install commands at once.
+- **One-step install:** in a terminal, `claude plugin install treesight --marketplace kuk1song/treesight` does both install commands at once (checked with Claude Code 2.1.299).
 
 ## How it works
 

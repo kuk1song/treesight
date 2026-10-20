@@ -1,5 +1,5 @@
 """The page build: escaping, the CSP hash, the public-page guard, colours in step with dev/palettes.json, and the sample project.
-Run: python3 -m unittest -v"""
+Run: python3 -m unittest discover -s tests"""
 import base64
 import glob
 import hashlib

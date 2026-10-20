@@ -1,4 +1,4 @@
-"""scripts/treesight.py, the commands the skill runs, on the made-up project. Run: python3 -m unittest -v"""
+"""scripts/treesight.py, the commands the skill runs, on the made-up project. Run: python3 -m unittest discover -s tests"""
 import contextlib
 import glob
 import io

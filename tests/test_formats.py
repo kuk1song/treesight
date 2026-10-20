@@ -1,4 +1,4 @@
-"""Schemas, the stdlib validator, the transcript adapter and the extraction check. Run: python3 -m unittest -v"""
+"""Schemas, the stdlib validator, the transcript adapter and the extraction check. Run: python3 -m unittest discover -s tests"""
 import copy
 import glob
 import json
