@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.1 (2026-10-20)
 
 - The page's interface language is the first of the browser's preferred languages that the page has (Chinese or English), instead of only the first preferred language.
 - The design document (`docs/design.md`) is now in English.
