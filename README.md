@@ -1,6 +1,8 @@
 <div align="center">
 
-# ![](docs/logo.svg) treesight
+![treesight logo: a small tree with two done dots and one open ring](docs/logo.svg)
+
+# treesight
 
 **Recall what each AI session did, and what it left open.**
 
@@ -8,9 +10,9 @@
 
 </div>
 
-Do you find it hard, after a while, to recall how a session went and its details? Try treesight :) treesight reads the whole session and draws it as a tree: what got done, what was found, where it got stuck, and what is still open.
+Do you find it hard, after a while, to recall how a session went and its details? Give treesight a try :)
 
-treesight runs as a plugin inside your AI: no server, no account, no extra API key, and the page makes no network requests.
+treesight reads the whole session and draws it as a tree: what got done, what was found, where it got stuck, and what is still open. It runs as a plugin inside your AI: no server, no account, no extra API key, and the page makes no network requests.
 
 https://github.com/user-attachments/assets/6feeb3f9-d0c9-48d9-b1da-ba560d523305
 

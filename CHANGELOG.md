@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Page: the Chinese interface uses full-width Chinese punctuation (：，；？（）) as Chinese typography guides ask, instead of half-width marks that looked cramped.
+- README: the logo is back above the name; it now waits 0.9 s before growing (on GitHub the image often loads before the page first paints) and is still by 4.6 s. The Chinese README uses full-width punctuation, and the opening is a question, then what treesight does and that it runs as a plugin inside your AI.
 - README: the logo sits beside the name (32 px, aligned with the heading); the opening asks the reader's question and the next line says treesight runs as a plugin inside your AI; the Chinese tagline uses a comma.
 - Demo: both projects live in /home/kuki/recipe-box, the Chinese session title reads 为菜谱添加照片上传功能, and the video cover shows only the logo, the name and the three steps; both videos re-recorded.
 - README: the opening states the problem in the reader's terms and says treesight runs inside your own AI (currently Claude Code); the top note became one line under License (an independent project, not affiliated with Anthropic) and "dark theme only" a limitation; the developer caption under the video is gone. The Chinese README says 没做完 instead of 没完.
