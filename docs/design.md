@@ -1,202 +1,203 @@
-# treesight 设计
+# treesight design
 
-唯一的设计来源。改设计先改这里;实现与这里不一致时,以作者最后的决定为准并回写这里。最后整理:2026-10-19(第二次交互复测后修订)。
+The single source of the design. Change the design here first; where the code and this file disagree, the author's latest decision wins and is written back here. Last revised: 2026-10-20 (translated to English after the third interactive test and the v0.1.0 release).
 
-## 一、要解决什么
+## 1. The problem
 
-- 会话多了以后想不起来:某个会话做过什么、查清了什么、还有什么没完。官方有会话列表、`/recap`(只说当前会话,一句话)和下面列的状态视图,没有把每个会话做过什么、还剩什么跨会话汇总起来的本地视图。
-- 同类(2026-10-15 按各仓库自述与官方文档核对):
-  - 浏览、统计或回放,不用模型:ccusage、claude-code-log、claude-code-history-viewer、ccresume、claude-history、claude-replay、bough。官方的 `/insights` 出整体用量报告;agent view、桌面版侧栏与 Projects 显示会话此刻要你、进行中还是完成,Projects 的「Waiting on you」只管云端线程。
-  - 用模型提炼会话:claude-mem、alluvia(带原话证据的决定与没解决的问题)、context-visualizer(带类型的里程碑)、thoughtdag;agentsview(本地搜索、统计与 insights)和 wayfinder(把目标、尝试、分支与结果画成历史)是否用模型未核实。
-  - 管没收尾的事:loose-ends(凭原话提议关掉,由你确认)、openloops(从 GitHub issue 列欠着与被挡住的事)、官方 productivity 插件(`TASKS.md` 加本地看板)。
-  - treesight 要做的是这三件的组合(核对时没见到哪个工具同时做到):按「结束了吗、谁来动」把会话提炼成节点,画成会话树与项目视图;跨会话列出待完成,写明等谁、已等几天、过期、被谁挡住;只追加的账本(见四节)。
-- 判断:回忆过去的决定是真需求;树形是表达方式,不是目的。名字与功能都围绕「看一眼就想起来、知道还剩什么」。
+- With many sessions it is hard to recall what a session did, what it established and what is still open. Claude Code has a session list, `/recap` (the current session only, in one sentence) and the status views listed below, but no local view that brings together, across sessions, what each one did and what remains.
+- Similar tools (checked on 2026-10-15 against each repository's own description and the official docs):
+  - Browsing, statistics or replay without a model: ccusage, claude-code-log, claude-code-history-viewer, ccresume, claude-history, claude-replay, bough. The official `/insights` gives an overall usage report; agent view, the desktop sidebar and Projects show whether a session needs you now, is running or is done, and Projects' "Waiting on you" covers cloud threads only.
+  - Extracting sessions with a model: claude-mem, alluvia (decisions with quoted evidence, and unresolved questions), context-visualizer (typed milestones), thoughtdag. Whether agentsview (local search, statistics and insights) and wayfinder (goals, attempts, branches and results drawn as history) use a model is unverified.
+  - Tracking loose ends: loose-ends (proposes closing an item with a quote, for you to confirm), openloops (what is owed and blocked, from GitHub issues), the official productivity plugin (`TASKS.md` plus a local board).
+  - treesight sets out to combine three things that none of the tools checked does together: sessions extracted into nodes by "is it over, and who moves next", drawn as a session tree and a project view; open items listed across sessions with who they wait on, for how many days, what is overdue and what blocks what; an append-only ledger (section 4).
+- Judgement: recalling past decisions is a real need; the tree is the means, not the goal. The name and the features serve "recall at a glance, and know what is left".
 
-## 二、分类:两个问题
+## 2. Classification: two questions
 
-1. **结束了吗?** 结束的画在树干上,只有两种:**做完**(含定下来的事;中间卡过但最后成了也算,标签写结果,波折放进「经过」;修好但未验证不算)与**发现**(查清了什么)。
-2. **没结束的,谁来动?** **待办**(你来)、**等待**(在等别人或先放着),合称**待完成**。
+1. **Is it over?** What is over goes on the trunk, in two kinds only: **done** (decisions included; something that got stuck but worked out counts too, labelled by its result, with the bumps in its story; fixed but not verified does not count) and **found** (something established).
+2. **If not, who moves next?** **To do** (you) and **waiting** (on someone else, or put off on purpose); together they are the **open items**.
 
-依据:内部测试 13 个会话、117 个时刻、44 个未了项,两个模型独立标注。两类一致 90.6%(kappa 0.79);原来的四类 84%(0.76);五类 81%(0.73);未了项 75%(0.59)。分成两类主要为好懂,一致率差别在误差之内。
+Basis: an internal test of 13 sessions, 117 moments and 44 open items, labelled independently by two models. Two classes agreed 90.6% (kappa 0.79); the earlier four classes 84% (0.76); five classes 81% (0.73); open items 75% (0.59). Two classes were chosen mainly because they are easy to understand; the differences in agreement are within error.
 
-规则:
-- ↺ 推翻可以挂在做完或发现上;悬停画虚线连到被推翻的节点,并把它划掉。
-- 连续同类的事合成一个节点,悬停写「这里合了 N 件相关的事」;一条因果链只画最值得回忆的一步。
-- 一次性的操作指令不算待完成。
+Rules:
+- ↺ An overturn can hang on a done or a found node; hovering draws a dashed line to the overturned node and strikes it through.
+- Consecutive events of the same kind become one node, which says "N related events merged here" on hover; of a chain of cause and effect only the step most worth recalling is drawn.
+- A one-off instruction is not an open item.
 
-## 三、画面
+## 3. The page
 
-### 形状与颜色
+### Shapes and colours
 
-颜色之外必有形状差(WCAG 1.4.1):做完实心圆,发现四角星,卡过在枝条上留一个「树疤」圈,待办空心圈,等待虚线圈,已过期实心红点。
+Every colour difference also has a shape difference (WCAG 1.4.1): done is a filled circle, found a four-pointed star, getting stuck leaves a scar ring on the branch, to do is a hollow ring, waiting a dashed ring, overdue a filled red dot.
 
-### 会话视图
+### Session view
 
-- 中轴树干,节点左右交替,新的在上,树根是起点。标签 8 个字以内(一个汉字或一个英文词算一个字);悬停一句话;点击展开小枝与「看原文」;窄屏时卡片从底部弹出;有焦点描边。
-- 默认节点:按重要度排名(同分取较新)取前 min(9, 节点总数),按时间排在树上,不强塞任何类型。节点不超过 9 个就全显示,不出「显示全部」。节点总数由提炼决定,随会话大小变。
-- 按时间排的依据:Parnin 与 DeLine(CHI 2010)发现自动线索让中断后恢复的成功率达到只靠笔记的 2 倍,且偏好按时间顺序的线索。
-- 标题后写「当前」表示你正在的会话。
+- A central trunk with nodes alternating left and right, newest at the top and the root as the start. Labels have at most 8 units (one CJK character or one word counts as one unit); hovering shows one sentence; clicking expands the twigs and "Show source"; on narrow screens the card slides up from the bottom; focus is outlined.
+- Default nodes: the top min(9, node count) by score (ties to the newer), drawn in time order, with no kind forced in. With 9 nodes or fewer, all are shown and there is no "Show all". The node count comes from extraction and grows with the session.
+- Why time order: Parnin and DeLine (CHI 2010) found that automatic cues doubled the rate of successful resumption after an interruption compared with notes alone, and that people preferred cues in time order.
+- "Current" after the title marks the session you are in.
 
-### 树冠
+### Crown
 
-- 只留一个按钮「待完成 N 件 · 显示时间轴 ▸」(有过了截止日的加「已过期 N」,有模型判为不能再办的加「已失效 N」),打开后变「收起时间轴 ◂」,再点收回。
-- 去掉了「刚做完」:它和树干第一个节点重复。
-- 去掉了「下一步」:它是 agent 在压缩那一刻写下的计划(压缩摘要里叫 Optional Next Step),不是用户要处理的事,过时最快,却占全页最大的图标,不符合视觉层级(NN/g:最重要的最大)。回到一个会话时的提示由 Claude Code 自己的回顾与 `/recap` 负责。
-- 不列已完成的事(GitHub、Apple 提醒事项、Linear、Things、agent view 都把已完成隐藏或下沉)。
+- One button only, "N still open · Show timeline ▸", with "· N overdue" when due dates have passed and "· N no longer possible" when the model judged items can no longer be done; opened, it reads "Hide timeline ◂", and a second click closes it.
+- "Just done" was dropped: it repeats the first node on the trunk.
+- "Next step" was dropped: it is the plan the agent wrote at compaction time ("Optional Next Step" in the compaction summary), not something the user has to handle; it goes stale fastest, yet it took the largest icon on the page, against visual hierarchy (NN/g: the most important is the largest). Reminders on returning to a session are left to Claude Code's own recaps and `/recap`.
+- Finished items are not listed (GitHub, Apple Reminders, Linear, Things and agent view all hide or sink them).
 
-### 卡过的节点
+### A node that got stuck
 
-- 树疤按卡住时长着色:不到 1 小时灰棕,1 小时到 1 天中棕,超过 1 天亮橙(参照 Statuspage 可用性条)。时长不确定时按已知下限画。
-- 点开是三行等高的小时间线「卡在 / 应对 / 结果」,每行带时刻,总耗时放最前(参照 Google SRE 复盘时间线);三行图标依次是树疤圈、小灰点、做完圆点;临时绕过的那一步加「临时」标签(PagerDuty 模板分 temporary fix 与 long-term solution,8D 分暂行与永久对策)。
+- The scar is coloured by how long it was stuck: under 1 hour grey brown, 1 hour to 1 day mid brown, over 1 day bright orange (after Statuspage availability bars). When the duration is uncertain, the known lower bound is drawn.
+- Opened, it is a small timeline of three rows of equal height, "Stuck / Response / Result", each row with its time and the total duration first (after Google SRE postmortem timelines); the row icons are the scar ring, a small grey dot and the done circle; a temporary workaround gets a "Temporary" tag (the PagerDuty template separates temporary fix from long-term solution, and 8D separates interim from permanent actions).
 
-### 待完成抽屉
+### Open-items drawer
 
-- 右侧抽屉,标题「待完成的事」,写明范围(这个会话,或整个项目里已生成的 N 个会话)与今天日期;一列,轴在左。
-- 分段由数据决定:已过期(过了截止日)与已失效(不能再办)在最前,两种都有时段名写「已过期或失效」;然后「待你确认」(模型认为做完但没把握的),然后按数据里出现的时间标签分段,最后是「没定时间」;只有有内容的段才出现。
-- 段内:提炼时排过先后的几件在前,下面一条「以下按提出先后」分隔;在等别人的放段末,写等谁(没写等谁的是自己先放着,写「先放着」)、从哪天起、已等几天(参照 Todoist 的 @waiting_for 与 Things 的标签);被另一件事挡住的写「先要你『某事』」,悬停或聚焦任一端时两条一起高亮。
-- 已过期写「过期 N 天」;已经不能再办的写「已失效 · 关掉?」,它同时过了截止日也算已失效(树冠计数、分段名与这一行一致;2026-10-20 前树冠把它算成已过期)。整条轴不按提出时间排,也不做「越久越淡」(会藏起最久的事);没有日期的事不冒充远近。
-- 全部列出,不只显示前几件(「只显示 3 件」没有硬依据)。
+- A drawer on the right titled "Still open", stating its scope (this session, or the N sessions with a tree in the project) and today's date; one column with the axis on the left.
+- Sections come from the data: overdue (past the due date) and no longer possible first, named "Overdue or no longer possible" when both occur; then "To confirm" (the model thinks it is done but is unsure); then one section per time label found in the data; last "No time set". Only sections with items appear.
+- Within a section: items the extraction ranked come first, then a "Below: in the order raised" divider; items waiting on others come last and say who they wait on ("Put off" when no one is named, meaning you put it off yourself), since when and for how many days (after Todoist's @waiting_for and Things' tags); an item blocked by another says "First you: “…”", and hovering or focusing either one highlights both.
+- Overdue items say "N days overdue"; items that can no longer be done say "No longer possible · close it?", and such an item counts as no longer possible even when its due date has also passed (the crown count, the section name and the row agree; before 2026-10-20 the crown counted it as overdue). The axis is not ordered by when items were raised, and older items do not fade (that would hide the oldest); items without a date are not placed as if near or far.
+- Everything is listed, not only the first few (there is no firm basis for "show 3").
 
-### 项目视图
+### Project view
 
-- 每个会话一个圆点,越大提问越多(旁边写着「N 次提问」);当前会话是白色圆点,其他是灰色(白灰对比 3.26:1,灰点对背景 4.83:1),读屏软件读「当前会话」。
-- 鼠标指着或聚焦任一会话时,圆点外 0.35 秒画出一圈;悬停不加灰底。
-- 已生成树的会话名后有「›」,是链接,点一下直接进它的树(Apple HIG:下钻用指示箭头;Shneiderman 1996:概览优先、细节按需,并能回溯)。还没生成的会话点了只展开一行简介,写明「还没生成」。
-- 树冠下一行写覆盖范围:「来自已生成的 N 个会话 · 另有 M 个还没生成」。项目的待完成只来自已生成的会话。
-- 会话名取用户自己起的名字,没有才用自动生成的标题。
-- 不放「在终端继续」按钮:官方 `claude --resume` 选择器选到别的项目的会话时会自己复制 `cd` 加续接命令,`--resume <id>` 自 2.1.223 起在任意目录可用;同一会话在两处同时续接会交错写进同一份记录。树唯一能多给的是「从某个节点分叉」,公开支持只有 Agent SDK 的 resumeSessionAt;提炼时先存每个节点对应的消息编号,留口子。
+- One dot per session, larger with more prompts (labelled "N prompts"); the current session is a white dot and the others grey (white to grey 3.26:1, grey dot to background 4.83:1), and screen readers say "Current session".
+- Pointing at or focusing a session draws a ring around its dot in 0.35 s; hovering adds no grey background.
+- A session with a tree has "›" after its name and is a link straight into its tree (Apple HIG: a disclosure indicator for drilling down; Shneiderman 1996: overview first, details on demand, with a way back). A session without a tree only expands a one-line summary saying there is no tree yet.
+- Under the crown, one line gives the coverage: "From N sessions with a tree · M not generated yet". The project's open items come only from sessions with a tree.
+- A session is named by the user's own title, else by the generated one.
+- No "continue in terminal" button: the official `claude --resume` picker copies the `cd` and resume command itself when it picks a session of another project, `--resume <id>` works in any directory since 2.1.223, and resuming one session in two places interleaves writes into the same transcript. The only thing a tree could add is "fork from this node", publicly supported only by the Agent SDK's resumeSessionAt; extraction already stores each node's message id, leaving room for it.
 
-### 导航
+### Navigation
 
-- hash 路由:`#p` 是项目视图,`#s=<会话 id 前 8 位>` 是某个会话,无 hash 时是这次生成的会话,没有就是当前会话,它还没有树时显示项目视图;刷新和书签都能落回同一画面,浏览器后退可用(NN/g:后退键是用户的「救命绳」)。
-- 返回项目:贴在左边缘的竖排书签「整个项目」,不带箭头,鼠标停上去探出一点;窗口窄于 1020 像素时退回左上角的普通按钮。从项目点进来的返回会弹出历史,不再多压一条。层级只有两层,不用完整面包屑(NN/g)。
+- Hash routes: `#p` is the project view and `#s=<first 8 characters of a session id>` a session; without a hash, the page shows the session this build is about, else the current session, and the project view while that session has no tree. Reloads and bookmarks land on the same view, and the browser's back button works (NN/g: the back button is the user's lifeline).
+- Back to the project: a vertical tab "Whole project" on the left edge, without an arrow, that slides out a little on hover; in a window narrower than 1020 pixels it becomes an ordinary button at the top left. Going back after coming from the project pops the history instead of pushing another entry. With only two levels, there is no full breadcrumb (NN/g).
 
-### 图例
+### Legend
 
-只列当前画面上真有的图形:项目视图不放图例;会话视图按当前显示的节点列出做完、发现、树疤;抽屉的图例只列这个列表里有的(待办、等待、已过期)。
+Only shapes on the current view are listed: the project view has no legend; the session view lists done, found and scar for the nodes shown; the drawer lists what its list contains (to do, waiting, overdue).
 
-### 动画
+### Motion
 
-- 每个画面出现时,树从可见范围的底部往上长出来(矮窗口里树根常在屏幕外)。第一次看到这份数据 1.0 秒;之后刷新、进项目、进会话、返回、后退都是 0.6 秒;「显示全部」只让新增的节点长出来,0.45 秒。整套按最晚结束的一段统一缩放到目标时长。
-- 生长中点一下或按任意键立刻长完;系统开了「减少动态效果」时不动;「已看过」记在浏览器本地存储。
-- 依据与取舍:NN/g 建议多数界面动画在 0.1 到 0.5 秒、越常看到越短,Apple HIG 建议频繁操作少用动效;「每个画面都长」是作者的要求,0.6 秒加随时跳过是折中。作者在真实浏览器实测「点进会话:渲染 3 毫秒 + 生长 0.61 秒(计划 0.60)」。
+- Each view grows its tree upward from the bottom of the visible area (in a short window the root is often below the fold). The first time a set of data is seen it takes 1.0 s; after that, reloads, entering the project or a session, going back and the back button take 0.6 s; "Show all" grows only the added nodes, in 0.45 s. The whole sequence is scaled so that its last piece ends at the target time.
+- A click or any key during growth finishes it at once; with reduced motion requested there is no motion; "already seen" is kept in the browser's local storage.
+- Basis and trade-off: NN/g recommends 0.1 to 0.5 s for most interface animations, shorter the more often they are seen, and Apple HIG advises little motion for frequent actions; growing on every view is the author's request, and 0.6 s with a skip at any time is the compromise. Measured by the author in a real browser: entering a session took 3 ms to render plus 0.61 s of growth (0.60 planned).
 
-### 主题与配色
+### Theme, colours and language
 
-- 首发只出深色:声明 `color-scheme: dark`,不读系统设置;页脚写「目前只有深色」。这是范围取舍,不是最佳实践:NN/g 认为正常视力下浅色更好、应允许切换并默认跟随系统;WCAG 不要求提供浅色。浅色配色留在 `dev/palettes.json`,以后单独重配,不机械反转。
-- 配色的唯一来源是 `dev/palettes.json`;模板 `templates/page.html` 里写死同样的值,单元测试保证两边一致;`python3 dev/palcheck.py` 检查正文 4.5 : 1(对底色和抽屉底色)、图形 3 : 1。
-- 界面文字中英两套,按浏览器的首选语言选(中文用中文,其余用英文);提炼出的内容保持会话原来的语言。标签页图标是 logo 草图 B 版放在深色圆角底块上的内嵌 SVG(2026-10-16 作者选定):不靠深浅色媒体查询,因为 Safari 26 会忽略 SVG 图标里的媒体查询(WebKit bug 309949),原先的透明底版本在浅色 Safari 里树干几乎看不见。
-- 当前配色(palettes.json 的 default):做完 #C8FF00,发现 #FFD60A,待办同色空心圈,等待 #6E6F74,已过期 #FF6F61,树疤 #9C8167 / #C48A5C / #F0A060。图形对底色都不低于 3.6:1。风险:深色下做完与发现在绿色盲下色差只有 0.034(OKLab),靠圆与星区分。
-- 公开版沿用这套配色(2026-10-16 作者定),以后单独重配;10-06 曾有一套「信号」候选(过去全灰,蓝与朱橙,三种色盲下色差不低于 0.237),按旧分类测的,用前要重新映射。
+- Dark only for now: the page declares `color-scheme: dark` and does not read the system setting, and the footer says "Dark theme only". This is a scope choice, not best practice: NN/g finds light mode better for normal vision and recommends letting people switch, following the system by default; WCAG does not require a light mode. Light colours stay in `dev/palettes.json`, to be redone separately rather than inverted mechanically.
+- The single source of colours is `dev/palettes.json`; `templates/page.html` has the same values hard-coded and a unit test keeps them in step; `python3 dev/palcheck.py` checks 4.5:1 for text (on the background and on the drawer) and 3:1 for shapes.
+- Language comes from three places. The interface text, in Chinese or English, follows the browser's first preferred language: Chinese when it starts with `zh`, English otherwise. Extracted text stays in the session's language: the model writes labels, lines and stories in the language most of the user's prompts are in, helped by the digest's header, which counts the prompts containing Chinese characters in each pass. The report in the conversation is in the language of the session's prompts. A Chinese session can therefore appear in an English interface, and the other way round.
+- The tab icon is logo sketch B on a dark rounded square, as inline SVG (chosen by the author on 2026-10-16), with no light and dark media queries because Safari 26 ignores media queries in SVG icons (WebKit bug 309949); the earlier transparent version left the trunk nearly invisible in light Safari. The README shows the same mark as `docs/logo.svg`, with a thin border for GitHub's dark theme; it grows once in about 1.6 s and stays still when reduced motion is requested.
+- Current colours (the `default` scheme in palettes.json): done #C8FF00, found #FFD60A, to do a hollow ring in the same green, waiting #6E6F74, overdue #FF6F61, scars #9C8167 / #C48A5C / #F0A060. Every shape is at least 3.6:1 against the background. Risk: on dark, done and found differ by only 0.034 (OKLab) for green-blind viewers and are told apart by circle and star.
+- The public version keeps this palette (author's decision, 2026-10-16), to be redone later; a "signal" candidate from 2026-10-06 (the past all grey, blue and vermilion, at least 0.237 apart under three kinds of colour blindness) was tested on the earlier classification and needs remapping before use.
 
-## 四、数据与提炼
+## 4. Data and extraction
 
-- **原料都在会话记录里**(`~/.claude/projects/<项目>/<会话>.jsonl`):自动回顾、压缩边界与压缩摘要、每条提问、自动标题与自定标题。官方明说记录格式是内部的,任何版本都可能变,所以读取集中在一个适配器里。记录默认保留 30 天(`cleanupPeriodDays`),只靠记录重算会让旧会话从树上消失。所以页面以账本为准:提炼时把会话的标题、起止时间、提问数一起记进账本,画页面用「磁盘上的记录加账本里的会话」;记录已被清理的会话照样显示,并注明原记录已删。2026-10-16 之前页面只读磁盘上的记录,记录一清理,树和待完成会一起不见。
-- **不每次全部重新生成**:模型输出本身不确定(官方:温度设成 0 也不完全确定,较新的模型不让调温度);内部测试里同一个会话提炼两次,一次 9 个节点、一次 18 个,只有 4 个明确对上。所以:
-  - 提炼结果记进本机一个只追加的账本;已生成的冻结,每个会话记着读到哪里,只提炼新增;正在进行的会话读到哪里冻结到哪里,末尾还开着的事记成待完成,之后的运行只能关掉它们。
-  - 模型只能新增,或凭原话关掉已有编号的待完成(补画更早的会话时,还能凭之后的记录关掉自己新增的,见下「生成顺序」);对不准的进「待你确认」,不自动关。失效和做完分开记。
-  - 用户手动改的单独一层,永远优先。全部重来(用户明确要求或提炼规则改了时,先另算一份给看差别,同意才换,旧的保留)还没实现。
-  - 页面从账本画,没有新内容就不调用模型;会话标题下写上次生成新增了几个节点、几件待完成,关掉了几件、几件交你确认。后两个数按叠上用户手改之后的结果算(用户 `reopen`、`close`、`hide` 过的条目都不算),和页面上的清单一致;2026-10-19 之前两种合成「关掉 N 件」,对不上。用户手改永远优先,所以用户 `reopen` 过的条目,之后模型再关也不生效。
-  - **生成顺序**(2026-10-19 改):关闭只能指向账本里已有的待完成,所以先画后来的会话、再补画更早的会话时,更早会话里后来已经办完的事会重新列成待完成(Codex 用编造项目复现:按时间先后画剩 6 件,倒过来画剩 8 件)。现在补画时,摘录头列出「之后的记录」:别的会话里时刻在这份摘录开始之后的节点和模型做的关闭,各带一段入账时核对过的原话(用户 `reopen` 驳回的关闭、`hide` 掉的节点和条目不列;最多 4 万字,多了留最新的)。模型把被它们办完的新条目写进 `settled`,只写条目和记录的编号,账本照搬那条记录的原话记一次关闭;没把握的照样交用户确认。按时间先后画时摘录头没有这一段,和改之前一样。仍做不到:后来会话的节点推翻更早会话的节点;后来会话里办完、却没记成节点或关闭的事。
-  - 关闭的时间检查(2026-10-19 加):关闭引用的那条消息早于条目被提出的时刻,账本拒收(只有日期的,按那天在 UTC+14 开始的时刻算,免得时区把当天的关闭挡掉);关闭写的时刻必须是那条消息的时刻(之前没核对)。已有待完成里在这份摘录开始之后才提出的,摘录头写明提出时刻。
-- **摘录不截原文**(2026-10-16 改):提问、回复、每轮中间的助手文字都全文交给模型。只有两处缩短,并在摘录头写明:粘贴进来的大段内容只留前 400 字;压缩摘要按小节优先级截到 8000 字(它是对前文的重述,原文都在记录里)。
-  - 一份摘录装不下(默认 15 万字)时分段:尽量在一轮对话的边界断开;提炼完一段先写进账本,下一段接着账本读到的地方。一次运行最多读两段,剩下的写在报告里,再运行一次接着读,这样子 agent 的上下文不会无限变长。只为准备时就装不下的内容读第二段;运行期间用户在会话里新写的内容留给下一次运行(2026-10-20 前会多读一段)。只有单条内容比一整段还长时才截它,摘录头写明截了几条。
-  - 改之前每条提问和每轮最后的回复固定只留 1500 字、中间的回复只留 500 字,摘录头却写「没截」。交互实测里一个 8 次提问的真实会话因此漏了 8 件待完成(摘录只用了上限的 13%)。
-  - treesight 自己留下的记录不算新内容:调用 `/treesight` 的那条消息,以及它的完成通知引起的那一轮主会话回复。否则在当前会话里每运行一次,下一次就必然「有新内容」,还会把主会话对报告的转述当成会话内容再入账一遍。那一轮到下一条开启新一轮的用户记录(提问、斜杠命令、别的通知)为止。会话原文里恰好有一行长得像摘录的条目头时,前面加一个空格,免得被当成一条新条目。
-- **数据格式**(2026-10-12 定,2026-10-16 写成 `schema/` 下的 JSON Schema):节点与待完成都有稳定编号,账本与页面都按编号认,不按标题文字;日期存带年份的完整时刻,页面显示本地时间;引用会话用会话 id,不用标题(标题可以改)。
-  - 模型每次只交一份「提炼输出」(`extract.schema.json`):新增的节点、新增的待完成、对已有待完成的关闭建议,以及哪些新条目已被之后的记录办完(见上「生成顺序」);新条目用临时名 `n1`、`o1`,正式编号由账本分配。每条都带对应的消息编号与 1 到 3 段原话;脚本逐字核对原话确实出现在那条消息里(只容忍空白与两端省略号),时刻与编号也要对得上,不过就不入账。
-  - 页面读每个会话的状态(`session.schema.json`):脚本读出的元数据,加账本重建、叠上用户手改后的节点与待完成。待完成的状态有三种:未完、待你确认(模型认为做完但没把握)、已失效 · 关掉?。schema 允许没有原话的条目(`by: user`,给以后手加条目留的),现在没有手加条目的命令。
-  - 标签、一句话、小枝的长度按「一个汉字或一个英文词算一个字」由脚本检查(`scripts/schema.py`,只用标准库)。
-  - 「被挡住」目前只能指向一件事;实测里模型指出发版同时等两件,以后可改成多件。
-- **按需生成**:从哪个会话里运行就生成哪个会话,别的会话要用 id 或标题词指定;项目列表由脚本读元数据,不用模型。静态网页不能叫模型,所以点没生成的会话只能提示回 Claude Code 运行命令后刷新。运行命令后,后台子 agent 的头两步就打开页面(2026-10-16 与 10-19 交互实测 6 次:5 次在命令后 7 到 12 秒打开;1 次因子 agent 第一次回复的输出流中断、Claude Code 重新请求,205 秒才打开),先画已有的内容,顶上写「正在生成某会话,约 N 分钟」并每 20 秒自动刷新,生成完换成新结果、不再刷新;生成中不播放生长动画。NN/g 建议超过 10 秒的等待显示进度百分比,但静态页拿不到提炼进度,只能给预计时间(按 10-16 未指定思考强度的实测拟合:120 秒加摘录每千字 3.5 秒;固定 xhigh 后,编造会话实测是预计的 0.8 到 1.3 倍,73 次提问大会话约 1.0 倍,输出特别多的 8 次提问会话是 2.7 倍)。
-  - 每个正在进行的生成在插件数据目录留一个任务标记。页面在超过预计时间 20 分钟后提示「可能已经中断」(第二段不重新计时,预计时间按整次运行算);这时再运行,如果那次运行 20 分钟内还有动静,会说正在生成,否则视为已中断、重新开始。同一项目同时有几个在生成时,页面把它们都列出来,全部完成才停止刷新;页面直接打开这次生成的会话。从读任务标记、读账本到写出页面都在项目锁里,同时有两次构建时,读到旧状态的那次不会晚于读到新状态的那次写出(2026-10-19 之前没有这把锁,Codex 用受控交错复现过:旧页面覆盖新页面,已画好的树暂时不见,「正在生成」一直不消失)。同一会话已经在生成时再运行,不重复提炼,只打开页面。官方:同一个 skill 还在跑时再调用,第二次会在前台运行,主对话要等它做完。
-- **隐私与安全**:页面零网络请求,并用内容安全策略锁住(`default-src 'none'`,脚本只放行页面自己那一段的哈希,图片只允许内嵌);提炼前剔除常见密钥格式,包括名字里带 token、password、secret、api key 的赋值(如 `DB_PASSWORD=…`、JSON 里的 `"password": "…"`;2026-10-20 发布前审查发现之前漏掉这类写法);数据放在不执行的 JSON 块里,`<`、`>`、`&` 都转义,会话原文里的 `</script>` 不会截断它。要公开的示例页构建时断言没有未打码的 IPv4 和邮箱;用户本机生成的页面改为打码,不让构建失败(会话里常出现本机回环地址这类 IP)。
+- **Everything comes from the transcripts** (`~/.claude/projects/<project>/<session>.jsonl`): automatic recaps, compaction boundaries and summaries, every prompt, generated and custom titles. The official docs say the format is internal and may change in any release, so all reading is in one adapter. Transcripts are kept for 30 days by default (`cleanupPeriodDays`), so rebuilding from transcripts alone would drop old sessions from the page. The page therefore relies on the ledger: extraction stores each session's title, start and end times and prompt counts with the run, and the page draws the transcripts on disk plus the sessions in the ledger; a session whose transcript was cleaned up is still shown, marked as such. Before 2026-10-16 the page read only the transcripts on disk, so a cleanup removed the tree and its open items too.
+- **No full regeneration each time:** model output is not deterministic (official: even temperature 0 is not fully deterministic, and newer models do not allow setting it); in an internal test the same session extracted twice gave 9 nodes once and 18 the other time, with only 4 clearly matching. So:
+  - Results go into a local append-only ledger. What is generated is frozen, each session remembers how far it was read, and only new content is extracted. An ongoing session is frozen as far as it was read; things still open at that point become open items, which later runs can only close.
+  - The model can only add, or close an existing open item by its id with a quote (when an earlier session is drawn after later ones, it can also close its own new items with the later records, see "Drawing order"); unsure closes go to "To confirm" and are not applied. "No longer possible" and "done" are recorded separately.
+  - The user's own changes are a separate layer and always win. Starting over (when the user asks or the extraction rules change: compute a second version, show the difference, switch only on approval, keep the old one) is not implemented.
+  - The page is drawn from the ledger, with no model call when nothing is new. Under a session's title it says how many nodes and open items the last run added, how many it closed and how many it left to confirm. The last two count after the user's changes (items the user reopened, closed or hid count as neither), so they match the list on the page; before 2026-10-19 both were merged into "N closed", which did not match. Because the user's changes always win, an item the user reopened stays open even if the model closes it again later.
+  - **Drawing order** (changed 2026-10-19): a close can only name an open item already in the ledger, so when a later session was drawn first and an earlier one afterwards, things the later session had finished came back as open (another agent, Codex, reproduced this with the made-up project: 6 open in time order, 8 in reverse). Now, when an earlier session is drawn, the digest's header lists "later records": other sessions' nodes and model closes from after the digest starts, each with a quote checked when it was recorded (closes the user rejected with `reopen`, and hidden nodes and items, are left out; at most 40,000 characters, keeping the newest). The model lists the new items they settled under `settled`, naming only the item and the record, and the ledger records a close with that record's own quote; unsure ones still go to the user. Drawn in time order, the header has no such section, as before. Still not covered: a later session's node overturning an earlier session's node, and things a later session finished without recording them as a node or a close.
+  - Time checks on closes (added 2026-10-19): the ledger refuses a close whose quoted message is earlier than the item was raised (a date without a time counts from that date's start in UTC+14, so a time zone cannot block a same-day close), and a close's time must be its message's time (not checked before). Open items raised after the digest starts have their raised time in the header.
+- **The digest keeps texts whole** (changed 2026-10-16): prompts, replies and the assistant's text within each turn reach the model in full. Only two things are shortened, and the header says so: pasted blocks keep their first 400 characters, and compaction summaries are cut to 8,000 characters by section priority (they restate earlier messages, which are all in the transcript).
+  - A digest holds 150,000 characters by default. More is read in passes, broken at turn boundaries where possible, and each pass is recorded before the next continues from there. One run reads at most two passes and reports what is left, and the next run goes on, so the subagent's context stays bounded. A second pass is read only for content that did not fit when the run was prepared; what the user writes during the run waits for the next run (before 2026-10-20 it caused an extra pass). Only an entry longer than a whole pass is cut, and the header says how many were.
+  - Before the change, every prompt and every turn's last reply kept only 1,500 characters and other replies 500, while the header said nothing was cut. In an interactive test a real 8-prompt session lost 8 open items this way (its digest used 13% of the limit).
+  - treesight's own traces are not new content: the message that invoked `/treesight`, and the main conversation's turn that its completion notice starts. Otherwise every run in the current session would find new content the next time and record the main conversation's retelling of the report as session content. That turn ends at the next user record that starts a turn (a prompt, a slash command, another notice). A line in a session that happens to look like a digest entry header gets a leading space, so it is not taken for a new entry.
+- **Data formats** (settled 2026-10-12, written as JSON Schema under `schema/` on 2026-10-16): nodes and open items have stable ids, and the ledger and the page match by id, not by title text; times are stored in full with the year and shown in local time; sessions are referenced by id, not by title (titles can change).
+  - The model hands in one extraction output per pass (`extract.schema.json`): new nodes, new open items, proposed closes of existing open items, and which new items later records already settled (see "Drawing order"). New entries use temporary refs such as `n1` and `o1`, and the ledger assigns ids. Each carries its message id and one to three quotes; a script checks that each quote appears verbatim in that message (tolerating only whitespace and ellipses at either end) and that times and ids match, and records nothing otherwise.
+  - The page reads each session's state (`session.schema.json`): metadata from the script plus the nodes and open items rebuilt from the ledger with the user's changes applied. Open items have three states: open, to confirm (the model thinks it is done but is unsure), and no longer possible. The schema allows items without a quote (`by: user`, reserved for items added by hand later); there is no command to add items yet.
+  - Label, line and twig lengths are counted in units (one CJK character or one word) and checked by a script (`scripts/schema.py`, standard library only).
+  - "Blocked by" can name only one item; in testing the model pointed out a release waiting on two things, so it may allow several later.
+- **On demand:** the session a command runs in is the one drawn, and other sessions are named by id or by words from their title; the project list is built from metadata by a script, without a model. A static page cannot call the model, so a session without a tree can only say to run the command in Claude Code and reload. After the command, the background subagent's second step opens the page (in 6 interactive runs on 2026-10-16 and 2026-10-19, 5 opened it 7 to 12 s after the command; 1 took 205 s because the subagent's first reply broke off mid-stream and Claude Code asked for it again). The page first shows what is already known, says "Drawing “…”, about N min" at the top and reloads every 20 s, then shows the result and stops reloading; growth is not animated while drawing. NN/g recommends showing a percentage for waits over 10 s, but a static page cannot see extraction progress, so it gives an estimate (fitted on 2026-10-16 runs with no effort set: 120 s plus 3.5 s per 1,000 digest characters; with effort fixed at xhigh, the made-up sessions took 0.8 to 1.3 times the estimate, the 73-prompt session about 1.0 times, and an 8-prompt session with unusually long output 2.7 times).
+  - Each run in progress leaves a job mark in the plugin's data folder. The page says a run may have stopped once it is 20 minutes past its estimate (a second pass does not restart the clock; the estimate covers the whole run); running the command then says the session is still being drawn if that run touched its mark in the last 20 minutes, and otherwise treats it as stopped and starts again. When several sessions of a project are being drawn, the page lists them all and stops reloading only when all are done; it opens on the session this run draws. Reading the job marks and the ledger and writing the page all happen under the project lock, so of two builds at once, the one that read the older state never writes last (before 2026-10-19 there was no such lock, and Codex reproduced, with a controlled interleaving, an older page replacing a newer one, with the drawn tree gone for a while and "Drawing" never clearing). Running the command for a session already being drawn does not extract again; it only opens the page. Official: invoking a skill that is still running runs the second invocation in the foreground, and the main conversation waits for it.
+- **Privacy and security:** the page makes no network requests and is locked down by a Content Security Policy (`default-src 'none'`, the page's own script allowed by hash only, images only inline). Common secret formats are removed before extraction, including assignments whose name contains token, password, secret or api key (such as `DB_PASSWORD=…` and `"password": "…"` in JSON; the review before publishing on 2026-10-20 found these had been missed). The data sits in a non-executing JSON block with `<`, `>` and `&` escaped, so `</script>` in a session cannot end it. The public sample page's build fails if an unmasked IPv4 address or email remains; pages built on the user's machine mask them instead (sessions often contain loopback addresses).
 
-## 五、交付
+## 5. Delivery
 
-- 首发:一个插件,仓库自带 GitHub marketplace;里面一个只由用户手动触发的 skill(`disable-model-invocation: true`),命令是 `/treesight:treesight`(插件里的 skill 带插件名前缀;没有别的命令占用这个名字时,不带前缀的 `/treesight` 也能用,2.1.299 实测)。
-- 提炼用 `context: fork` 在独立子 agent 里做,不占用户当前对话。官方:这个子 agent 看不到对话历史,所以 skill 正文要自足,当前会话 id 用 `${CLAUDE_SESSION_ID}` 传进去;它默认在后台跑(2.1.218 起),做完结果回到对话;后台子 agent 能用 Bash、读写文件,不能向用户提问,所以提炼中途不问,对不准的进「待你确认」。
-- **思考强度**(2026-10-17):skill 写 `effort: xhigh`。不写时子 agent 跟随会话的思考强度,而 Opus 5.5 与 Sonnet 5.5 在 Claude Code 里默认是 medium,于是同一个插件在不同人那里准确度和用时都不同,README 的实测数字也只对 xhigh 的人成立。官方:frontmatter 的 `effort` 覆盖会话的强度,只有环境变量 `CLAUDE_CODE_EFFORT_LEVEL` 能改它;实测编造会话在会话 xhigh、skill 写 low 时思考 token 从 13696 降到 264,覆盖有效。模型不固定(跟随会话):官方的模型别名在不同服务商指向不同版本(如 `opus` 在 Microsoft Foundry 上是 Opus 4.6),且 Sonnet 实测并不更快(见六节)。改用 high 的取舍见六节「思考强度对比」,待作者定。
-- 结果以完成通知回到主会话,主会话的模型可能据此自己去查。交互实测里它读了 treesight 的文件,又去翻用户的文档,在自动模式下这些会悄悄执行、花用户的额度。所以报告第一行写明「这是给用户的报告,主会话不用再做什么」。2026-10-19 交互实测:主会话不再调用工具,但仍把五行报告改写成更长的回复,还按自己的算术质疑待完成数(报告只写「提出 5 条关闭」,其中 3 条其实留在清单上交用户确认)。所以 `apply` 直接给出关掉几件、几件交用户确认、项目里现在还有几件,报告照写;主会话怎么转述控制不了,README 写明它可能评论。
-- **权限**(2026-10-16 交互实测后改):skill 的 `allowed-tools` 只写两条,`Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/treesight.py *)` 与 `Edit(~/.cache/treesight/**)`。依据官方文档:变量只在 skill 正文和 `allowed-tools` 的 Bash 规则里替换,不进 Bash 的环境变量;Read 与 Edit 规则里单斜杠开头不是绝对路径;Write 规则「收下但从不使用」,写文件由 Edit 规则管;`~/.claude` 是受保护目录,任何允许规则都不能预先放行对它的写入,而插件数据目录就在它下面。
-  - 所以模型读提炼说明、schema 和摘录都经脚本输出(`treesight.py show`,每段不超过 2 万字,低于 Bash 结果约 3 万字的内联上限);模型只写一个文件,即 `~/.cache/treesight/work/` 下的提炼结果(环境变量 `TREESIGHT_WORK` 可改位置,改了就会被问)。摘录和提炼结果在写进账本后删除;账本、摘录、任务标记和页面都是 600,目录 700(提炼结果由模型的 Write 工具写,文件权限随系统默认,所在目录是 700)。
-  - 试过把 JSON 经标准输入交给脚本:Claude Code 的安全检查拦下含大括号和引号的命令(原文 `Contains brace with quote character`),允许规则也绕不过。
-  - 2026-10-16 用 `claude -p --permission-mode default` 实验:这两条规则下读、写、改、提交都没有被拒;旧规则在交互实测的手动模式下,每次生成要点 4 到 5 次确认。`-p` 下 skill 在前台跑,覆盖不了后台流程和浏览器,所以交互流程以交互实测为准(六节)。
-- 脚本随插件打包,在 skill 正文里用 `${CLAUDE_PLUGIN_ROOT}` 引用(见上「权限」)。页面和任务标记放 `${CLAUDE_PLUGIN_DATA}`(官方:插件更新时保留,卸载时默认删除),都由脚本写;账本和用户手改的那一层放 `${XDG_DATA_HOME:-~/.local/share}/treesight/`,卸载插件也不删,环境变量 `TREESIGHT_HOME` 可改位置。生成本地 HTML(`${CLAUDE_PLUGIN_DATA}/pages/<项目键>.html`,可重建)后请浏览器打开:设了 `BROWSER` 时用 Python 的 webbrowser(照用户的设置);macOS 上用 `open -a` 加打开网页链接的那个应用(不用单独的 `open`,它按 .html 的关联应用打开,可能是编辑器);其他系统用 webbrowser。报告只说已请浏览器打开,不说已经打开。原因见六节「第三次交互实测」。
-- 只在 Claude Code 里用:skill 用了 Claude Code 专有的 frontmatter(`disable-model-invocation`、`context`),官方写明这类字段在 claude.ai 上传或 Skills API 打包时会直接报错;而且要读本机的会话记录。插件清单的 `icon` 只用于 Anthropic 目录的展示,Claude Code 不读。
-- 费用走用户自己的订阅:官方允许用户用自己的订阅登录未修改的 Claude Code;不允许第三方工具替用户拿订阅凭据发请求,所以独立命令行版本若做只支持 API key。
-- 延后:减少模型来回(让 `prepare` 顺手打开页面、`apply` 在一次运行结束时顺手画好最终页面,每次少两次来回,也少碰上回复停顿);hooks 自动增量(SessionEnd 只有约 1.5 秒,只够记账)、终端面板(mods,2.1.287 起终端默认开启,接口很新)、独立命令行、Artifact 分享(付费计划、内容存在 Anthropic)、浅色主题。
-- 跨 coding agent(2026-10-16 作者定:v0.1 只做 Claude Code,下一版先做 Codex):别家 agent 多数支持 `SKILL.md`,但不认 `context: fork` 与 Claude Code 的变量,多数也不把会话 id 交给命令,所以不把 skill 搬到别家去跑,而是仍由 Claude Code 提炼、给别家的会话记录各写一个读取器。Codex 的记录是 `~/.codex/sessions/` 下的 JSONL,和现有读取器最接近;同类多 agent 工具(SpecStory、agentsview、ccusage 等)也都是每家一个读取器,没有通用的记录格式。
+- First release: one plugin whose repository is its own GitHub marketplace, with one skill that only the user triggers (`disable-model-invocation: true`). The command is `/treesight:treesight` (skills in plugins carry the plugin's prefix; `/treesight` without it also works when no other command takes the name, verified on 2.1.299).
+- Extraction runs in a separate subagent through `context: fork`, leaving the user's conversation alone. Official: the subagent does not see the conversation history, so the skill body must be self-contained and the current session id is passed as `${CLAUDE_SESSION_ID}`; it runs in the background by default (since 2.1.218) and its result returns to the conversation; background subagents can use Bash and read and write files but cannot ask the user anything, so extraction never asks, and unsure items go to "To confirm".
+- **Effort** (2026-10-17): the skill sets `effort: xhigh`. Without it the subagent follows the session's effort, and Opus 5.5 and Sonnet 5.5 default to medium in Claude Code, so the same plugin would differ in accuracy and time from person to person, and the README's measurements would hold only for people at xhigh. Official: `effort` in the frontmatter overrides the session's level, and only the `CLAUDE_CODE_EFFORT_LEVEL` environment variable overrides it. Measured on the made-up session with the session at xhigh and the skill at low, thinking dropped from 13,696 to 264 tokens, so the override works. The model is not fixed (it follows the session): official model aliases point to different versions on different providers (`opus` is Opus 4.6 on Microsoft Foundry), and Sonnet measured no faster (section 6). Whether to switch to high is weighed in "Effort comparison" in section 6; the author has not decided yet.
+- The result returns to the main conversation as a completion notice, and the main conversation's model may start checking things on its own. In an interactive test it read treesight's files and then the user's documents, which in auto mode happens silently and spends the user's quota. So the report's first line says it is for the user and nothing else needs doing. In the 2026-10-19 interactive test the main conversation no longer called tools but still rewrote the five-line report into a longer reply, and questioned the open count with its own arithmetic (the report said 5 closes were proposed, while 3 of them stayed listed for the user to confirm). So `apply` now gives how many items were closed, how many were left to confirm and how many are open in the project, and the report states those numbers. How the main conversation retells the report cannot be controlled, and the README says it may comment.
+- **Permissions** (changed after the 2026-10-16 interactive test): the skill's `allowed-tools` has two rules, `Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/treesight.py *)` and `Edit(~/.cache/treesight/**)`. From the official docs: the variables are substituted only in the skill body and in `allowed-tools` Bash rules, not in Bash's environment; in Read and Edit rules a leading single slash is not an absolute path; Write rules are accepted but never used, since writes are governed by Edit rules; `~/.claude` is a protected folder whose writes no allow rule can pre-approve, and the plugin's data folder is inside it.
+  - So the model reads the extraction guide, the schemas and the digest through the script's output (`treesight.py show`, in parts of at most 20,000 characters, under the roughly 30,000 characters a Bash result shows inline), and writes exactly one file, its extraction under `~/.cache/treesight/work/` (`TREESIGHT_WORK` can move it, and then Claude Code asks before writing there). The digest and the extraction are deleted once recorded. The ledger, digest, job marks and page are mode 600 and their folders 700 (the extraction is written by the model's Write tool with the system's default mode, in a 700 folder).
+  - Passing the JSON to the script on standard input was tried: Claude Code's safety check blocks commands that contain braces with quotes (`Contains brace with quote character`), and allow rules cannot override it.
+  - Tested on 2026-10-16 with `claude -p --permission-mode default`: with these two rules nothing was denied in reading, writing, editing or applying; the old rules needed 4 to 5 confirmations per run in manual mode in the interactive test. Under `-p` the skill runs in the foreground, so the background flow and the browser are covered only by the interactive tests (section 6).
+- The scripts ship with the plugin and are referenced in the skill body with `${CLAUDE_PLUGIN_ROOT}` (see "Permissions"). Pages and job marks go to `${CLAUDE_PLUGIN_DATA}` (official: kept across plugin updates, deleted on uninstall by default), all written by the scripts; the ledger and the user's changes go to `${XDG_DATA_HOME:-~/.local/share}/treesight/`, kept on uninstall and movable with `TREESIGHT_HOME`. The local page (`${CLAUDE_PLUGIN_DATA}/pages/<project key>.html`, rebuildable) is then handed to the browser: with `BROWSER` set, through Python's webbrowser, which honours it; on macOS, with `open -a` and the app that opens web links (not plain `open`, which uses the app for .html files and can be an editor); elsewhere through webbrowser. The report says the browser was asked to open the page, not that it is open. The reason is in "Third interactive test" in section 6.
+- Claude Code only: the skill uses Claude Code's own frontmatter (`disable-model-invocation`, `context`), which the official docs say makes claude.ai uploads and Skills API packaging fail, and it reads local transcripts. The manifest's `icon` is only for the Anthropic directory listing; Claude Code does not read it.
+- Usage runs on the user's own plan: the official terms let users sign in to unmodified Claude Code with their own subscription, and do not let third-party tools send requests with a user's subscription credentials, so a standalone command line version would support API keys only.
+- Deferred: fewer model round trips (`prepare` opening the page itself and `apply` drawing the final page when a run ends, which saves two round trips per run and so meets fewer stalled replies); automatic increments through hooks (SessionEnd allows about 1.5 s, enough only to note things); a terminal panel (mods, on by default in the terminal since 2.1.287, a very new interface); a standalone command line; Artifact sharing (paid plans, content stored at Anthropic); a light theme.
+- Other coding agents (author's decision on 2026-10-16: v0.1 supports Claude Code only, with Codex first next): most agents support `SKILL.md` but not `context: fork` or Claude Code's variables, and most do not pass the session id to commands, so Claude Code keeps doing the extraction and each other agent gets a reader for its transcripts, rather than the skill running elsewhere. Codex keeps JSONL under `~/.codex/sessions/`, closest to the current reader; similar multi-agent tools (SpecStory, agentsview, ccusage and others) also have one reader per agent, with no common transcript format.
 
-## 六、已知局限与待验证
+## 6. Known limits and what remains to verify
 
-- 已有(2026-10-19,还没公开发布):数据格式、提炼指令(`skills/treesight/extract.md`)、读记录与脱敏的适配器(`scripts/transcript.py`)、提炼输出的检查、账本、页面、插件、编造的示例项目,单元测试 76 个。
-- **早期实测**(2026-10-16,那时摘录会截断长回复,数字只作历史参考;脚本 `dev/spike_extract.py`、`dev/spike_compare.py`):同一会话跑三次,节点两两重合(Jaccard,自动配对的近似值)编造会话 0.6 到 1.0、真实大会话 0.67 到 0.79,大会话节点数 16 到 24,所以账本冻结第一次的结果。降低思考强度后标签超长变多(217 个标签里 39 个超过 8 个字),还有一次把时刻的毫秒抄错。Haiku 在编造会话上只找到 4/6 件待完成。不调用模型的读取:真实项目 20 份记录(最大一份约 1.2 亿字节)读完并建页 1.2 秒。
-- **准确度**(2026-10-16,作者定:准确优先于速度):以真实大会话在截止前 4 分钟自己写下的待办清单为参照(17 件,作者未复核),数待完成召回。
-  - 这一节的「默认思考」是没指定 `--effort`,用 Claude Code 自己的默认;从本会话里启动,可能继承了会话的强度,是哪一档未核实。「中等思考」是 `--effort medium`。
-  - 摘录曾把压缩摘要截在 8000 字,待办一节多被截掉;改为按小节优先级截,待办最后才截。改前 Opus 默认思考 13/17,中等思考 9 到 10/17,Sonnet、Haiku、低思考 3 到 7/17。
-  - 模型还会把小事当「次要」不列;提炼指令改为列出全部、逐条过最近一份待办清单、不同的决定不合并。改后默认思考两次都是 17/17,另列出更早摘要里有、最后一份漏掉的事(逐条回原记录看,大多仍未办);两次的待完成 27 与 38 条,节点重合 0.71。参照清单取自压缩摘要的待办一节,只出现在长回复里的事这个评测测不出来,要补上并请作者复核。
-- **交互实测**(2026-10-16,另一个 agent 在终端里真实运行,真实会话的细节不公开)发现并已修改:摘录截断长回复、旧权限规则无效、记录清理后页面丢内容、treesight 自己的记录被当成新内容、主会话收到报告后自己接着查、同时生成时进度提示被清掉、并发写入会重复编号、手动 `set` 不检查值、已关闭的条目不能按标题词 `reopen`、按标题生成别的会话时页面停在当前会话、账本文件权限 644。
-- **修改后实测**(2026-10-16;都用干净导出的插件,手动权限模式 `--permission-mode default`,Opus 5.5、xhigh 思考强度,按 API 价折算):
-  | 会话 | 方式 | 用时 | 花费 | 结果 |
+- Status (2026-10-20): v0.1.0 is published with the data formats, the extraction guide (`skills/treesight/extract.md`), the transcript and scrubbing adapter (`scripts/transcript.py`), the extraction checks, the ledger, the page, the plugin, the made-up sample project and the unit tests in `tests/`.
+- **Early measurements** (2026-10-16, when the digest still cut long replies; historical only; scripts `dev/spike_extract.py` and `dev/spike_compare.py`): three runs of the same session overlapped pairwise in nodes (Jaccard, an approximation from automatic matching) by 0.6 to 1.0 on the made-up session and 0.67 to 0.79 on a large real one, which had 16 to 24 nodes, so the ledger freezes the first result. Lower effort produced more over-long labels (39 of 217 labels over 8 units) and once a miscopied millisecond. Haiku found only 4 of 6 open items on the made-up session. Reading without a model: 20 transcripts of a real project (the largest about 120 million bytes) were read and the page built in 1.2 s.
+- **Accuracy** (2026-10-16; author's decision: accuracy before speed), measured as recall of open items against the to-do list a large real session wrote 4 minutes before the cut (17 items, not yet reviewed by the author):
+  - "Default effort" here means no `--effort` was set, so Claude Code's own default applied; started from the author's session, it may have inherited that session's level, which is unverified. "Medium" is `--effort medium`.
+  - The digest used to cut compaction summaries at 8,000 characters, which mostly removed the to-do section; it now cuts by section priority, to-do last. Before that change, Opus at default effort found 13 of 17, at medium 9 to 10, and Sonnet, Haiku and low effort 3 to 7.
+  - The model also left small things out as minor; the guide now asks for all of them, a line-by-line pass over the latest to-do list, and no merging of separate decisions. After that, default effort found 17 of 17 twice, plus things that earlier summaries had and the last one dropped (checked against the transcript, most were still open); the two runs listed 27 and 38 open items, with node overlap 0.71. The reference list comes from the compaction summary's to-do section, so items that appear only in long replies are not measured; they should be added and the list reviewed by the author.
+- **First interactive test** (2026-10-16, another agent running it in a real terminal; details of the real sessions are not public) found the following, all fixed: the digest cutting long replies, permission rules that did not work, pages losing content after a transcript cleanup, treesight's own traces counted as new content, the main conversation checking things after the report, the progress note cleared when two runs overlapped, concurrent writes numbering items twice, `set` not checking values, closed items that could not be reopened by title words, the page staying on the current session when another was drawn by title, and ledger files at mode 644.
+- **After those fixes** (2026-10-16; a clean export of the plugin, manual permission mode `--permission-mode default`, Opus 5.5 at xhigh, API-price equivalents):
+  | Session | Mode | Time | Cost | Result |
   |---|---|---|---|---|
-  | 编造会话 1(15 次提问) | `-p` 完整跑 | 186 秒 | 0.64 美元 | 0 次权限拒绝;5 个节点、6 件待完成(参照答案的 6 件都在) |
-  | 编造会话 1,每段压到 4000 字 | `-p` | 124 秒 | 0.49 美元 | 一次运行读两段后停下,报告写明还剩 14 条;两段各自入账,工作文件写进账本后删除 |
-  | 编造会话 1 | 交互终端,生成中途发一条消息 | 约 170 秒 | 未记录 | 0 次确认弹窗(中途发消息之后的写入和提交也没弹);主会话收到报告后只转述,没有调用工具;treesight 的命令和那一轮转述不算会话内容 |
-  | 真实会话,8 次提问(截到交互实测之前) | `-p` | 589 秒 | 2.03 美元 | 摘录 2.8 万字,未截;待完成 38 件,截断版漏掉的 8 件全部找到,提出日期正确(用时长是因为输出多:6.6 万 token,其中思考 4.6 万;各次运行的输出速度都在每秒 111 到 116 个 token,不是并发拖慢) |
-  | 真实会话,4 次提问 | `-p` 完整跑 | 243 秒 | 0.97 美元 | 6 个节点、17 件待完成(截断版同一会话 9 件) |
-  | 真实大会话,73 次提问、7 次压缩(截到 10-06 06:48) | `-p` 完整跑,两段 | 1241 秒 | 8.50 美元 | 摘录共约 28 万字(截断版 13.7 万字);39 个节点、新增 43 件待完成,关掉 4 件、另 3 件交作者确认,仍列着 39 件;17 件参照召回:脚本对上 16 件,第 17 件措辞不同,人工核对在 |
-  - 大会话花费明显变多:读全文、两段各自提炼。准确优先是作者定的;如果嫌贵,可以考虑的方向是先只读每轮结论、再按需补读,但会回到漏读的风险,没做。
-  - 「73 次提问」比原来的 74 次少一次:那一条是 `[Request interrupted by user for tool use]` 中断标记,现在不算提问。
-  - 一次独立代码复查(另一个 opus 子 agent):发现并已修改 7 处(会话原文里像条目头的行会被当成新条目、treesight 那一轮之后的斜杠命令回复被漏掉、`reopen` 不能驳回「待你确认」、挡住它的事关掉后改不了、中断的运行挡住新运行、提问数为 0 的会话被标成已删、删除任务标记没加锁),每处都补了测试,并确认这些测试在修改前失败、修改后通过。
-- **思考强度对比**(2026-10-17;同样的干净插件与手动权限模式,只改 skill 的 `effort`,会话本身 `--effort xhigh`;各一次,五次同时跑,用时受并发影响,以输出 token 为准;xhigh 一行是 10-16 的数字):
-  | 配置 | 73 次提问大会话:用时 / 花费 / 输出 token(其中思考)/ 17 件参照 / 新增待完成 | 8 次提问会话:用时 / 花费 / 输出 token / xhigh 列出的 38 件里找到 |
+  | Made-up session 1 (15 prompts) | `-p`, full run | 186 s | $0.64 | No permission denied; 5 nodes, 6 open items (all 6 reference items) |
+  | Made-up session 1, passes cut to 4,000 characters | `-p` | 124 s | $0.49 | Stopped after two passes and reported 14 entries left; each pass recorded, work files deleted once recorded |
+  | Made-up session 1 | Interactive terminal, a message sent mid-run | about 170 s | not recorded | No confirmation prompts (none for the writes and applies after the message either); the main conversation only relayed the report and called no tools; treesight's command and that turn were not counted as content |
+  | Real session, 8 prompts (cut before the interactive test) | `-p` | 589 s | $2.03 | Digest of 28,000 characters, nothing cut; 38 open items, including all 8 that the cutting version missed; raised dates correct (long because of long output: 66,000 tokens, 46,000 of them thinking; every run produced 111 to 116 output tokens per second, so concurrency did not slow it) |
+  | Real session, 4 prompts | `-p`, full run | 243 s | $0.97 | 6 nodes, 17 open items (9 with the cutting version) |
+  | Large real session, 73 prompts and 7 compactions (cut at 06:48 on 2026-10-06) | `-p`, full run, two passes | 1,241 s | $8.50 | Digest of about 280,000 characters in all (137,000 with the cutting version); 39 nodes and 43 open items added, 4 closed and 3 more left for the author to confirm, 39 still listed; of the 17 reference items, 16 matched by script and the 17th, worded differently, found by hand |
+  - The large session cost much more: the full text was read and each pass extracted separately. Accuracy first is the author's decision; a cheaper direction would be reading each turn's conclusion first and the rest on demand, which brings back the risk of missing things, so it was not done.
+  - "73 prompts" is one fewer than the earlier 74: that one was an `[Request interrupted by user for tool use]` marker, no longer counted as a prompt.
+  - An independent code review (another opus subagent) found 7 more problems, all fixed with tests that failed before and pass after: a line in a session that looks like an entry header taken for a new entry, slash command replies after a treesight turn missed, `reopen` unable to reject "To confirm", an item that could not be changed once its blocker closed, a stopped run blocking new ones, sessions with 0 prompts marked as deleted, and job marks removed without the lock.
+- **Effort comparison** (2026-10-17; the same clean plugin and manual permission mode with only the skill's `effort` changed and the session itself at `--effort xhigh`; one run each, five at once, so times are affected by concurrency and output tokens are the better measure; the xhigh row is from 2026-10-16):
+  | Setting | 73-prompt session: time / cost / output tokens (thinking) / of 17 reference items / open items added | 8-prompt session: time / cost / output tokens / of the 38 that xhigh listed |
   |---|---|---|
-  | Opus xhigh | 1241 秒 / 8.50 美元 / 13.8 万(9.6 万)/ 17 / 43 | 589 秒 / 2.03 美元 / 6.6 万 / 38(参照) |
-  | Opus high | 728 秒 / 4.50 美元 / 7.3 万(3.4 万)/ 17 / 38 | 296 秒 / 1.14 美元 / 3.5 万 / 34,另多 1 件 |
-  | Opus medium | 750 秒 / 4.37 美元 / 6.4 万(2.6 万)/ 16,第 17 件只沾边 / 47 | 221 秒 / 0.94 美元 / 2.5 万 / 34 |
-  | Sonnet high | 829 秒 / 3.02 美元 / 10.6 万(6.9 万)/ 17 / 50 | 未测 |
-  | Opus high,提炼指令加「逐条读完每轮最后的回复」一步 | 未测 | 263 秒 / 1.07 美元 / 3.1 万 / 36(其中三个独立的问题被并成一条),另多 1 件 |
-  - 用时几乎全由输出 token 决定:交互实测的会话记录里,读摘录的几次调用合计约 8 秒,其余是一次长思考(约 115 秒)加写出提炼结果(约 30 秒)。
-  - high 与 medium 在 8 次提问会话上漏的是同样 4 件,其中 3 件在长回复的第 1490 到 1930 字处(正是截断版截掉的那段),两种配置漏得一样,看起来是系统性的;加那一步后找回 2 件。编造会话上 xhigh、high、high 加一步都是 6/6,没有多出干扰项。
-  - Sonnet 在 high 下思考比 Opus 多,反而更慢,只是便宜;所以换更快的模型没有缩短用时。
-  - 每种配置只跑了一次,而同一配置两次之间待完成可差 27 与 38 条(六节准确度),差两三件在波动范围内。
-  - 多个子 agent 并行没做:官方允许后台子 agent 再开子 agent(默认最多三层),但按段并行时后一段要关前一段的待完成、要去重,文献把这类问题归为段间依赖与段间冲突(LLM×MapReduce,见八节),需要再加一次合并;只有要分段读的首次生成受益;子 agent 能否继承 skill 的预先放行未验证。
-- **交互复测**(2026-10-19,另一个 agent 在独立终端里驱动 Claude Code 2.1.299,用发布预览和编造项目,手动权限模式;用时取完成通知里的数,各一次):首轮 438 秒(其中首次开页晚的 205 秒见四节「按需生成」);5 个节点、6 件待完成,参照的 6 件都在。立即重跑 18 秒,没有新内容。按标题生成第二个会话 137 秒,页面自己刷新到它的树。`close`、`reopen` 各 13 到 14 秒。生成中主对话照常回复;没有插件工具的权限确认。发现并已改(见四节、五节):并发构建时旧页面覆盖新页面;先画后来的会话、再补画更早的会话,已办完的事重新列成待完成;项目起点取的是最后活动最早的那个会话的起点,旧会话恢复后显示 09-22,应为 09-14;「关掉 N 件」把交用户确认的也算进去;主会话改写报告。
-- **生成顺序修改后实测**(2026-10-19,`claude -p`,干净插件、手动权限模式、Opus 5.5、xhigh;独立复查前后各跑一轮,下表是复查后的最终版本,括号里是复查前那一轮):
-  | 顺序 | 编造会话 1 | 编造会话 2 | 项目里剩下的待完成 |
+  | Opus xhigh | 1,241 s / $8.50 / 138k (96k) / 17 / 43 | 589 s / $2.03 / 66k / 38 (reference) |
+  | Opus high | 728 s / $4.50 / 73k (34k) / 17 / 38 | 296 s / $1.14 / 35k / 34, plus 1 more |
+  | Opus medium | 750 s / $4.37 / 64k (26k) / 16, the 17th only in part / 47 | 221 s / $0.94 / 25k / 34 |
+  | Sonnet high | 829 s / $3.02 / 106k (69k) / 17 / 50 | not run |
+  | Opus high, with a guide step to read every turn's last reply through | not run | 263 s / $1.07 / 31k / 36 (three separate questions merged into one), plus 1 more |
+  - Time is set almost entirely by output tokens: in the interactive test's transcript, the calls that read the digest took about 8 s in all; the rest was one long thinking step (about 115 s) and writing the extraction (about 30 s).
+  - High and medium missed the same 4 items on the 8-prompt session, 3 of them at characters 1,490 to 1,930 of long replies (exactly the part the cutting version cut), so the miss looks systematic; the added step recovered 2. On the made-up session, xhigh, high and high with the step all found 6 of 6, with no extra distractors.
+  - Sonnet at high thought more than Opus and was slower, only cheaper; a faster model did not shorten the time.
+  - Each setting ran once, and two runs of one setting can differ by 27 against 38 open items (see Accuracy), so two or three items are within noise.
+  - Parallel subagents were not tried: the official docs allow background subagents to start their own (three levels by default), but with parallel passes a later pass has to close an earlier pass's items and remove duplicates, which the literature calls inter-chunk dependency and conflict (LLM×MapReduce, section 8) and which needs an extra merge; only a first run long enough to need passes would gain; and whether nested subagents keep the skill's pre-approval is unverified.
+- **Second interactive test** (2026-10-19; another agent driving Claude Code 2.1.299 in a separate terminal, with the release preview and the made-up project, manual permission mode; times from the completion notices, one run each): the first run took 438 s (including the 205 s page delay, see "On demand" in section 4); 5 nodes, 6 open items, all 6 reference items. An immediate re-run took 18 s and found nothing new. Drawing the second session by title took 137 s, and the page refreshed to its tree by itself. `close` and `reopen` took 13 to 14 s each. The main conversation answered during the run, and the plugin's tools asked for no confirmation. Found and fixed (sections 4 and 5): an older page replacing a newer one when two builds overlapped; finished items coming back as open when an earlier session was drawn after a later one; the project start taken from the session last active longest ago (09-22 after an old session was resumed, instead of 09-14); "N closed" counting items left to confirm; the main conversation rewriting the report.
+- **After the drawing-order change** (2026-10-19, `claude -p`, clean plugin, manual permission mode, Opus 5.5 at xhigh; one round before and one after an independent review, the table showing the final version with the earlier round in brackets):
+  | Order | Made-up session 1 | Made-up session 2 | Open items left in the project |
   |---|---|---|---|
-  | 按时间先后 | 157 秒 / 0.61 美元,参照 6/6(193 秒 / 0.64 美元,6/6;10-16 基线 186 秒 / 0.64 美元,6/6) | 140 秒 / 0.50 美元;5 条关闭全部通过新加的时刻核对:关掉 2 件,3 件交用户确认 | 7 件 |
-  | 倒过来,先画会话 2 | 163 秒 / 0.60 美元(177 秒 / 0.61 美元);「问 Maya」「发布 0.3.0」由会话 2 的节点关掉,PyCon 提案标为已失效、交用户确认 | 108 秒 / 0.43 美元(118 秒 / 0.48 美元);没有可关的 | 6 件(复查前那轮 5 件;改前同样的顺序 8 件,其中 2 件已办完) |
-  - 两种顺序还差两处:会话 2 把「站点清单」只记成自己的待完成(没记成节点或关闭),倒过来画时会话 1 的这件仍是未完(复查前那轮模型认为两条是同一件事,没有再加),按时间先后画时是待你确认;倒过来画的两轮都把「PyPI token」并进了「发布 0.3.0」。
-  - 每次都没有权限拒绝。评分脚本把「发布 0.3.0」那句里的 "version bump" 算成干扰项,10-16 的 xhigh 基线也一样;逐条看过,不是多出的条目。
-- **第三次交互实测**(2026-10-19 下午,另一个 agent 驱动 Claude Code 2.1.299,用发布预览和编造项目):并发、倒序生成、项目起点三处修复都按预期工作;页面自动刷新、看原文、抽屉、`close`、`reopen` 正常;没有插件工具的权限确认;主会话没有调用工具,但仍改写报告。其余发现:
-  - 三次运行里各有一次模型回复等了约 3 分钟(187、178 秒,回复只有约 190 个 token,记录里没有思考内容),加上首轮的 205 秒,两天里交互运行共见到 3 次这种停顿;脚本本身每次 0.01 到 0.66 秒。所以用时里有一部分是服务端的回复延迟,与插件无关,但模型来回的次数越多,碰上的机会越多。
-  - 「找回站点清单」那条把原话的 "I think Maya sent" 写成了确定的「Maya 发过」;5 次运行里 3 次丢了这层不确定(单独画会话 2 的两次都丢了)。已在提炼说明加一条:原话含糊(I think、maybe 等)时,标签和一句话也照样含糊。加了以后单独画会话 2 两次,都写成 "You think Maya sent…","maybe next year" 也保留;会话 1 回归 162 秒、0.60 美元,参照 6/6,必有节点 4/4,0 次权限拒绝。
-  - 自动开页没看到:这次插件由 Homebrew 的 Python 3.14 运行(发布预览里留下了 `cpython-314` 缓存),它打开本地文件时改用 AppleScript 指挥默认浏览器。随后在同一环境对照三种打开方式(另一个 agent 在独立终端里运行,在 Chrome 里逐个核对页签):Python 3.10.16 的 webbrowser 打开了页面;Python 3.14.1 的 webbrowser 返回成功,页面没有出现;`open -a` 加默认浏览器打开了页面;三步都没有权限弹窗。用 3.10 跑实际插件的 `build --open` 也打开了页面,真实 `file://` 页面上的展开、看原文、抽屉与自动刷新都正常。3.14 失败的具体原因未查明。已改为 macOS 上用 `open -a`(见五节)。
-  - 新开一个空白会话直接运行 `/treesight:treesight`,只会说「没有新内容、页面已是最新」。已改为:会话里还没有提问时,`prepare` 标出 `empty`,报告说这个会话还没有内容,要画别的会话就在命令后加它的标题词或 id。
-- 未验证:亲自回忆实测(挑 3 个一个月前的会话,各看 30 秒写下想起的内容,再对照原文);默认浏览器是否真的自动弹出页面(10-16 与 10-19 两次交互实测都只拿到 `build --open` 返回已打开;10-19 测试连接的 Chrome 里没看到这一页)。通用页面已按本地时间显示(2026-10-16 在真实浏览器核对过跨年天数)。
-- 默认显示的节点里可能一个「发现」都没有,这是「按事实、不强塞」的结果。
+  | In time order | 157 s / $0.61, 6 of 6 reference items (193 s / $0.64, 6 of 6; 2026-10-16 baseline 186 s / $0.64, 6 of 6) | 140 s / $0.50; all 5 closes passed the new time checks: 2 closed, 3 left to confirm | 7 |
+  | Reversed, session 2 first | 163 s / $0.60 (177 s / $0.61); "Ask Maya" and "Publish 0.3.0" closed by session 2's nodes, the PyCon proposal marked no longer possible for the user to confirm | 108 s / $0.43 (118 s / $0.48); nothing to close | 6 (5 in the earlier round; 8 in this order before the change, 2 of them finished) |
+  - The two orders still differ in two places: session 2 recorded the station list only as its own open item (not as a node or a close), so in reverse order session 1's item stays open (in the earlier round the model treated the two as one and did not add it), while in time order it is left to confirm; both reverse rounds merged "PyPI token" into "Publish 0.3.0".
+  - No permission was denied in any run. The scoring script counts "version bump" in the "Publish 0.3.0" line as a distractor, as it did for the 2026-10-16 xhigh baseline; checked by hand, it is not an extra item.
+- **Third interactive test** (afternoon of 2026-10-19; another agent driving Claude Code 2.1.299 with the release preview and the made-up project): the fixes for overlapping builds, drawing order and the project start worked; automatic refresh, "Show source", the drawer, `close` and `reopen` worked; the plugin's tools asked for no confirmation; the main conversation called no tools but still rewrote the report. Other findings:
+  - In three runs, one model reply each waited about 3 minutes (187 and 178 s for replies of about 190 tokens, with no thinking in the transcript); with the earlier 205 s, that makes three such stalls in two days of interactive runs. The scripts themselves took 0.01 to 0.66 s per call. Part of the time is therefore the service's reply latency, unrelated to the plugin, but more round trips mean more chances to hit it.
+  - The "find the station list" item turned "I think Maya sent" into a plain "Maya sent"; 3 of 5 runs lost that uncertainty (both runs that drew session 2 alone). The guide now says that when the text hedges ("I think", "maybe"), the label and line hedge too. After that, two runs drawing session 2 alone both wrote "You think Maya sent…" and kept "maybe next year"; session 1, run as a regression check, took 162 s and $0.60 and found 6 of 6 reference items and 4 of 4 required nodes, with no permission denied.
+  - The page did not appear to open: this time the plugin ran under Homebrew's Python 3.14 (the release preview had `cpython-314` caches), whose webbrowser drives the default browser over AppleScript for local files. Comparing three ways to open a page in the same environment (another agent in a separate terminal, checking Chrome's tabs one by one): Python 3.10.16's webbrowser opened the page; Python 3.14.1's returned success but no page appeared; `open -a` with the default browser opened the page; none showed a permission prompt. With 3.10, the plugin's own `build --open` opened the page, and expanding nodes, "Show source", the drawer and automatic refresh all worked on the real `file://` page. Why 3.14 failed was not found. macOS now uses `open -a` (section 5).
+  - Running `/treesight:treesight` in a new, empty session only said there was nothing new and the page was up to date. Now, when a session has no prompt yet, `prepare` marks it `empty`, and the report says there is nothing in it to draw and how to name another session.
+- Unverified: a recall test by the author (pick 3 sessions from a month ago, look at each for 30 seconds, write down what comes back, then compare with the transcript); the page opening from a run in an ordinary macOS Terminal window, and through the plugin's `open -a` path in an interactive session (the `open -a` command itself was checked on 2026-10-19 in another agent's terminal). The page shows local times; day counts across a year end were checked in a real browser on 2026-10-16.
+- The default nodes may contain no "found" at all; that follows from drawing by the facts, with nothing forced in.
 
-## 七、试过又去掉的做法
+## 7. Tried and dropped
 
-| 做法 | 去掉的原因 |
+| Approach | Why it was dropped |
 |---|---|
-| 四类、五类树干(定了、卡住单独成类) | 用户眼里定了就是做完,卡过但成了也是做完 |
-| 默认节点的保底规则(每类至少一个等) | 不按事实,硬塞 |
-| 树冠的「下一步」「刚做完」「停下时正要做」 | 见三节「树冠」 |
-| 节点上的续接按钮、项目视图图例 | 见三节「项目视图」「图例」 |
-| 依赖连线(虚线、实线箭头) | 图例与实际曲线对不上,和「先要你『某事』」重复 |
-| 方块表示会话 | 改回圆点;两层从不同屏,项目圆点不用做完的颜色 |
-| 跟随系统切换深浅色 | 浅色配色重配之前不跟随,见三节「主题与配色」 |
+| Four or five classes on the trunk (decided and stuck as their own classes) | To the user a decision is done, and something that got stuck but worked out is done too |
+| A minimum per class among the default nodes | Not by the facts; it forces things in |
+| "Next step", "Just done" and "About to do when stopped" in the crown | See "Crown" in section 3 |
+| A resume button on nodes; a legend in the project view | See "Project view" and "Legend" in section 3 |
+| Dependency lines (dashed and solid arrows) | The legend did not match the drawn curves, and they repeated "First you: “…”" |
+| Squares for sessions | Back to dots; the two levels are never on screen together, and project dots do not use the done colour |
+| Following the system's light or dark setting | Not until the light palette is redone; see "Theme, colours and language" in section 3 |
 
-## 八、来源
+## 8. Sources
 
-- Claude Code 文档:[sessions](https://code.claude.com/docs/en/sessions)、[interactive-mode(回顾与 /recap)](https://code.claude.com/docs/en/interactive-mode)、[skills](https://code.claude.com/docs/en/skills)、[plugin manifest](https://code.claude.com/docs/en/plugins/manifest-reference)、[legal and compliance](https://code.claude.com/docs/en/legal-and-compliance)、[artifacts](https://code.claude.com/docs/en/artifacts)、[mods](https://code.claude.com/docs/en/plugins/mods/overview)、[sub-agents(前台与后台)](https://code.claude.com/docs/en/sub-agents)、[model-config(思考强度与模型别名)](https://code.claude.com/docs/en/model-config)
-- Anthropic:[术语表(温度与确定性)](https://platform.claude.com/docs/en/about-claude/glossary)、[Effort](https://platform.claude.com/docs/en/build-with-claude/effort)
-- 分段并行的段间依赖与冲突:[LLM×MapReduce](https://arxiv.org/abs/2410.09342)
-- NN/g:[响应时间三个界限](https://www.nngroup.com/articles/response-times-3-important-limits/)、[进度指示](https://www.nngroup.com/articles/progress-indicators/)、[视觉层级](https://www.nngroup.com/articles/visual-hierarchy-ux-definition/)、[面包屑](https://www.nngroup.com/articles/breadcrumbs/)、[1999 年十大错误(后退键)](https://www.nngroup.com/articles/the-top-ten-web-design-mistakes-of-1999/)
-- Shneiderman 1996,[The Eyes Have It](https://www.cs.umd.edu/~ben/papers/Shneiderman1996eyes.pdf);Apple HIG [Lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables);WCAG 2.2 [1.4.1 Use of Color](https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html)
-- Claude Code 插件:[publish](https://code.claude.com/docs/en/plugins/publish)、[marketplace reference](https://code.claude.com/docs/en/plugins/marketplace-reference)
-- 同类工具:[ccusage](https://github.com/ccusage/ccusage)、[claude-code-log](https://github.com/daaain/claude-code-log)、[claude-code-history-viewer](https://github.com/jhlee0409/claude-code-history-viewer)、[ccresume](https://github.com/sasazame/ccresume)、[claude-history](https://github.com/raine/claude-history)、[claude-replay](https://github.com/es617/claude-replay)、[bough](https://github.com/nickelsec/bough)、[claude-mem](https://github.com/thedotmack/claude-mem)、[agentsview](https://github.com/kenn-io/agentsview)、[alluvia](https://github.com/dylanp12/alluvia)、[context-visualizer](https://github.com/Abudulaz/context-visualizer)、[wayfinder](https://github.com/StayCurious-Xuan/wayfinder)、[thoughtdag](https://github.com/chenxiachan/thoughtdag)、[loose-ends](https://github.com/MiguelProz/claude-loose-ends)、[openloops](https://github.com/thorwhalen/openloops)、[productivity](https://github.com/anthropics/knowledge-work-plugins/tree/main/productivity)
-- Claude Code 官方:[commands(/insights)](https://code.claude.com/docs/en/commands)、[agent view](https://code.claude.com/docs/en/agent-view)、[desktop](https://code.claude.com/docs/en/desktop)、[Projects](https://code.claude.com/docs/en/claude-projects)
+- Claude Code docs: [sessions](https://code.claude.com/docs/en/sessions), [interactive-mode (recaps and /recap)](https://code.claude.com/docs/en/interactive-mode), [skills](https://code.claude.com/docs/en/skills), [plugin manifest](https://code.claude.com/docs/en/plugins/manifest-reference), [legal and compliance](https://code.claude.com/docs/en/legal-and-compliance), [artifacts](https://code.claude.com/docs/en/artifacts), [mods](https://code.claude.com/docs/en/plugins/mods/overview), [sub-agents (foreground and background)](https://code.claude.com/docs/en/sub-agents), [model-config (effort and model aliases)](https://code.claude.com/docs/en/model-config)
+- Anthropic: [glossary (temperature and determinism)](https://platform.claude.com/docs/en/about-claude/glossary), [Effort](https://platform.claude.com/docs/en/build-with-claude/effort)
+- Inter-chunk dependency and conflict in parallel passes: [LLM×MapReduce](https://arxiv.org/abs/2410.09342)
+- NN/g: [response times, the three limits](https://www.nngroup.com/articles/response-times-3-important-limits/), [progress indicators](https://www.nngroup.com/articles/progress-indicators/), [visual hierarchy](https://www.nngroup.com/articles/visual-hierarchy-ux-definition/), [breadcrumbs](https://www.nngroup.com/articles/breadcrumbs/), [the top ten web design mistakes of 1999 (the back button)](https://www.nngroup.com/articles/the-top-ten-web-design-mistakes-of-1999/)
+- Shneiderman 1996, [The Eyes Have It](https://www.cs.umd.edu/~ben/papers/Shneiderman1996eyes.pdf); Apple HIG [Lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables); WCAG 2.2 [1.4.1 Use of Color](https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html)
+- Claude Code plugins: [publish](https://code.claude.com/docs/en/plugins/publish), [marketplace reference](https://code.claude.com/docs/en/plugins/marketplace-reference), [pre-submission checklist of the Claude plugin directory](https://claude.com/docs/plugins/pre-submission-checklist)
+- Similar tools: [ccusage](https://github.com/ccusage/ccusage), [claude-code-log](https://github.com/daaain/claude-code-log), [claude-code-history-viewer](https://github.com/jhlee0409/claude-code-history-viewer), [ccresume](https://github.com/sasazame/ccresume), [claude-history](https://github.com/raine/claude-history), [claude-replay](https://github.com/es617/claude-replay), [bough](https://github.com/nickelsec/bough), [claude-mem](https://github.com/thedotmack/claude-mem), [agentsview](https://github.com/kenn-io/agentsview), [alluvia](https://github.com/dylanp12/alluvia), [context-visualizer](https://github.com/Abudulaz/context-visualizer), [wayfinder](https://github.com/StayCurious-Xuan/wayfinder), [thoughtdag](https://github.com/chenxiachan/thoughtdag), [loose-ends](https://github.com/MiguelProz/claude-loose-ends), [openloops](https://github.com/thorwhalen/openloops), [productivity](https://github.com/anthropics/knowledge-work-plugins/tree/main/productivity)
+- Claude Code: [commands (/insights)](https://code.claude.com/docs/en/commands), [agent view](https://code.claude.com/docs/en/agent-view), [desktop](https://code.claude.com/docs/en/desktop), [Projects](https://code.claude.com/docs/en/claude-projects)
