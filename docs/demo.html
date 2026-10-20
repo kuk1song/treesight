@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ym/7wvSt2oZx0BlHut9qxQsVhWIr5kfkCcKwZ7qNf3Y='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-C3OmVo1JKYG7I4G8Pd4ZzzLpGm1pua4SfT3gHSJLQBM='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>treesight</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%23131417'/%3E%3Cg transform='translate%284.4 3.6%29 scale%28.78%29'%3E%3Cpath d='M20 37V16.5' stroke='%23E9E8E3' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M20 29C14 29 10.5 26 8 21M20 21C26 21 29.5 18 32 13' fill='none' stroke='%23E9E8E3' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='21' r='4.6' fill='%23C8FF00'/%3E%3Ccircle cx='32' cy='13' r='4.6' fill='%23C8FF00'/%3E%3Ccircle cx='20' cy='7.5' r='4.8' fill='none' stroke='%23C8FF00' stroke-width='3.2'/%3E%3C/g%3E%3C/svg%3E">
@@ -148,22 +148,22 @@ const LANGS=(navigator.languages&&navigator.languages.length?navigator.languages
 const ZH=(LANGS.find(l=>/^(zh|en)\b/.test(l))||'en').startsWith('zh');
 document.documentElement.lang=ZH?'zh-CN':'en';
 const W=ZH?{
-  done:'做完',found:'发现',scar:'树疤:中间卡过',session:'会话',back:'整个项目',backAria:'返回整个项目',open:'待完成的事',close:'关闭',
+  done:'做完',found:'发现',scar:'树疤：中间卡过',session:'会话',back:'整个项目',backAria:'返回整个项目',open:'待完成的事',close:'关闭',
   thisSession:'这个会话',wholeProject:n=>'整个项目 · 已生成的 '+n+' 个会话',today:d=>'今天 '+d,
   foot:d=>'目前只有深色 · 时刻为本地时间 · 数据截至 '+d,count:n=>'待完成 '+n+' 件',overdueN:n=>' · 已过期 '+n,staleN:n=>' · 已失效 '+n,show:' · 显示时间轴 ▸',hide:' · 收起时间轴 ◂',
   none:'没有待完成的事',cover:(g,m)=>'来自已生成的 '+g+' 个会话'+(m?' · 另有 '+m+' 个还没生成':''),
-  bOverdue:'已过期',bStale:'已失效',bBoth:'已过期或失效',bConfirm:'待你确认',bNoTime:'没定时间',byRaised:'以下按提出先后',stale:'已失效 · 关掉?',lateDays:n=>'过期 '+n+' 天',
+  bOverdue:'已过期',bStale:'已失效',bBoth:'已过期或失效',bConfirm:'待你确认',bNoTime:'没定时间',byRaised:'以下按提出先后',stale:'已失效 · 关掉？',lateDays:n=>'过期 '+n+' 天',
   firstYou:x=>'先要你「'+x+'」',waitingOn:x=>'在等'+(/^[A-Za-z0-9]/.test(x)?' ':'')+x,putOff:'先放着',since:(d,n)=>' · 自 '+d+' · 已等 '+n+' 天',raised:d=>d+' 提出',confirm:'看起来已做完 · 待你确认',
-  from:x=>'来自「'+x+'」',lgTodo:'待办(你来)',lgWait:'等待(在等别人或先放着)',
+  from:x=>'来自「'+x+'」',lgTodo:'待办（你来）',lgWait:'等待（在等别人或先放着）',
   stuck:(q,d)=>'卡了'+(q==='at_least'?'至少 ':'约 ')+d,min:n=>n+' 分钟',hr:n=>n+' 小时',day:n=>n+' 天',storyHint:'点开看经过',rows:['卡在','应对','结果'],temp:'临时',
   unknownT:'时刻不详',approx:t=>'约 '+t,before:t=>t+' 前',shelved:'决定不做',merged:n=>'这里合了 '+n+' 件相关的事',overturned:x=>'↺ 推翻了「'+x+'」',overturnedBy:x=>'后来被「'+x+'」推翻',
   source:'看原文',start:d=>'起点 '+d,projStart:d=>'项目起点 '+d,showAll:n=>'显示全部 '+n+' 个',keyOnly:'只看重点',prompts:n=>n+' 次提问',nodes:n=>n+' 个节点',sessions:n=>n+' 个会话',
-  current:'当前',currentSession:'当前会话',notYet:id=>'这个会话的树还没生成。回 Claude Code 运行 /treesight:treesight '+id+',再刷新这一页',span:(a,b)=>a===b?a:a+' 至 '+b,
-  sinceLast:(n,o,c,f)=>'上次生成:新增 '+n+' 个节点、'+o+' 件待完成'+(c?',关掉 '+c+' 件':'')+(f?','+f+' 件待你确认':''),
-  pending:(t,m)=>'正在生成「'+t+'」,约 '+m+' 分钟;这一页每 20 秒自动刷新,生成完会换成新结果。',
-  pendingMany:(ts,m)=>'正在生成 '+ts.length+' 个会话:'+ts.map(t=>'「'+t+'」').join('')+',约 '+m+' 分钟;这一页每 20 秒自动刷新,全部生成完会换成新结果。',
-  pendingLate:'生成比预计晚了很多,可能已经中断。可以回 Claude Code 再运行一次 /treesight:treesight;如果它其实还在跑,会告诉你正在生成。',
-  gone:'原会话记录已被 Claude Code 清理,这里是账本里保存的内容'}:{
+  current:'当前',currentSession:'当前会话',notYet:id=>'这个会话的树还没生成。回 Claude Code 运行 /treesight:treesight '+id+'，再刷新这一页',span:(a,b)=>a===b?a:a+' 至 '+b,
+  sinceLast:(n,o,c,f)=>'上次生成：新增 '+n+' 个节点、'+o+' 件待完成'+(c?'，关掉 '+c+' 件':'')+(f?'，'+f+' 件待你确认':''),
+  pending:(t,m)=>'正在生成「'+t+'」，约 '+m+' 分钟；这一页每 20 秒自动刷新，生成完会换成新结果。',
+  pendingMany:(ts,m)=>'正在生成 '+ts.length+' 个会话：'+ts.map(t=>'「'+t+'」').join('')+'，约 '+m+' 分钟；这一页每 20 秒自动刷新，全部生成完会换成新结果。',
+  pendingLate:'生成比预计晚了很多，可能已经中断。可以回 Claude Code 再运行一次 /treesight:treesight；如果它其实还在跑，会告诉你正在生成。',
+  gone:'原会话记录已被 Claude Code 清理，这里是账本里保存的内容'}:{
   done:'Done',found:'Found',scar:'Scar: got stuck along the way',session:'Session',back:'Whole project',backAria:'Back to the whole project',open:'Still open',close:'Close',
   thisSession:'This session',wholeProject:n=>'Whole project · '+n+' session'+(n===1?'':'s')+' with a tree',today:d=>'Today '+d,
   foot:d=>'Dark theme only · Local times · Data as of '+d,count:n=>n+' still open',overdueN:n=>' · '+n+' overdue',staleN:n=>' · '+n+' no longer possible',show:' · Show timeline ▸',hide:' · Hide timeline ◂',
@@ -223,7 +223,7 @@ const lvl=m=>m<60?'h':m<1440?'m':'d';
 const dur=m=>m<60?W.min(m):m<1440?W.hr(Math.round(m/6)/10):W.day(Math.round(m/144)/10);
 const stime=st=>st.at_q==='unknown'||!st.at?W.unknownT:st.at_q==='approx'?W.approx(ftime(st.at)):st.at_q==='before'?W.before(ftime(st.at)):ftime(st.at);
 function storyEl(st){
-  const L=lvl(st.minutes),w=$('div','story');w.append($('span','dur '+L,W.stuck(st.q,dur(st.minutes))+(st.basis?(ZH?'(':' (')+st.basis+(ZH?')':')'):'')));const steps=$('div','steps');
+  const L=lvl(st.minutes),w=$('div','story');w.append($('span','dur '+L,W.stuck(st.q,dur(st.minutes))+(st.basis?(ZH?'（':' (')+st.basis+(ZH?'）':')'):'')));const steps=$('div','steps');
   st.steps.forEach((s,i)=>{const r=$('div','st'),ic=$('div','ic'),h=$('span');
     h.append(i===0?$('i','ring '+L):i===1?$('i','dotg'):$('i','dn'));ic.append(h);
     const tx=$('div','tx');tx.append($('i',null,stime(s)),$('b',null,W.rows[i]));if(s.temp)tx.append($('span','stag',W.temp));tx.append(document.createTextNode(s.text));r.append(ic,tx);steps.append(r)});
@@ -232,7 +232,7 @@ function nodeRow(n,i,o={}){
   const left=i%2===0,row=$('div','row '+(left?'l':'r'));
   const slot=$('div','slot'),b=o.href!=null?$('a','node'):$('button','node'),t=$('span','t');if(o.cls)b.classList.add(o.cls);
   t.append(o.shapeEl||shape(n.kind));
-  const lb=$('span','lb');lb.append($('span','sr',(W[n.kind]||W.session)+': '),document.createTextNode(n.label));if(o.sr)lb.append($('span','sr',' ('+o.sr+')'));if(o.href!=null)lb.append($('span','chev','›'));t.append(lb);
+  const lb=$('span','lb');lb.append($('span','sr',(W[n.kind]||W.session)+(ZH?'：':': ')),document.createTextNode(n.label));if(o.sr)lb.append($('span','sr',ZH?'（'+o.sr+'）':' ('+o.sr+')'));if(o.href!=null)lb.append($('span','chev','›'));t.append(lb);
   const by=o.byId||{};
   if(n.overturns&&nodeEls.vis&&nodeEls.vis.has(n.overturns))t.append($('span','ov','↺'));
   const extra=[];
