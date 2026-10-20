@@ -11,12 +11,12 @@ import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path'
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const LANGS = {
   en: {sample: 'recipe-box', session: '0c4f931d', node: 'Phone photos upload fine', locale: 'en-US', out: 'treesight-tour.mp4',
-    cover: {steps: ["A session's tree", 'Open a node', 'Everything still open'], foot: 'A short tour of a made-up recipe app'},
+    cover: ['Session tree', 'Open a node', 'Everything still open'],
     captions: ['Run /treesight:treesight in a session, and its tree grows on a local page',
       'Open a node: where it got stuck, for how long, and the quote behind it',
       'The project: everything still open, from every session, in one list']},
   zh: {sample: 'recipe-box-zh', session: '706417bf', node: '手机照片能上传了', locale: 'zh-CN', out: 'treesight-tour-zh.mp4',
-    cover: {steps: ['会话的树', '点开一个节点', '所有还没做完的事'], foot: '用一个编造的菜谱网站演示一遍'},
+    cover: ['会话树', '点开一个节点', '所有还没做完的事'],
     captions: ['在会话里运行 /treesight:treesight,它的树会在本地页面上长出来',
       '点开一个节点:卡在哪、卡了多久,以及原话',
       '整个项目:所有会话里还没做完的事,一张清单']},
@@ -47,16 +47,16 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // the page, built from the fixtures the same way the plugin builds pages; it counts days to the sample's own date
 run('python3', ['dev/make_sample.py', '--sample', L.sample, '--out', path.join(tmp, 'page.html')]);
-// the cover: the logo at rest, the name, the three steps; the README shows the tagline right above the video
-const logo = fs.readFileSync(path.join(ROOT, 'docs/logo.svg'), 'utf8').replace(/<style>[\s\S]*?<\/style>\n?/, '').replace('width="72" height="72"', 'width="104" height="104"');
+// the cover: the logo at rest, the name and the three steps; the README shows the tagline right above the video
+const logo = fs.readFileSync(path.join(ROOT, 'docs/logo.svg'), 'utf8').replace(/<style>[\s\S]*?<\/style>\n?/, '').replace(/width="\d+" height="\d+"/, 'width="104" height="104"');
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 fs.writeFileSync(path.join(tmp, 'cover.html'), `<!doctype html><html lang="${L.locale}"><meta charset="utf-8"><style>
 body{margin:0;width:${W}px;height:${H}px;background:#0f1013;color:#E9E8E3;font:500 16px/1.4 -apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
 h1{font-size:48px;margin:14px 0 0;letter-spacing:-.5px}ol{list-style:none;padding:0;margin:34px 0 0;display:flex;gap:14px}
 li{background:#181a1e;border:1px solid #2a2c31;border-radius:12px;padding:12px 18px;font-size:16px;display:flex;gap:10px;align-items:center}
 li b{font:600 12px/1 ui-monospace,Menlo,monospace;color:#131417;background:#C8FF00;border-radius:999px;padding:5px 8px}
-.t{margin-top:30px;color:#8b8a86;font-size:15px}.t span{color:#C8FF00}</style>
-<body>${logo}<h1>treesight</h1><ol>${L.cover.steps.map((s, i) => `<li><b>${i + 1}</b>${esc(s)}</li>`).join('')}</ol><div class="t"><span>&#9654;</span>&nbsp; ${esc(L.cover.foot)}</div></body></html>`);
+</style>
+<body>${logo}<h1>treesight</h1><ol>${L.cover.map((s, i) => `<li><b>${i + 1}</b>${esc(s)}</li>`).join('')}</ol></body></html>`);
 
 const prof = fs.mkdtempSync(path.join(os.tmpdir(), 'treesight-chrome-'));
 const port = 9300 + Math.floor(Math.random() * 500);

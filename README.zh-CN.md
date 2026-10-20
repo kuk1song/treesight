@@ -1,20 +1,18 @@
 <div align="center">
 
-![treesight 的 logo:一棵小树,两个绿点表示做完,一个空心圈表示还没做完](docs/logo.svg)
+# ![](docs/logo.svg) treesight
 
-# treesight
-
-**一眼想起每个 AI 会话做了什么、还有什么没做完。**
+**一眼想起每个 AI 会话做了什么,还有什么没做完。**
 
 [English](README.md) · **中文**
 
 </div>
 
-过了几周,很难想起一个会话的整个过程和细节。treesight 读这个会话的记录,画成一棵树:做完了什么、查清了什么、中间卡在哪,以及还没做完的事。
+你是不是过了一段时间,就很难想起一个会话的整个过程和细节?试试 treesight :) treesight 会读整个会话的内容,并生成一棵树:做完了什么、查清了什么、中间卡在哪,以及还没做完的事。
 
-treesight 就在你自己的 AI 里运行(目前是 Claude Code):没有服务器,不用注册账号,不用另配 API 密钥,页面不发任何网络请求。
+treesight 作为一个插件运行在你的 AI 里:没有服务器,不用注册账号,不用另配 API 密钥,页面不发任何网络请求。
 
-https://github.com/user-attachments/assets/dc7d8f6f-ee47-469f-ae73-b06f0c23c02f
+https://github.com/user-attachments/assets/0a444cd4-862b-46be-88c0-ca7809ce20d4
 
 ## 安装
 
