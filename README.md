@@ -4,7 +4,7 @@
 
 # treesight
 
-**See your Claude Code sessions as trees: what each one got done, and what is still open across the project.**
+**Recall what each AI coding session did, and what it left open.**
 
 **English** · [中文](README.zh-CN.md)
 
@@ -36,6 +36,8 @@ Then choose where to install it. On an older version, run `/plugin marketplace a
 ```
 claude plugin install treesight --marketplace kuk1song/treesight
 ```
+
+It works in Claude Code on your own computer: tested in the terminal, while the desktop app's Code tab and the IDE extensions should work but are untested. It does not run in cloud sessions, Cowork, claude.ai chat or other coding agents ([details](docs/design.md#5-delivery)).
 
 treesight also needs `python3` 3.9 or later (the one that comes with macOS works) on macOS or Linux; Windows is untested. Tested with Claude Code 2.1.299. Updates are off by default for a marketplace like this one: turn them on in `/plugin`, or run `claude plugin update treesight@treesight`.
 

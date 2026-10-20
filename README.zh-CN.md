@@ -4,7 +4,7 @@
 
 # treesight
 
-**把 Claude Code 的会话画成树来看:每个会话做完了什么,整个项目还有什么没完。**
+**一眼想起每个 AI 编程会话做了什么、还有什么没完。**
 
 [English](README.md) · **中文**
 
@@ -36,6 +36,8 @@
 ```
 claude plugin install treesight --marketplace kuk1song/treesight
 ```
+
+它在你自己电脑上的 Claude Code 里使用:终端里实测过;桌面端的 Code 页签和 IDE 扩展应该也能用,但没测过。云端会话、Cowork、claude.ai 聊天和其他编程 agent 里不能用([详细说明](docs/design.md#5-delivery),英文)。
 
 treesight 还需要 3.9 及以上的 `python3`(macOS 自带的就行),系统是 macOS 或 Linux;Windows 没测过。在 Claude Code 2.1.299 上测过。这类插件市场默认不自动更新:可以在 `/plugin` 里打开自动更新,或者运行 `claude plugin update treesight@treesight`。
 
