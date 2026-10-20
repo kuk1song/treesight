@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="72" height="72" role="img" aria-label="treesight logo: a small tree with two done dots and one open ring">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="32" height="32" role="img" aria-label="treesight logo: a small tree with two done dots and one open ring">
 <style>
 /* grows once in about 1.6 s, then the open ring pings twice; all motion ends by 4.1 s. The base styles are the
    finished tree, so a renderer that runs no animation, or a reader who asks for less motion, sees it whole */

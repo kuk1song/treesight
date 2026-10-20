@@ -77,7 +77,8 @@ def main():
         with open(os.path.join(src, name), encoding="utf-8") as f:
             spec = json.load(f)
         sid, recs = build(spec)
-        d = os.path.join(ROOT, "fixtures", "projects", spec["project"].replace("/", "-"))
+        # "folder" lets two made-up projects share one path (the English and Chinese demo both live in /home/kuki/recipe-box)
+        d = os.path.join(ROOT, "fixtures", "projects", spec.get("folder") or spec["project"].replace("/", "-"))
         os.makedirs(d, exist_ok=True)
         with open(os.path.join(d, sid + ".jsonl"), "w", encoding="utf-8") as f:
             for r in recs:

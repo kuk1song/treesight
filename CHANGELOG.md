@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- README: the logo sits beside the name (32 px, aligned with the heading); the opening asks the reader's question and the next line says treesight runs as a plugin inside your AI; the Chinese tagline uses a comma.
+- Demo: both projects live in /home/kuki/recipe-box, the Chinese session title reads 为菜谱添加照片上传功能, and the video cover shows only the logo, the name and the three steps; both videos re-recorded.
 - README: the opening states the problem in the reader's terms and says treesight runs inside your own AI (currently Claude Code); the top note became one line under License (an independent project, not affiliated with Anthropic) and "dark theme only" a limitation; the developer caption under the video is gone. The Chinese README says 没做完 instead of 没完.
 - Chinese demo: more natural session title and labels (菜谱支持上传照片, 旋转方向单独存储, 删菜谱也删照片), re-recorded.
 

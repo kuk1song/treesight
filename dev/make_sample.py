@@ -20,8 +20,8 @@ sys.path.insert(0, os.path.join(ROOT, "scripts"))
 # per sample: its project folder, its sessions with a stored extraction in the order they happened, and the runs' own
 # time, which is also the date the page counts days to, so the page is the same every time and for everyone
 SAMPLES = {
-    "recipe-box": ("-home-dev-recipe-box", [("0c4f931d", "recipe-1.json"), ("0c0f810a", "recipe-2.json")], "2026-10-03T09:00:00Z"),
-    "recipe-box-zh": ("-home-chen-recipe-box", [("706417bf", "recipe-zh-1.json"), ("e3b89c9b", "recipe-zh-2.json")], "2026-10-03T09:00:00Z"),
+    "recipe-box": ("-home-kuki-recipe-box", [("0c4f931d", "recipe-1.json"), ("0c0f810a", "recipe-2.json")], "2026-10-03T09:00:00Z"),
+    "recipe-box-zh": ("-home-kuki-recipe-box-zh", [("706417bf", "recipe-zh-1.json"), ("e3b89c9b", "recipe-zh-2.json")], "2026-10-03T09:00:00Z"),
     "tidepool": ("-home-dev-tidepool", [("953c0ab1", "tidepool-1.json"), ("0a182a7b", "tidepool-2.json")], "2026-09-24T09:00:00Z"),
 }
 

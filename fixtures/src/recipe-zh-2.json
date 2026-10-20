@@ -1,6 +1,6 @@
 {
  "note": "Made up for the treesight README demo (the Chinese version of recipe-box). No real person, project or session. Times are UTC.",
- "project": "/home/chen/recipe-box",
+ "project": "/home/kuki/recipe-box",
  "session": "recipe-zh-2",
  "version": "2.1.299",
  "events": [
@@ -74,5 +74,6 @@
    "k": "title",
    "text": "发布支持照片上传的 1.2"
   }
- ]
+ ],
+ "folder": "-home-kuki-recipe-box-zh"
 }
