@@ -1,12 +1,12 @@
 {
   "name": "treesight",
   "owner": {"name": "kuk1song", "url": "https://github.com/kuk1song"},
-  "description": "treesight: a local, visual map of your Claude Code sessions and what is still open.",
+  "description": "treesight: recall what each AI session did and what it left open, on a local page.",
   "plugins": [
     {
       "name": "treesight",
       "source": "./",
-      "description": "Your Claude Code sessions as trees: what each one got done and found, and what is still open across the project, in a local page with no network requests.",
+      "description": "Recall what each session did and what it left open: a tree per session and one list of what is still open across the project, on a local page with no network requests.",
       "category": "productivity",
       "tags": ["sessions", "history", "open-items"]
     }
