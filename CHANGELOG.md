@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- README: the opening states the problem in the reader's terms and says treesight runs inside your own AI (currently Claude Code); the top note became one line under License (an independent project, not affiliated with Anthropic) and "dark theme only" a limitation; the developer caption under the video is gone. The Chinese README says 没做完 instead of 没完.
+- Chinese demo: more natural session title and labels (菜谱支持上传照片, 旋转方向单独存储, 删菜谱也删照片), re-recorded.
+
 ## 0.1.2 (2026-10-20)
 
 - Page: in a window narrower than 1020 pixels, the way back to the whole project is a button with an arrow on its own line, instead of a plain button in the legend's row that looked like one of its items.

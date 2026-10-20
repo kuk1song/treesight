@@ -1,25 +1,20 @@
 <div align="center">
 
-![treesight 的 logo:一棵小树,两个绿点表示做完,一个空心圈表示还没完](docs/logo.svg)
+![treesight 的 logo:一棵小树,两个绿点表示做完,一个空心圈表示还没做完](docs/logo.svg)
 
 # treesight
 
-**一眼想起每个 AI 会话做了什么、还有什么没完。**
+**一眼想起每个 AI 会话做了什么、还有什么没做完。**
 
 [English](README.md) · **中文**
 
 </div>
 
-过了三周,很难想起一个会话定下了什么、还欠着什么。treesight 让 Claude 读你本机上这个会话的记录,画成一棵树:做完了什么、查清了什么、中间卡在哪,以及还没完的事,不管是你来办的,还是在等别人的。整个项目所有会话没完的事汇成一张清单。
+过了几周,很难想起一个会话的整个过程和细节。treesight 读这个会话的记录,画成一棵树:做完了什么、查清了什么、中间卡在哪,以及还没做完的事。
 
-它就在你自己的 Claude Code 里运行:没有服务器,不用注册账号,不用另配 API 密钥,页面不发任何网络请求。
+treesight 就在你自己的 AI 里运行(目前是 Claude Code):没有服务器,不用注册账号,不用另配 API 密钥,页面不发任何网络请求。
 
-https://github.com/user-attachments/assets/612410b1-4171-4112-ae3d-9b58128cd13a
-
-<sub>本仓库里编造的示例项目的中文版(由 `dev/make_sample.py --sample recipe-box-zh` 生成,视频由 `dev/record_demo.mjs` 录制)。天数按示例数据自己的日期计算,页面界面跟随浏览器的语言。</sub>
-
-> [!NOTE]
-> 非官方,与 Anthropic 无关。早期版本:只在 Claude Code 里用,只有深色。
+https://github.com/user-attachments/assets/dc7d8f6f-ee47-469f-ae73-b06f0c23c02f
 
 ## 安装
 
@@ -58,7 +53,7 @@ treesight 还需要 3.9 及以上的 `python3`(macOS 自带的就行),系统是 
 ## 怎么工作
 
 1. **读取:** 脚本读 `~/.claude/projects` 里的会话记录,不用模型;剔除常见的密钥格式,给 IPv4 地址和邮箱打码。
-2. **提炼:** 一个后台子 agent 用你自己的模型和账号挑出节点和没完的事,不动你当前的对话。每一条都要带一段从会话里原样抄来的话。
+2. **提炼:** 一个后台子 agent 用你自己的模型和账号挑出节点和没做完的事,不动你当前的对话。每一条都要带一段从会话里原样抄来的话。
 3. **核对并保存:** 脚本逐字核对每段原话确实出现在它引用的那条消息里,再写进本地一个只追加的账本。下次只读新增的内容;模型没把握的关闭留给你确认。
 4. **画页面:** 脚本给每个项目生成一个静态页面,这一步不用模型。
 
@@ -72,7 +67,7 @@ skill 只预先放行两件事:运行它自己的脚本,以及把结果写进 `~
 
 ## 用时和花费
 
-提炼算在你的 Claude Code 用量里。treesight 优先把没完的事找全,其次才是快,所以用 xhigh 思考强度,模型跟你的会话一样。2026-10-16 用 Opus 5.5 实测,按 API 价折算:15 次提问的会话用了 3.1 分钟(0.64 美元);73 次提问、7 次压缩的会话用了 21 分钟(8.50 美元),会话自己最后一份待办清单里的 17 件事全部找到。同一个会话以后再跑只读新增的部分,重画页面不用模型。全部测量见 [docs/design.md](docs/design.md#6-known-limits-and-what-remains-to-verify)。
+提炼算在你的 Claude Code 用量里。treesight 优先把没做完的事找全,其次才是快,所以用 xhigh 思考强度,模型跟你的会话一样。2026-10-16 用 Opus 5.5 实测,按 API 价折算:15 次提问的会话用了 3.1 分钟(0.64 美元);73 次提问、7 次压缩的会话用了 21 分钟(8.50 美元),会话自己最后一份待办清单里的 17 件事全部找到。同一个会话以后再跑只读新增的部分,重画页面不用模型。全部测量见 [docs/design.md](docs/design.md#6-known-limits-and-what-remains-to-verify)。
 
 ## 局限
 
@@ -80,6 +75,7 @@ skill 只预先放行两件事:运行它自己的脚本,以及把结果写进 `~
 - 页面要等模型的第一次回复才打开;实测有一次等了 3.4 分钟。
 - 每次运行的报告会回到你的对话里,那边的 Claude 可能会评论几句。
 - 会话记录的格式是 Claude Code 内部的,任何版本都可能变。
+- 页面只有深色主题。
 
 其余局限和具体数字见 [docs/design.md](docs/design.md#6-known-limits-and-what-remains-to-verify)。
 
@@ -88,7 +84,7 @@ skill 只预先放行两件事:运行它自己的脚本,以及把结果写进 `~
 
 | 工具 | 做了什么 | treesight 多做的 |
 |---|---|---|
-| Claude Code 的 agent view、桌面版侧栏、Projects | 显示每个会话此刻的状态:进行中、要你处理、已完成。Projects 的「Waiting on you」只管云端线程。 | 从会话记录里提炼每个会话做完了什么,以及跨会话还没完的事。 |
+| Claude Code 的 agent view、桌面版侧栏、Projects | 显示每个会话此刻的状态:进行中、要你处理、已完成。Projects 的「Waiting on you」只管云端线程。 | 从会话记录里提炼每个会话做完了什么,以及跨会话还没做完的事。 |
 | [loose-ends](https://github.com/MiguelProz/claude-loose-ends) | Claude Code 的 mod:从当前对话里提出没收尾的事,要求原样引用;只有你确认、并附上证明它已办完的那句话时才关掉。 | 同样的原话规则,覆盖一个项目的所有会话;外加在等谁、等了多久、被什么挡住,以及会话树。 |
 | [openloops](https://github.com/thorwhalen/openloops) | 从 GitHub issue 列出欠着和被挡住的事并带天数;会话摘要不用模型。 | 待完成取自会话里说过的话。 |
 | [alluvia](https://github.com/dylanp12/alluvia) | Claude Code 插件:提炼带原话的决定,原话按字符串核对;列出没解决的问题;用你配置的模型服务和 API key。 | 每个会话一棵树和整个项目的待完成清单,直接用 Claude Code 本身。 |
@@ -106,4 +102,4 @@ skill 只预先放行两件事:运行它自己的脚本,以及把结果写进 `~
 
 ## 许可证
 
-[MIT](LICENSE)
+[MIT](LICENSE)。treesight 是独立项目,与 Anthropic 没有关联,也未获其认可。

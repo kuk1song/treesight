@@ -10,16 +10,11 @@
 
 </div>
 
-Three weeks on, it is hard to remember what a session settled and what it left hanging. treesight has Claude read a session's transcript on your machine and draws it as a tree: what got done, what was found, where it got stuck, and what is still open, whether it is yours to do or you are waiting on someone. The open items of every session in the project come together in one list.
+A few weeks on, you can rarely recall how a session went, let alone its details. treesight reads the session's transcript and draws it as a tree: what got done, what was found, where it got stuck, and what is still open.
 
-It runs inside your own Claude Code: no server, no account, no extra API key, and the page makes no network requests.
+It runs inside your own AI (currently Claude Code): no server, no account, no extra API key, and the page makes no network requests.
 
 https://github.com/user-attachments/assets/988f3282-941d-4178-9bd8-f0a427e952a4
-
-<sub>The made-up sample project in this repository (`docs/demo.html`, built by `dev/make_sample.py`; the video is recorded by `dev/record_demo.mjs`). Day counts run to the sample's own date, and the page's interface follows the browser's language.</sub>
-
-> [!NOTE]
-> Unofficial and not affiliated with Anthropic. Early release: Claude Code only, dark theme only.
 
 ## Install
 
@@ -80,6 +75,7 @@ Extraction counts against your Claude Code plan. treesight favours finding every
 - The page waits for the model's first reply before it opens; once in testing that took 3.4 minutes.
 - The run's report comes back to your conversation, and Claude may comment on it.
 - The transcript format is internal to Claude Code and may change in any release.
+- The page has a dark theme only.
 
 The rest, with numbers, is in [docs/design.md](docs/design.md#6-known-limits-and-what-remains-to-verify).
 
@@ -106,4 +102,4 @@ Tests, checks, pull requests and releases are in [CONTRIBUTING.md](CONTRIBUTING.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). treesight is an independent project, not affiliated with or endorsed by Anthropic.
