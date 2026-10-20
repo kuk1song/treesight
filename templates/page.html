@@ -141,8 +141,9 @@ footer{max-width:940px;margin:0 auto;padding:0 20px 30px;text-align:center;font-
 <script>
 "use strict";
 const D=JSON.parse(document.getElementById('data').textContent), MAXN=9;
-/* ---------- words: Chinese when the browser prefers it, else English ---------- */
-const ZH=(navigator.languages&&navigator.languages[0]||navigator.language||'').toLowerCase().startsWith('zh');
+/* ---------- words: in the first of the browser's preferred languages that the page has (Chinese or English), else English ---------- */
+const LANGS=(navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language||'']).map(l=>String(l).toLowerCase());
+const ZH=(LANGS.find(l=>/^(zh|en)\b/.test(l))||'en').startsWith('zh');
 document.documentElement.lang=ZH?'zh-CN':'en';
 const W=ZH?{
   done:'做完',found:'发现',scar:'树疤:中间卡过',session:'会话',back:'整个项目',backAria:'返回整个项目',open:'待完成的事',close:'关闭',

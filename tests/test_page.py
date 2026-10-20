@@ -99,6 +99,21 @@ class Render(unittest.TestCase):
         finally:
             os.unlink(f.name)
 
+    def test_the_interface_language_is_the_first_preferred_one_the_page_has(self):
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node not installed")
+        with open(build.TEMPLATE, encoding="utf-8") as f:
+            html = f.read()
+        pick = re.search(r"^const LANGS=.*\n^const ZH=.*$", html, re.M).group(0)
+        cases = {"en-US": False, "zh-CN": True, "ja,zh-CN,en": True, "ja,en,zh-CN": False, "zh-TW,en": True,
+                 "fr,de": False, "en-GB,zh-CN": False, "": False}
+        script = "".join("{const navigator={languages:%s,language:%s};%s;console.log(ZH)}" % (
+            json.dumps(k.split(",") if k else []), json.dumps(k.split(",")[0]), pick) for k in cases)
+        r = subprocess.run([node, "-e", script], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.stdout.split(), [str(v).lower() for v in cases.values()])
+
     def test_both_languages_have_the_same_words(self):
         with open(build.TEMPLATE, encoding="utf-8") as f:
             html = f.read()

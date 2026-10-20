@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-h3xamZFiJwsVW/suFyFp96FbSPB+SjVArNvtGuazo/g='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-nGyEQyMCLAX+1/Kt9MjZQDSDTiwqkPdIyoksIrUestE='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>treesight</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%23131417'/%3E%3Cg transform='translate%284.4 3.6%29 scale%28.78%29'%3E%3Cpath d='M20 37V16.5' stroke='%23E9E8E3' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M20 29C14 29 10.5 26 8 21M20 21C26 21 29.5 18 32 13' fill='none' stroke='%23E9E8E3' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='21' r='4.6' fill='%23C8FF00'/%3E%3Ccircle cx='32' cy='13' r='4.6' fill='%23C8FF00'/%3E%3Ccircle cx='20' cy='7.5' r='4.8' fill='none' stroke='%23C8FF00' stroke-width='3.2'/%3E%3C/g%3E%3C/svg%3E">
@@ -141,8 +141,9 @@ footer{max-width:940px;margin:0 auto;padding:0 20px 30px;text-align:center;font-
 <script>
 "use strict";
 const D=JSON.parse(document.getElementById('data').textContent), MAXN=9;
-/* ---------- words: Chinese when the browser prefers it, else English ---------- */
-const ZH=(navigator.languages&&navigator.languages[0]||navigator.language||'').toLowerCase().startsWith('zh');
+/* ---------- words: in the first of the browser's preferred languages that the page has (Chinese or English), else English ---------- */
+const LANGS=(navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language||'']).map(l=>String(l).toLowerCase());
+const ZH=(LANGS.find(l=>/^(zh|en)\b/.test(l))||'en').startsWith('zh');
 document.documentElement.lang=ZH?'zh-CN':'en';
 const W=ZH?{
   done:'做完',found:'发现',scar:'树疤:中间卡过',session:'会话',back:'整个项目',backAria:'返回整个项目',open:'待完成的事',close:'关闭',
