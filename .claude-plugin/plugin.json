@@ -1,0 +1,10 @@
+{
+  "name": "treesight",
+  "version": "0.1.0",
+  "description": "Your Claude Code sessions as trees: what each one got done and found, and what is still open across the project, in a local page with no network requests.",
+  "author": {"name": "kuk1song", "url": "https://github.com/kuk1song"},
+  "homepage": "https://github.com/kuk1song/treesight",
+  "repository": "https://github.com/kuk1song/treesight",
+  "license": "MIT",
+  "keywords": ["sessions", "history", "recap", "open-items", "visualization"]
+}

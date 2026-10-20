@@ -1,0 +1,13 @@
+{
+  "note": "Made up for treesight tests. A short session whose tree is never generated, so the project view shows it with metadata only.",
+  "project": "/home/dev/tidepool",
+  "session": "tidepool-3",
+  "version": "2.1.299",
+  "events": [
+    {"t": "2026-10-02T12:10:20Z", "k": "prompt", "text": "How do I pin the Python version the CI uses to 3.12?"},
+    {"t": "2026-10-02T12:11:05Z", "k": "reply", "text": "Set `python-version: \"3.12\"` in the `actions/setup-python` step of `.github/workflows/test.yml`. I've made that change."},
+    {"t": "2026-10-02T12:14:44Z", "k": "prompt", "text": "Thanks, CI is green."},
+    {"t": "2026-10-02T12:15:10Z", "k": "away", "text": "You pinned the CI to Python 3.12 and the tests pass."},
+    {"t": "2026-10-02T12:15:30Z", "k": "title", "text": "Pin CI Python version to 3.12"}
+  ]
+}

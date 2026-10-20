@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kuk1song/treesight/schema/extract.schema.json",
+  "title": "treesight extraction output",
+  "description": "What the model writes after reading one session from where the ledger last stopped. Every new node and open item carries its message id and a verbatim quote. It can only add nodes, add open items, propose closing open items that already have an id, or say which of its new items a later record already settled. scripts/ledger.py checks it, assigns stable ids and appends it to the ledger.",
+  "type": "object",
+  "required": ["schema", "session", "through", "nodes", "open", "close"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "treesight/extract@1"},
+    "session": {"$ref": "common.schema.json#/$defs/uuid"},
+    "through": {"description": "The last message this extraction read.", "$ref": "common.schema.json#/$defs/uuid"},
+    "nodes": {"type": "array", "items": {"$ref": "#/$defs/node"}},
+    "open": {"type": "array", "items": {"$ref": "#/$defs/open"}},
+    "close": {"type": "array", "items": {"$ref": "#/$defs/close"}},
+    "settled": {"description": "Open items of this output that a later record in the digest's header already settled: sessions drawn before this one although they come after it could not close them.", "type": "array", "items": {"$ref": "#/$defs/settled"}},
+    "notes": {"description": "Anything the model was unsure about, for the user.", "type": "string", "maxLength": 2000}
+  },
+  "$defs": {
+    "node": {
+      "$ref": "common.schema.json#/$defs/nodeBody",
+      "required": ["ref", "msg", "evidence"],
+      "properties": {
+        "ref": {"$ref": "common.schema.json#/$defs/nodeRef"},
+        "overturns": {"description": "A node this one withdraws or corrects: an id from the ledger or a ref in this output.", "oneOf": [{"$ref": "common.schema.json#/$defs/nodeId"}, {"$ref": "common.schema.json#/$defs/nodeRef"}]}
+      },
+      "unevaluatedProperties": false
+    },
+    "open": {
+      "$ref": "common.schema.json#/$defs/openBody",
+      "required": ["ref", "msg", "evidence"],
+      "properties": {
+        "ref": {"$ref": "common.schema.json#/$defs/openRef"},
+        "blocked_by": {"description": "Another open item that has to happen first: an id from the ledger or a ref in this output.", "oneOf": [{"$ref": "common.schema.json#/$defs/openId"}, {"$ref": "common.schema.json#/$defs/openRef"}]}
+      },
+      "unevaluatedProperties": false
+    },
+    "close": {
+      "description": "A proposal to close an open item that already has an id. sure false, or status expired, goes to the user to confirm instead of closing.",
+      "type": "object",
+      "required": ["id", "status", "sure", "quote", "msg", "at"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"$ref": "common.schema.json#/$defs/openId"},
+        "status": {"enum": ["done", "expired"]},
+        "sure": {"type": "boolean"},
+        "quote": {"type": "string", "minLength": 1, "maxLength": 400},
+        "msg": {"$ref": "common.schema.json#/$defs/uuid"},
+        "at": {"$ref": "common.schema.json#/$defs/datetime"}
+      }
+    },
+    "settled": {
+      "description": "A close of a new open item by a later record (a node of another session, or a close made in one), named by its id. The ledger copies that record's quote. sure false, or status expired, goes to the user to confirm.",
+      "type": "object",
+      "required": ["ref", "by", "status", "sure"],
+      "additionalProperties": false,
+      "properties": {
+        "ref": {"$ref": "common.schema.json#/$defs/openRef"},
+        "by": {"oneOf": [{"$ref": "common.schema.json#/$defs/nodeId"}, {"$ref": "common.schema.json#/$defs/openId"}]},
+        "status": {"enum": ["done", "expired"]},
+        "sure": {"type": "boolean"}
+      }
+    }
+  }
+}

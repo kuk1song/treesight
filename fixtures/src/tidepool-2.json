@@ -1,0 +1,33 @@
+{
+  "note": "Made up for treesight tests. No real person, project or session. Times are UTC. Continues tidepool-1 a week later; it settles several of that session's open items.",
+  "project": "/home/dev/tidepool",
+  "session": "tidepool-2",
+  "version": "2.1.299",
+  "events": [
+    {"t": "2026-09-22T07:40:03Z", "k": "custom_title", "text": "release 0.3.0"},
+    {"t": "2026-09-22T07:41:15Z", "k": "prompt", "text": "Maya answered: keep the calendar feed private, it's only for the sailing club. So export should not write into site/."},
+    {"t": "2026-09-22T07:47:30Z", "k": "reply", "text": "Done: `tidepool export` now writes the feed to `~/.local/share/tidepool/feed.ics` and never into `site/`. I removed the `--public` flag from the plan and noted the decision in the CHANGELOG."},
+    {"t": "2026-09-22T08:02:51Z", "k": "prompt", "text": "The org admin never sent a token, but they set up trusted publishing for the repo instead. Can we release with that?"},
+    {"t": "2026-09-22T08:15:09Z", "k": "tool", "text": "Read .github/workflows/release.yml"},
+    {"t": "2026-09-22T08:19:44Z", "k": "reply", "text": "Yes. With trusted publishing, the GitHub release workflow gets a short-lived credential from PyPI, so no token is needed. I changed `release.yml` to use the `pypa/gh-action-pypi-publish` step with `id-token: write`. Push a v0.3.0 tag when you're ready."},
+    {"t": "2026-09-22T08:31:26Z", "k": "prompt", "text": "Tag pushed."},
+    {"t": "2026-09-22T08:38:02Z", "k": "reply", "text": "The release workflow failed at the publish step: PyPI says the trusted publisher is configured for workflow `publish.yml`, but ours is called `release.yml`."},
+    {"t": "2026-09-22T08:52:40Z", "k": "prompt", "text": "I don't have access to change the PyPI side. Rename ours?"},
+    {"t": "2026-09-22T08:56:13Z", "k": "reply", "text": "Renamed `.github/workflows/release.yml` to `publish.yml` and re-ran the tag. 0.3.0 is now on PyPI: `pip install tidepool==0.3.0` works in a clean virtualenv. The release was stuck for about 20 minutes on the workflow name."},
+    {"t": "2026-09-22T09:10:37Z", "k": "away", "text": "You released tidepool 0.3.0 to PyPI with trusted publishing after renaming the workflow to publish.yml. The feed stays private per Maya."},
+    {"t": "2026-09-23T16:05:58Z", "k": "prompt", "text": "I completely missed the PyCon proposal deadline last week, so that's gone. Maybe next year."},
+    {"t": "2026-09-23T16:06:40Z", "k": "reply", "text": "Understood, the lightning talk is off for this year. If you want, I can keep an outline for next year."},
+    {"t": "2026-09-23T16:20:11Z", "k": "prompt", "text": "I think Maya sent the station list in a chat at some point but I can't find it right now."},
+    {"t": "2026-09-23T16:21:02Z", "k": "reply", "text": "When you find it, paste the station ids and I'll add them to the default config."},
+    {"t": "2026-09-23T16:35:47Z", "k": "prompt", "text": "Let's write a short blog post about the 0.3.0 release for the club newsletter. I'll do it this weekend."},
+    {"t": "2026-09-23T16:36:30Z", "k": "reply", "text": "Good idea. The highlights would be the ICS export, the switch to the NOAA API and the private feed."},
+    {"t": "2026-09-23T16:40:00Z", "k": "title", "text": "Release tidepool 0.3.0 with trusted publishing"}
+  ],
+  "expect_closes": [
+    {"about": "ask Maya whether the feed is public", "status": "done", "sure": true},
+    {"about": "PyPI token from the org admin", "status": "done or expired: replaced by trusted publishing", "sure": false},
+    {"about": "release 0.3.0", "status": "done", "sure": true},
+    {"about": "PyCon talk proposal", "status": "expired"},
+    {"about": "Maya's station list", "status": "done", "sure": false}
+  ]
+}

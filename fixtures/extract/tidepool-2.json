@@ -1,0 +1,211 @@
+{
+ "schema": "treesight/extract@1",
+ "session": "0a182a7b-3fd8-56b9-a6e6-9fc77576e221",
+ "through": "2763eafb-fd7f-5935-87bf-265b98e73d39",
+ "nodes": [
+  {
+   "ref": "n1",
+   "kind": "done",
+   "label": "Calendar feed stays private",
+   "line": "Per Maya's answer, `tidepool export` now writes the feed to ~/.local/share/tidepool/feed.ics and never into site/.",
+   "at": "2026-09-22T07:47:30.000Z",
+   "msg": "0d2058c2-ce3d-527a-bb82-80c627e0584e",
+   "score": 4,
+   "twigs": [
+    "--public flag dropped from plan",
+    "Decision noted in CHANGELOG"
+   ],
+   "evidence": [
+    {
+     "quote": "Maya answered: keep the calendar feed private, it's only for the sailing club. So export should not write into site/.",
+     "kind": "prompt",
+     "msg": "75886baf-543f-5e6d-a041-c1fa9eef0660",
+     "at": "2026-09-22T07:41:15.000Z"
+    },
+    {
+     "quote": "Done: `tidepool export` now writes the feed to `~/.local/share/tidepool/feed.ics` and never into `site/`.",
+     "kind": "reply",
+     "msg": "0d2058c2-ce3d-527a-bb82-80c627e0584e",
+     "at": "2026-09-22T07:47:30.000Z"
+    }
+   ]
+  },
+  {
+   "ref": "n2",
+   "kind": "done",
+   "label": "tidepool 0.3.0 released on PyPI",
+   "line": "You shipped 0.3.0 through PyPI trusted publishing instead of a token, after renaming the workflow to match the PyPI config.",
+   "at": "2026-09-22T08:56:13.000Z",
+   "msg": "8243e07a-3011-5f75-8464-bdc6a09dbc41",
+   "score": 5,
+   "twigs": [
+    "Trusted publishing, no token needed",
+    "release.yml renamed to publish.yml",
+    "Verified in clean virtualenv"
+   ],
+   "story": {
+    "minutes": 20,
+    "q": "about",
+    "basis": "Assistant's estimate, from publish failure to successful re-run",
+    "steps": [
+     {
+      "role": "stuck",
+      "text": "The publish step failed: PyPI's trusted publisher expects workflow publish.yml, but the repo's was release.yml.",
+      "at": "2026-09-22T08:38:02.000Z",
+      "at_q": "exact"
+     },
+     {
+      "role": "response",
+      "text": "You had no access to the PyPI side, so the workflow was renamed to publish.yml and the tag re-run.",
+      "at": "2026-09-22T08:56:13.000Z",
+      "at_q": "exact"
+     },
+     {
+      "role": "result",
+      "text": "0.3.0 landed on PyPI and installs cleanly in a fresh virtualenv.",
+      "at": "2026-09-22T08:56:13.000Z",
+      "at_q": "exact"
+     }
+    ]
+   },
+   "evidence": [
+    {
+     "quote": "With trusted publishing, the GitHub release workflow gets a short-lived credential from PyPI, so no token is needed.",
+     "kind": "reply",
+     "msg": "201c6515-871e-5f20-aa4c-efadd1b36e7e",
+     "at": "2026-09-22T08:19:44.000Z"
+    },
+    {
+     "quote": "The release workflow failed at the publish step: PyPI says the trusted publisher is configured for workflow `publish.yml`, but ours is called `release.yml`.",
+     "kind": "reply",
+     "msg": "0e69ab47-b325-54fb-ba91-9f10d5102fa0",
+     "at": "2026-09-22T08:38:02.000Z"
+    },
+    {
+     "quote": "Renamed `.github/workflows/release.yml` to `publish.yml` and re-ran the tag. 0.3.0 is now on PyPI: `pip install tidepool==0.3.0` works in a clean virtualenv.",
+     "kind": "reply",
+     "msg": "8243e07a-3011-5f75-8464-bdc6a09dbc41",
+     "at": "2026-09-22T08:56:13.000Z"
+    }
+   ]
+  },
+  {
+   "ref": "n3",
+   "kind": "done",
+   "label": "PyCon talk dropped this year",
+   "line": "You missed the PyCon proposal deadline, so the tidepool lightning talk is off for this year.",
+   "at": "2026-09-23T16:05:58.000Z",
+   "msg": "12e1607c-5b47-50a3-9859-c8c574325425",
+   "score": 4,
+   "shelved": true,
+   "twigs": [
+    "Maybe next year"
+   ],
+   "evidence": [
+    {
+     "quote": "I completely missed the PyCon proposal deadline last week, so that's gone. Maybe next year.",
+     "kind": "prompt",
+     "msg": "12e1607c-5b47-50a3-9859-c8c574325425",
+     "at": "2026-09-23T16:05:58.000Z"
+    },
+    {
+     "quote": "Understood, the lightning talk is off for this year.",
+     "kind": "reply",
+     "msg": "f0268cd5-dce2-5395-b437-fa5eca07667c",
+     "at": "2026-09-23T16:06:40.000Z"
+    }
+   ]
+  }
+ ],
+ "open": [
+  {
+   "ref": "o1",
+   "kind": "todo",
+   "label": "Find Maya's station list in chat",
+   "line": "You think Maya already sent the sailing club stations in a chat; find it and paste the ids so they go into the default config.",
+   "raised_at": "2026-09-23T16:20:11.000Z",
+   "msg": "b29bc480-699e-5e33-a952-bdfd6f5ad7ba",
+   "rank": 2,
+   "evidence": [
+    {
+     "quote": "I think Maya sent the station list in a chat at some point but I can't find it right now.",
+     "kind": "prompt",
+     "msg": "b29bc480-699e-5e33-a952-bdfd6f5ad7ba",
+     "at": "2026-09-23T16:20:11.000Z"
+    },
+    {
+     "quote": "When you find it, paste the station ids and I'll add them to the default config.",
+     "kind": "reply",
+     "msg": "f57672ae-4fda-5ab4-b2f1-1628f0079575",
+     "at": "2026-09-23T16:21:02.000Z"
+    }
+   ]
+  },
+  {
+   "ref": "o2",
+   "kind": "todo",
+   "label": "Write 0.3.0 blog post for newsletter",
+   "line": "You plan a short post on the 0.3.0 release for the club newsletter, covering ICS export, the NOAA API switch and the private feed.",
+   "raised_at": "2026-09-23T16:35:47.000Z",
+   "msg": "db680a94-3ca8-5f87-be94-7023d347a1e0",
+   "rank": 1,
+   "evidence": [
+    {
+     "quote": "Let's write a short blog post about the 0.3.0 release for the club newsletter. I'll do it this weekend.",
+     "kind": "prompt",
+     "msg": "db680a94-3ca8-5f87-be94-7023d347a1e0",
+     "at": "2026-09-23T16:35:47.000Z"
+    },
+    {
+     "quote": "The highlights would be the ICS export, the switch to the NOAA API and the private feed.",
+     "kind": "reply",
+     "msg": "2763eafb-fd7f-5935-87bf-265b98e73d39",
+     "at": "2026-09-23T16:36:30.000Z"
+    }
+   ]
+  }
+ ],
+ "close": [
+  {
+   "id": "953c0ab1-o1",
+   "status": "done",
+   "sure": true,
+   "quote": "Maya answered: keep the calendar feed private, it's only for the sailing club.",
+   "msg": "75886baf-543f-5e6d-a041-c1fa9eef0660",
+   "at": "2026-09-22T07:41:15.000Z"
+  },
+  {
+   "id": "953c0ab1-o3",
+   "status": "expired",
+   "sure": false,
+   "quote": "The org admin never sent a token, but they set up trusted publishing for the repo instead.",
+   "msg": "3389c6c9-93f4-5543-a3bc-681f543fa5ca",
+   "at": "2026-09-22T08:02:51.000Z"
+  },
+  {
+   "id": "953c0ab1-o4",
+   "status": "done",
+   "sure": true,
+   "quote": "0.3.0 is now on PyPI: `pip install tidepool==0.3.0` works in a clean virtualenv.",
+   "msg": "8243e07a-3011-5f75-8464-bdc6a09dbc41",
+   "at": "2026-09-22T08:56:13.000Z"
+  },
+  {
+   "id": "953c0ab1-o5",
+   "status": "expired",
+   "sure": true,
+   "quote": "I completely missed the PyCon proposal deadline last week, so that's gone.",
+   "msg": "12e1607c-5b47-50a3-9859-c8c574325425",
+   "at": "2026-09-23T16:05:58.000Z"
+  },
+  {
+   "id": "953c0ab1-o2",
+   "status": "done",
+   "sure": false,
+   "quote": "I think Maya sent the station list in a chat at some point but I can't find it right now.",
+   "msg": "b29bc480-699e-5e33-a952-bdfd6f5ad7ba",
+   "at": "2026-09-23T16:20:11.000Z"
+  }
+ ],
+ "notes": "953c0ab1-o3 (PyPI token) is proposed as expired, not done: the token never came, but the admin granted access another way (trusted publishing), so done could also fit. 953c0ab1-o2 (wait on Maya for stations) is proposed as done but unsure, since you only think Maya sent the list; the remaining step is tracked as new todo o1. The blog post was planned for 'this weekend' (the weekend after 2026-09-23), which reads as a plan rather than a deadline, so no due date was set. 'Maybe next year' for the PyCon talk was too tentative to open as a wait item. The switch from token to trusted publishing is folded into n2 rather than kept as its own node."
+}

@@ -1,0 +1,12 @@
+# Real session data, prototypes built from it, history, research notes with local paths: never committed
+private/
+
+# stills taken with dev/shot.sh (named _*.png by convention)
+_*.png
+
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+.idea/
+.vscode/

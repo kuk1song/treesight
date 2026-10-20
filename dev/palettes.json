@@ -1,0 +1,46 @@
+{
+ "note": "Page colours. Only the dark set is used; the light set is kept for a later, separately designed light theme and has not been checked. Check with: python3 dev/palcheck.py",
+ "schemes": {
+  "default": {
+   "name": "default",
+   "logic": "done acid green, found bright yellow, todo a hollow ring in the done colour, waiting grey dashed; faint text kept at 4.5:1 or more on bg and panel",
+   "dark": {
+    "bg": "#0D0E11",
+    "panel": "#131417",
+    "fill": "#1D1E23",
+    "line": "#2B2C31",
+    "line2": "#33343A",
+    "ink": "#E9E8E3",
+    "mut": "#8F9095",
+    "faint": "#808186",
+    "hold": "#6E6F74",
+    "overturn": "#9A9BA0",
+    "trunk": "#3A3B41",
+    "waiting": "#C8FF00",
+    "done": "#C8FF00",
+    "found": "#FFD60A",
+    "scar_h": "#9C8167",
+    "scar_m": "#C48A5C",
+    "scar_d": "#F0A060",
+    "late": "#FF6F61",
+    "sess": "#7E7F84"
+   },
+   "light": {
+    "bg": "#F7F7F4",
+    "panel": "#EEEEEA",
+    "fill": "#E4E4DF",
+    "line": "#D3D3CE",
+    "line2": "#C6C6C1",
+    "ink": "#18191D",
+    "mut": "#5D5E64",
+    "faint": "#8A8B90",
+    "hold": "#9A9BA0",
+    "overturn": "#7F8084",
+    "trunk": "#C9C9C3",
+    "waiting": "#C8FF00",
+    "done": "#4C8500",
+    "found": "#9A6B00"
+   }
+  }
+ }
+}

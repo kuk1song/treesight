@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kuk1song/treesight/schema/session.schema.json",
+  "title": "treesight session",
+  "description": "One session as the page draws it: metadata read by script, plus the nodes and the still open items rebuilt from the ledger with the user's own edits applied.",
+  "type": "object",
+  "required": ["schema", "id", "title", "first_at", "last_at", "prompts", "generated", "nodes", "open"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "treesight/session@1"},
+    "id": {"$ref": "common.schema.json#/$defs/uuid"},
+    "title": {"description": "The user's own name for the session, else the automatic title.", "type": "string", "minLength": 1, "maxLength": 200},
+    "custom_title": {"description": "True when the title is the user's own name.", "type": "boolean"},
+    "first_at": {"$ref": "common.schema.json#/$defs/datetime"},
+    "last_at": {"$ref": "common.schema.json#/$defs/datetime"},
+    "prompts": {
+      "type": "object",
+      "required": ["total", "substantive"],
+      "additionalProperties": false,
+      "properties": {"total": {"type": "integer", "minimum": 0}, "substantive": {"type": "integer", "minimum": 0}}
+    },
+    "compactions": {"type": "integer", "minimum": 0},
+    "summary": {"description": "One line for the project view, taken from the latest automatic recap without a model.", "type": "string", "maxLength": 600},
+    "generated": {"description": "Whether the tree has been extracted at least once.", "type": "boolean"},
+    "gone": {"description": "True when Claude Code has deleted the session's transcript; the session is drawn from what the ledger kept.", "type": "boolean"},
+    "through": {"description": "The last message the ledger has extracted.", "$ref": "common.schema.json#/$defs/uuid"},
+    "last_run": {
+      "description": "What the latest extraction of this session added and closed, for the line under the title.",
+      "type": "object",
+      "required": ["at", "nodes", "open", "closed"],
+      "additionalProperties": false,
+      "properties": {
+        "at": {"$ref": "common.schema.json#/$defs/datetime"},
+        "nodes": {"type": "integer", "minimum": 0},
+        "open": {"type": "integer", "minimum": 0},
+        "closed": {"description": "Open items it closed.", "type": "integer", "minimum": 0},
+        "flagged": {"description": "Open items it left for the user to confirm: an unsure close, or no longer possible.", "type": "integer", "minimum": 0}
+      }
+    },
+    "nodes": {"type": "array", "items": {"$ref": "#/$defs/node"}},
+    "open": {"type": "array", "items": {"$ref": "#/$defs/open"}}
+  },
+  "$defs": {
+    "by": {"description": "Who added it: the model, with message id and quote, or the user by hand. Items from before the ledger may lack the quote.", "enum": ["model", "user"]},
+    "node": {
+      "$ref": "common.schema.json#/$defs/nodeBody",
+      "required": ["id", "by"],
+      "properties": {
+        "id": {"$ref": "common.schema.json#/$defs/nodeId"},
+        "by": {"$ref": "#/$defs/by"},
+        "overturns": {"$ref": "common.schema.json#/$defs/nodeId"}
+      },
+      "unevaluatedProperties": false
+    },
+    "open": {
+      "$ref": "common.schema.json#/$defs/openBody",
+      "required": ["id", "by", "state"],
+      "properties": {
+        "id": {"$ref": "common.schema.json#/$defs/openId"},
+        "by": {"$ref": "#/$defs/by"},
+        "blocked_by": {"$ref": "common.schema.json#/$defs/openId"},
+        "state": {"description": "open; confirm: the model thinks it is done but is not sure; stale: the model thinks it can no longer be done.", "enum": ["open", "confirm", "stale"]}
+      },
+      "unevaluatedProperties": false
+    }
+  }
+}

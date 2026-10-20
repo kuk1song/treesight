@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kuk1song/treesight/schema/common.schema.json",
+  "title": "treesight shared definitions",
+  "description": "Pieces shared by extract.schema.json and session.schema.json. Keywords starting with x- are checked by scripts/schema.py and ignored by other validators: x-maxUnits counts one CJK character or one run of other letters and digits as one unit.",
+  "$defs": {
+    "uuid": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"},
+    "datetime": {
+      "description": "ISO 8601 time with year and zone, as in the transcript (UTC, ending in Z).",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+    },
+    "date": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+    "nodeId": {"description": "Stable id the ledger assigns: first 8 hex digits of the session id, then n and a number.", "type": "string", "pattern": "^[0-9a-f]{8}-n[0-9]+$"},
+    "openId": {"description": "Stable id the ledger assigns to an open item.", "type": "string", "pattern": "^[0-9a-f]{8}-o[0-9]+$"},
+    "nodeRef": {"description": "Name the model gives a new node inside one extraction output.", "type": "string", "pattern": "^n[0-9]+$"},
+    "openRef": {"description": "Name the model gives a new open item inside one extraction output.", "type": "string", "pattern": "^o[0-9]+$"},
+    "label": {"description": "At most 8 units, a noun or verb phrase, no closing punctuation.", "type": "string", "minLength": 1, "maxLength": 48, "x-maxUnits": 8},
+    "line": {"description": "One sentence, at most 40 units.", "type": "string", "minLength": 1, "maxLength": 200, "x-maxUnits": 40},
+    "short": {"type": "string", "minLength": 1, "maxLength": 60, "x-maxUnits": 10},
+    "evidence": {
+      "description": "A verbatim quote from the transcript that supports the claim, with the message it comes from.",
+      "type": "object",
+      "required": ["quote", "kind", "msg", "at"],
+      "additionalProperties": false,
+      "properties": {
+        "quote": {"type": "string", "minLength": 1, "maxLength": 400},
+        "kind": {"enum": ["prompt", "reply", "recap", "compact"]},
+        "msg": {"$ref": "#/$defs/uuid"},
+        "at": {"$ref": "#/$defs/datetime"}
+      }
+    },
+    "evidenceList": {"type": "array", "minItems": 1, "maxItems": 3, "items": {"$ref": "#/$defs/evidence"}},
+    "story": {
+      "description": "How a node that got stuck along the way got past it: three rows in order, stuck, response, result.",
+      "type": "object",
+      "required": ["minutes", "q", "steps"],
+      "additionalProperties": false,
+      "properties": {
+        "minutes": {"description": "How long it was stuck; the known lower bound when unsure.", "type": "integer", "minimum": 0},
+        "q": {"enum": ["about", "at_least"]},
+        "basis": {"description": "What the duration is measured from and to.", "type": "string", "maxLength": 120, "x-maxUnits": 20},
+        "steps": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "prefixItems": [
+            {"$ref": "#/$defs/step", "properties": {"role": {"const": "stuck"}}},
+            {"$ref": "#/$defs/step", "properties": {"role": {"const": "response"}}},
+            {"$ref": "#/$defs/step", "properties": {"role": {"const": "result"}}}
+          ]
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "required": ["role", "text", "at", "at_q"],
+      "additionalProperties": false,
+      "properties": {
+        "role": {"enum": ["stuck", "response", "result"]},
+        "text": {"$ref": "#/$defs/line"},
+        "at": {"oneOf": [{"$ref": "#/$defs/datetime"}, {"type": "null"}]},
+        "at_q": {"description": "exact, approximate, happened before this time, or unknown (at is null).", "enum": ["exact", "approx", "before", "unknown"]},
+        "temp": {"description": "A temporary workaround rather than the lasting fix.", "type": "boolean"}
+      }
+    },
+    "nodeBody": {
+      "type": "object",
+      "required": ["kind", "label", "line", "at", "score"],
+      "properties": {
+        "kind": {"description": "done: something now exists or was settled. found: a fact, cause or state was established.", "enum": ["done", "found"]},
+        "label": {"$ref": "#/$defs/label"},
+        "line": {"$ref": "#/$defs/line"},
+        "at": {"$ref": "#/$defs/datetime"},
+        "msg": {"description": "The message this node corresponds to, kept for a future fork-from-here.", "$ref": "#/$defs/uuid"},
+        "score": {"description": "How much the user will want to recall this a month later, 5 highest.", "type": "integer", "minimum": 1, "maximum": 5},
+        "twigs": {"type": "array", "maxItems": 3, "items": {"$ref": "#/$defs/short"}},
+        "merged": {"description": "How many related events of the same kind this node stands for.", "type": "integer", "minimum": 2},
+        "shelved": {"description": "A decision not to do something, or to stop it.", "type": "boolean"},
+        "story": {"$ref": "#/$defs/story"},
+        "evidence": {"$ref": "#/$defs/evidenceList"}
+      }
+    },
+    "openBody": {
+      "type": "object",
+      "required": ["kind", "label", "line", "raised_at"],
+      "properties": {
+        "kind": {"description": "todo: the user acts next. wait: waiting on someone else, or put off on purpose.", "enum": ["todo", "wait"]},
+        "label": {"$ref": "#/$defs/label"},
+        "line": {"$ref": "#/$defs/line"},
+        "raised_at": {"description": "When it was raised. A date alone only when the time is not known.", "oneOf": [{"$ref": "#/$defs/datetime"}, {"$ref": "#/$defs/date"}]},
+        "msg": {"$ref": "#/$defs/uuid"},
+        "due": {"description": "A real deadline stated in the session.", "$ref": "#/$defs/date"},
+        "when": {"description": "A time label stated in the session without a date, such as after the trip.", "$ref": "#/$defs/short"},
+        "who": {"description": "For wait: who it waits on.", "$ref": "#/$defs/short"},
+        "rank": {"description": "Order among the few items ranked at extraction, 1 first.", "type": "integer", "minimum": 1},
+        "evidence": {"$ref": "#/$defs/evidenceList"}
+      }
+    }
+  }
+}

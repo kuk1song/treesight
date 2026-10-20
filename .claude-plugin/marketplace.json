@@ -1,0 +1,14 @@
+{
+  "name": "treesight",
+  "owner": {"name": "kuk1song", "url": "https://github.com/kuk1song"},
+  "description": "treesight: a local, visual map of your Claude Code sessions and what is still open.",
+  "plugins": [
+    {
+      "name": "treesight",
+      "source": "./",
+      "description": "Your Claude Code sessions as trees: what each one got done and found, and what is still open across the project, in a local page with no network requests.",
+      "category": "productivity",
+      "tags": ["sessions", "history", "open-items"]
+    }
+  ]
+}

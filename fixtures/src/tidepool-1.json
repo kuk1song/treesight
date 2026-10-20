@@ -1,0 +1,71 @@
+{
+  "note": "Made up for treesight tests. No real person, project or session. Times are UTC.",
+  "project": "/home/dev/tidepool",
+  "session": "tidepool-1",
+  "version": "2.1.299",
+  "events": [
+    {"t": "2026-09-14T09:02:11Z", "k": "prompt", "text": "Let's add ICS export to tidepool so the tide times for my station show up in my calendar. Keep it to the standard library if you can."},
+    {"t": "2026-09-14T09:03:40Z", "k": "tool", "text": "Read tidepool/cli.py"},
+    {"t": "2026-09-14T09:09:05Z", "k": "tool", "text": "Write tidepool/ics.py"},
+    {"t": "2026-09-14T09:12:30Z", "k": "reply", "text": "ICS export is in. New module `tidepool/ics.py` writes one VEVENT per high and low tide, and `tidepool export --ics tides.ics` writes the file. No new dependencies: it only uses the standard library. All 14 tests pass, including 3 new ones for the ICS output."},
+    {"t": "2026-09-14T09:31:47Z", "k": "prompt", "text": "I imported tides.ics into my calendar and every tide is one hour late. What's going on?"},
+    {"t": "2026-09-14T09:36:02Z", "k": "tool", "text": "Grep DTSTART tidepool/ics.py"},
+    {"t": "2026-09-14T09:40:19Z", "k": "reply", "text": "Found it: the export writes DTSTART as floating local time with no time zone, and your calendar reads floating times in its own zone, which is on summer time, so everything shifts by one hour. The data itself is right. The fix is to write every time in UTC with a trailing Z."},
+    {"t": "2026-09-14T09:41:05Z", "k": "prompt", "text": "Fix it."},
+    {"t": "2026-09-14T09:47:52Z", "k": "reply", "text": "Done. Times are now written in UTC (`DTSTART:20260914T163000Z`). I added a test that checks a summer date and a winter date. Re-import tides.ics to see the change."},
+    {"t": "2026-09-14T10:05:26Z", "k": "prompt", "text": "Re-imported, the times line up with the harbour board now. Thanks."},
+    {"t": "2026-09-14T10:06:10Z", "k": "reply", "text": "Good. The one-hour shift is fixed and confirmed against the harbour board."},
+    {"t": "2026-09-14T10:20:33Z", "k": "prompt", "text": "Next question: should we keep scraping the tide table web page, or switch to the NOAA CO-OPS API?"},
+    {"t": "2026-09-14T10:29:48Z", "k": "reply", "text": "I'd switch to the NOAA CO-OPS API. The page markup changed twice this year and broke the scraper both times; the API is documented, versioned and returns JSON. It needs no key. The cost is one more network call per run, which is fine for a daily export."},
+    {"t": "2026-09-14T10:31:15Z", "k": "prompt", "text": "OK, go with the API. Drop the scraper."},
+    {"t": "2026-09-14T10:44:58Z", "k": "reply", "text": "Switched to the NOAA CO-OPS API and removed the scraper (`tidepool/scrape.py` is gone). The fetch now lives in `tidepool/noaa.py`."},
+    {"t": "2026-09-14T14:02:37Z", "k": "prompt", "text": "The API keeps answering 'No data was found' for station 9414290. Did we break something?"},
+    {"t": "2026-09-14T14:09:12Z", "k": "reply", "text": "I tried three date ranges and two products and got 'No data was found' every time. It looks like station 9414290 has no tide predictions at all, so we may need a different station."},
+    {"t": "2026-09-14T14:11:30Z", "k": "away", "text": "You're moving tidepool from scraping to the NOAA API. Right now station 9414290 returns no data, and I think it may have no predictions; next is picking another station."},
+    {"t": "2026-09-14T14:38:44Z", "k": "prompt", "text": "That can't be right, the NOAA site shows predictions for 9414290 today. Look again."},
+    {"t": "2026-09-14T14:40:03Z", "k": "reply", "text": "You're right, and I was wrong earlier: the station has predictions. The request was missing the datum parameter; without `datum=MLLW` the API answers 'No data was found'. While I sort out the rest, I've pointed the export at a saved sample file so you can keep working. This is temporary."},
+    {"t": "2026-09-14T15:31:20Z", "k": "reply", "text": "Fixed for real: the request now sends `datum=MLLW`, `interval=hilo` and `time_zone=gmt`, and station 9414290 returns this week's highs and lows. I removed the sample-file workaround. The fetch had been failing since 14:02, so about an hour and a half."},
+    {"t": "2026-09-14T15:40:09Z", "k": "prompt", "text": "Great. While you're at it update the README usage section, the CHANGELOG and the --help text for the new export flag."},
+    {"t": "2026-09-14T15:52:31Z", "k": "reply", "text": "Updated all three: README usage now shows `tidepool export --ics`, the CHANGELOG has an Unreleased entry for ICS export and the NOAA switch, and `--help` describes `--ics PATH`."},
+    {"t": "2026-09-14T16:05:00Z", "k": "prompt", "text": "Run pip install -e . again so my shell picks it up."},
+    {"t": "2026-09-14T16:05:41Z", "k": "reply", "text": "Reinstalled in editable mode; `tidepool --version` prints 0.3.0.dev0."},
+    {"t": "2026-09-14T16:20:12Z", "k": "compact", "text": "This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.\n\nSummary:\n1. Primary Request and Intent:\n   The user wants tidepool to export tide times as an ICS calendar file and to get its data from the NOAA CO-OPS API instead of scraping.\n\n2. Key Technical Concepts:\n   - ICS VEVENT with UTC times\n   - NOAA CO-OPS predictions API, datum=MLLW, interval=hilo\n\n3. Files and Code Sections:\n   - tidepool/ics.py: writes one VEVENT per tide\n   - tidepool/noaa.py: fetch with datum=MLLW\n\n4. Errors and fixes:\n   - Times one hour late: floating local time; fixed by writing UTC with Z.\n   - 'No data was found': missing datum parameter; fixed with datum=MLLW.\n\n5. Problem Solving:\n   Confirmed the ICS times against the harbour board.\n\n6. All user messages:\n   - Let's add ICS export to tidepool ...\n   - Fix it.\n\n7. Pending Tasks:\n   - None stated beyond the release.\n\n8. Current Work:\n   Docs were updated for the export flag.\n\n9. Optional Next Step:\n   Add tests for leap years in the hilo parser."},
+    {"t": "2026-09-15T08:12:55Z", "k": "prompt", "text": "Morning. Before we release 0.3.0 I want to check with Maya whether the calendar feed should be public or private. I'll ask her today."},
+    {"t": "2026-09-15T08:14:02Z", "k": "reply", "text": "Sounds good. Once you know, the only change is whether `export` writes the feed into the public `site/` folder or keeps it local."},
+    {"t": "2026-09-15T08:30:47Z", "k": "prompt", "text": "Also Maya said she'd send me the list of stations the sailing club uses. Nothing to do until that arrives."},
+    {"t": "2026-09-15T08:31:30Z", "k": "reply", "text": "Noted. When the list arrives I can add the stations to the default config."},
+    {"t": "2026-09-15T09:02:18Z", "k": "prompt", "text": "To publish 0.3.0 to PyPI I need a token for the org's PyPI project, and only the org admin can give me one. I've emailed them. We can't release until that's sorted."},
+    {"t": "2026-09-15T09:03:40Z", "k": "reply", "text": "Understood: the 0.3.0 release waits on PyPI access from the org admin. Everything else for the release is ready, including the version bump."},
+    {"t": "2026-09-15T09:20:05Z", "k": "prompt", "text": "One more thing: I want to submit a lightning talk about tidepool to the local PyCon. The proposal deadline is 2026-09-20. Remind me to write it."},
+    {"t": "2026-09-15T09:21:12Z", "k": "reply", "text": "Got it: the talk proposal for the local PyCon is due 2026-09-20. I can draft an outline whenever you want."},
+    {"t": "2026-09-15T09:45:33Z", "k": "prompt", "text": "Windows support keeps coming up. Let's leave it until after the trip, I don't have a Windows machine with me."},
+    {"t": "2026-09-15T09:46:20Z", "k": "reply", "text": "Okay, Windows support is parked until after your trip."},
+    {"t": "2026-09-15T09:48:01Z", "k": "away", "text": "You're getting tidepool 0.3.0 ready. ICS export and the NOAA switch are done; the release waits on a PyPI token from the org admin, and you're checking with Maya whether the feed is public."},
+    {"t": "2026-09-15T10:10:44Z", "k": "title", "text": "Add ICS export and switch tidepool to the NOAA API"}
+  ],
+  "expect": {
+    "nodes": [
+      {"kind": "done", "about": "ICS export added", "keys": ["ics", "export"], "required": true},
+      {"kind": "found", "about": "cause of the one-hour shift: floating local time", "keys": ["floating", "hour", "time zone", "dst", "summer"], "required": false},
+      {"kind": "done", "about": "times fixed to UTC and confirmed", "keys": ["utc", "hour", "harbour"], "required": true},
+      {"kind": "done", "about": "switched to NOAA API, scraper dropped", "keys": ["noaa", "api", "scrap"], "required": true},
+      {"kind": "found", "about": "wrong: station has no predictions", "keys": ["no predictions", "no data"], "required": false},
+      {"kind": "found", "about": "station has predictions, datum missing (overturns the wrong finding)", "keys": ["datum", "mllw"], "required": false},
+      {"kind": "done", "about": "NOAA fetch works after being stuck about 90 minutes (story)", "keys": ["datum", "fetch", "noaa", "9414290"], "required": true},
+      {"kind": "done", "about": "README, CHANGELOG and --help updated (merged 3)", "keys": ["readme", "changelog", "help", "docs"], "required": false}
+    ],
+    "open": [
+      {"kind": "todo", "about": "ask Maya whether the feed is public", "keys": ["maya", "public"], "required": true},
+      {"kind": "wait", "about": "Maya's station list", "keys": ["station", "list"], "who": "Maya", "required": true},
+      {"kind": "wait", "about": "PyPI token from the org admin", "keys": ["pypi", "token", "admin"], "who": "org admin", "required": true},
+      {"kind": "todo", "about": "release 0.3.0, blocked by the PyPI token", "keys": ["release", "0.3.0"], "required": true},
+      {"kind": "todo", "about": "PyCon talk proposal due 2026-09-20", "keys": ["pycon", "talk", "proposal"], "due": "2026-09-20", "required": true},
+      {"kind": "wait", "about": "Windows support put off until after the trip", "keys": ["windows"], "when": "after the trip", "required": true}
+    ],
+    "not_open": [
+      {"about": "pip install -e . (one-off instruction)", "keys": ["pip install"]},
+      {"about": "leap-year tests (the assistant's own next step)", "keys": ["leap"]},
+      {"about": "version bump (already done)", "keys": ["version bump", "bump"]}
+    ]
+  }
+}

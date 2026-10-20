@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src '__SCRIPT_HASH__'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>treesight</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%23131417'/%3E%3Cg transform='translate%284.4 3.6%29 scale%28.78%29'%3E%3Cpath d='M20 37V16.5' stroke='%23E9E8E3' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M20 29C14 29 10.5 26 8 21M20 21C26 21 29.5 18 32 13' fill='none' stroke='%23E9E8E3' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='21' r='4.6' fill='%23C8FF00'/%3E%3Ccircle cx='32' cy='13' r='4.6' fill='%23C8FF00'/%3E%3Ccircle cx='20' cy='7.5' r='4.8' fill='none' stroke='%23C8FF00' stroke-width='3.2'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+/* treesight page. Dark only for now. Every view grows from the bottom of what is visible when it appears
+   (1 s the first time this data is seen, 0.6 s after; a click or key skips; nothing moves under reduced motion). */
+/* colours: dev/palettes.json, scheme "default", dark; tests/test_page.py keeps the two in step */
+:root{--bg:#0D0E11;--panel:#131417;--fill:#1D1E23;--line:#2B2C31;--line2:#33343A;--ink:#E9E8E3;--mut:#8F9095;--faint:#808186;
+  --trunk:#3A3B41;--done:#C8FF00;--found:#FFD60A;--overturn:#9A9BA0;--waiting:#C8FF00;--hold:#6E6F74;--waiting-fill:none;--waiting-ring:#C8FF00;
+  --scar-h:#9C8167;--scar-m:#C48A5C;--scar-d:#F0A060;--late:#FF6F61;--sess:#7E7F84;color-scheme:dark;
+  --f:-apple-system,"PingFang SC","Hiragino Sans GB","Segoe UI",system-ui,sans-serif;--mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f);font-size:15px;line-height:1.6}
+button{font:inherit;color:inherit}
+:where(button,a,[tabindex]):focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.bar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:12px 20px}
+.back{all:unset;cursor:pointer;position:fixed;left:0;top:96px;z-index:5;writing-mode:vertical-rl;letter-spacing:.3em;font-size:12.5px;color:var(--mut);background:var(--panel);border-radius:0 10px 10px 0;padding:14px 7px;transition:padding .15s ease-out,color .15s}
+.back:hover,.back:focus-visible{color:var(--ink);padding-left:10px}.back[hidden]{display:none}
+html:not([lang^="zh"]) .back{letter-spacing:.08em}
+@media (max-width:1020px){.back{position:static;writing-mode:horizontal-tb;letter-spacing:0!important;border-radius:8px;padding:5px 11px;font-size:13.5px}.back:hover,.back:focus-visible{padding-left:11px}}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--mut)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend .scr{width:10px;height:10px;border-radius:50%;border:2.2px solid var(--scar-m);display:inline-block}
+main{max-width:940px;margin:0 auto;padding:0 20px 60px}
+.where{text-align:center;margin:6px 0 0;display:grid;justify-items:center;gap:4px}
+.where b{font-size:15px;font-weight:600}.where small{font-family:var(--mono);font-size:11.5px;color:var(--mut)}
+.where .since{font-family:var(--f);font-size:12px;color:var(--mut)}
+svg.sh{flex:none;display:block;overflow:visible}
+.tree{position:relative;padding:8px 0 30px}
+.trunk{position:absolute;left:50%;top:150px;bottom:46px;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--trunk)}
+.crown{position:relative;display:grid;justify-items:center;align-content:start;padding:10px 0 14px;z-index:2}
+.todo{all:unset;cursor:pointer;font-size:12.5px;color:var(--ink);background:var(--panel);padding:4px 12px;border-radius:999px;margin-top:6px;position:relative;z-index:1}
+.todo:hover{background:var(--fill)}
+.crown .cover,.crown .none{font-size:12px;color:var(--mut);background:var(--bg);padding:0 8px;margin-top:6px;position:relative;z-index:1}
+.crown .none{font-size:12.5px}
+.rows{position:relative;display:grid;gap:20px;margin-top:8px}
+.row{display:grid;grid-template-columns:1fr 64px 1fr;align-items:start}
+.arm{grid-column:2;height:26px;position:relative}
+.arm svg{position:absolute;top:0;width:50%;height:26px}.arm path{stroke:var(--trunk)}
+.row.l .arm svg{right:50%}.row.r .arm svg{left:50%}
+.row .slot{grid-row:1;min-width:0}
+.row.l .slot{grid-column:1;text-align:right}.row.r .slot{grid-column:3;text-align:left}
+.node{position:relative;display:inline-grid;cursor:pointer;padding:4px 10px;border-radius:10px;border:0;background:none;text-align:inherit;max-width:100%}
+.node:hover,.node.open{background:var(--fill)}
+a.node{color:inherit;text-decoration:none}
+.node.pn:hover{background:none}
+.node .hring{fill:none;stroke:var(--ink);stroke-width:1.2;stroke-dasharray:47;stroke-dashoffset:47;transition:stroke-dashoffset .35s cubic-bezier(.2,.7,.2,1)}
+.node:hover .hring,.node:focus-visible .hring{stroke-dashoffset:0}
+@media (prefers-reduced-motion:reduce){.node .hring{transition:none}}
+.node .t{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15.5px}
+.row.l .node .t{flex-direction:row-reverse}
+.node .date{font-family:var(--mono);font-size:11px;color:var(--mut)}
+.where .tag{white-space:nowrap;font-size:11px;font-weight:500;color:var(--bg);background:var(--ink);border-radius:5px;padding:0 5px;margin-left:6px}
+.node .chev{color:var(--mut);font-weight:400;margin-left:6px}.node:hover .chev{color:var(--ink)}
+.node.sup .t .lb{color:var(--mut);text-decoration:line-through}
+.node.hl{outline:1.5px dashed var(--overturn)}
+.ov{color:var(--overturn);font-size:13px}
+.arm .scar{position:absolute;top:8px;width:11px;height:11px;border-radius:50%;border:2.4px solid var(--scar-m);background:var(--bg)}
+.row.l .arm .scar{right:calc(50% + 9px)}.row.r .arm .scar{left:calc(50% + 9px)}
+.scar.h,.ring.h{border-color:var(--scar-h)!important}.scar.d,.ring.d{border-color:var(--scar-d)!important}
+.card{position:absolute;z-index:4;top:calc(100% + 6px);width:min(300px,80vw);background:var(--panel);border-radius:12px;padding:10px 13px;font-weight:400;font-size:13.5px;color:var(--ink);box-shadow:0 8px 28px rgba(0,0,0,.4);pointer-events:none;opacity:0;transition:opacity .15s;text-align:left;line-height:1.55}
+.card.up{top:auto;bottom:calc(100% + 6px)}
+.card em{font-style:normal;display:block;margin-top:5px;color:var(--mut);font-size:12.5px}
+.row.l .card{right:0}.row.r .card{left:0}
+.node:hover>.card,.node:focus-visible>.card{opacity:1}
+.node.open>.card{display:none}
+.more{display:none;margin-top:8px;gap:8px}
+.slot.open .more{display:grid}
+.more .ln{font-size:13.5px;max-width:420px}.row.l .more .ln{margin-left:auto}
+.more .ln em{font-style:normal;display:block;color:var(--mut);font-size:12.5px}
+.twigs{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--mut)}
+.row.l .twigs{justify-content:flex-end}
+.twigs span::before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--mut);margin-right:6px;vertical-align:middle}
+.acts{display:flex;gap:8px}.row.l .acts{justify-content:flex-end}
+.acts button{all:unset;cursor:pointer;font-size:12.5px;color:var(--mut);background:var(--panel);border-radius:6px;padding:3px 9px}
+.acts button:hover,.acts button:focus-visible{color:var(--ink)}
+.src{display:none;font-size:12.5px;color:var(--mut);background:var(--panel);border-radius:10px;padding:10px 12px;text-align:left;max-width:420px;white-space:pre-wrap}
+.row.l .src{margin-left:auto}.slot.src-on .src{display:block}
+/* the story of a bumpy node: equal rows, one dashed segment from icon centre to icon centre */
+.story{display:grid;gap:6px;max-width:420px;text-align:left}.row.l .story{margin-left:auto}
+.story .dur{font-size:12.5px;color:var(--scar-m)}.story .dur.h{color:var(--scar-h)}.story .dur.d{color:var(--scar-d)}
+.story .steps{display:grid;grid-auto-rows:1fr}
+.story .st{position:relative;display:grid;grid-template-columns:16px 1fr;gap:0 10px;font-size:13px;min-height:44px}
+.story .st:not(:last-child)::after{content:"";position:absolute;left:7px;top:9px;height:100%;border-left:2px dashed var(--scar-m)}
+.story .ic{position:relative;z-index:1;height:18px;display:grid;place-items:center}
+.story .ic>span{width:16px;height:16px;border-radius:50%;background:var(--bg);display:grid;place-items:center}
+.story .ring{width:12px;height:12px;border-radius:50%;border:2.4px solid var(--scar-m)}
+.story .dotg{width:7px;height:7px;border-radius:50%;background:var(--mut)}
+.story .dn{width:11px;height:11px;border-radius:50%;background:var(--done)}
+.story .tx{padding:0 0 10px}.story .tx>i{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--mut);margin-right:8px}.story .tx b{font-weight:600;margin-right:6px}
+.stag{font-size:11px;color:var(--ink);background:var(--fill);border-radius:5px;padding:0 5px;margin-right:6px}
+.root{display:grid;justify-items:center;margin-top:20px;color:var(--mut);font-size:12px;font-family:var(--mono)}
+.root path{stroke:var(--trunk)}
+.rest{all:unset;cursor:pointer;font-size:12px;color:var(--mut);background:var(--bg);padding:0 8px;border-radius:6px;position:relative;z-index:1}.rest:hover,.rest:focus-visible{color:var(--ink)}
+#ovl{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:3}
+#ovl path{fill:none;stroke:var(--overturn);stroke-width:2;stroke-dasharray:5 5}
+/* the open-items drawer: one column, axis on the left */
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(460px,100vw);background:var(--panel);z-index:30;transform:translateX(100%);visibility:hidden;transition:transform .22s ease-out,visibility .22s;display:flex;flex-direction:column}
+.drawer.on{transform:none;visibility:visible;box-shadow:-10px 0 40px rgba(0,0,0,.45)}
+@media (prefers-reduced-motion:reduce){.drawer{transition:none}}
+.drawer header{display:flex;align-items:baseline;justify-content:space-between;padding:16px 18px 6px}
+.drawer header b{font-size:16px}.drawer header small{font-family:var(--mono);color:var(--mut);font-size:11.5px;margin-left:8px}
+.drawer header button{all:unset;cursor:pointer;color:var(--mut);font-size:20px;line-height:1;padding:2px 6px;border-radius:6px}
+.drawer .lg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--mut);padding:0 18px 8px}.drawer .lg span{display:inline-flex;gap:5px;align-items:center}
+.drawer .scroll{overflow:auto;padding:4px 10px 40px;flex:1}
+.ax{position:relative;display:grid;gap:7px;padding-left:34px}
+.ax::before{content:"";position:absolute;left:14px;top:6px;bottom:6px;width:3px;border-radius:2px;background:var(--trunk)}
+.bk{position:relative;font-size:12px;color:var(--mut);margin:12px 0 2px}
+.bk::before{content:"";position:absolute;left:-26px;top:9px;width:14px;height:2.5px;border-radius:2px;background:var(--mut)}
+.bk.late{color:var(--late)}.bk.late::before{background:var(--late)}
+.dv{font-size:10.5px;color:var(--faint);border-top:1px solid var(--line);padding-top:4px;margin-top:2px}
+.oi{position:relative;display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.35;padding:2px 4px;border-radius:8px}
+.oi:hover,.oi:focus-visible{background:var(--fill);outline:none}
+.oi svg{margin-top:1px}.oi b{font-weight:500}
+.oi .m{display:block;font-family:var(--mono);font-size:10.5px;color:var(--mut)}.oi .m.late{color:var(--late)}
+.oi .w{font-family:var(--f);color:var(--ink);background:var(--fill);border-radius:5px;padding:0 5px;font-size:11px}
+.oi .card{top:calc(100% + 4px);left:0}
+.oi:hover>.card,.oi:focus-visible>.card{opacity:1}
+.oi.hl{background:var(--fill);box-shadow:inset 0 0 0 1px var(--mut)}
+.pending{max-width:940px;margin:0 auto 6px;padding:8px 14px;border-radius:10px;background:var(--panel);color:var(--ink);font-size:13px;text-align:center}
+.pending[hidden]{display:none}
+footer{max-width:940px;margin:0 auto;padding:0 20px 30px;text-align:center;font-size:11.5px;color:var(--faint)}
+@media (max-width:640px){.row{grid-template-columns:1fr 30px 1fr}.node .t{font-size:14px}
+  .card,.card.up,.row.l .card,.row.r .card{position:fixed;left:16px;right:16px;top:auto;bottom:16px;width:auto;margin:0}}
+</style></head>
+<body>
+<div class="bar">
+  <button class="back" id="back" hidden></button>
+  <div class="legend" id="legend"></div>
+</div>
+<div class="pending" id="pending" role="status" hidden></div>
+<main id="web"></main>
+<footer id="foot"></footer>
+<aside class="drawer" id="drawer" aria-hidden="true"><header><div><b id="dtitle"></b><small><span id="dscope"></span> · <span id="dtoday"></span></small></div><button id="dclose"></button></header>
+<div class="lg" id="dlg"></div><div class="scroll"><div class="ax"></div></div></aside>
+<script type="application/json" id="data">__DATA__</script>
+<script>
+"use strict";
+const D=JSON.parse(document.getElementById('data').textContent), MAXN=9;
+/* ---------- words: Chinese when the browser prefers it, else English ---------- */
+const ZH=(navigator.languages&&navigator.languages[0]||navigator.language||'').toLowerCase().startsWith('zh');
+document.documentElement.lang=ZH?'zh-CN':'en';
+const W=ZH?{
+  done:'做完',found:'发现',scar:'树疤:中间卡过',session:'会话',back:'整个项目',backAria:'返回整个项目',open:'待完成的事',close:'关闭',
+  thisSession:'这个会话',wholeProject:n=>'整个项目 · 已生成的 '+n+' 个会话',today:d=>'今天 '+d,
+  foot:d=>'目前只有深色 · 时刻为本地时间 · 数据截至 '+d,count:n=>'待完成 '+n+' 件',overdueN:n=>' · 已过期 '+n,staleN:n=>' · 已失效 '+n,show:' · 显示时间轴 ▸',hide:' · 收起时间轴 ◂',
+  none:'没有待完成的事',cover:(g,m)=>'来自已生成的 '+g+' 个会话'+(m?' · 另有 '+m+' 个还没生成':''),
+  bOverdue:'已过期',bStale:'已失效',bBoth:'已过期或失效',bConfirm:'待你确认',bNoTime:'没定时间',byRaised:'以下按提出先后',stale:'已失效 · 关掉?',lateDays:n=>'过期 '+n+' 天',
+  firstYou:x=>'先要你「'+x+'」',waitingOn:x=>'在等'+x,putOff:'先放着',since:(d,n)=>' · 自 '+d+' · 已等 '+n+' 天',raised:d=>d+' 提出',confirm:'看起来已做完 · 待你确认',
+  from:x=>'来自「'+x+'」',lgTodo:'待办(你来)',lgWait:'等待(在等别人或先放着)',
+  stuck:(q,d)=>'卡了'+(q==='at_least'?'至少 ':'约 ')+d,min:n=>n+' 分钟',hr:n=>n+' 小时',day:n=>n+' 天',storyHint:'点开看经过',rows:['卡在','应对','结果'],temp:'临时',
+  unknownT:'时刻不详',approx:t=>'约 '+t,before:t=>t+' 前',shelved:'决定不做',merged:n=>'这里合了 '+n+' 件相关的事',overturned:x=>'↺ 推翻了「'+x+'」',overturnedBy:x=>'后来被「'+x+'」推翻',
+  source:'看原文',start:d=>'起点 '+d,projStart:d=>'项目起点 '+d,showAll:n=>'显示全部 '+n+' 个',keyOnly:'只看重点',prompts:n=>n+' 次提问',nodes:n=>n+' 个节点',sessions:n=>n+' 个会话',
+  current:'当前',currentSession:'当前会话',notYet:id=>'这个会话的树还没生成。回 Claude Code 运行 /treesight:treesight '+id+',再刷新这一页',span:(a,b)=>a===b?a:a+' 至 '+b,
+  sinceLast:(n,o,c,f)=>'上次生成:新增 '+n+' 个节点、'+o+' 件待完成'+(c?',关掉 '+c+' 件':'')+(f?','+f+' 件待你确认':''),
+  pending:(t,m)=>'正在生成「'+t+'」,约 '+m+' 分钟;这一页每 20 秒自动刷新,生成完会换成新结果。',
+  pendingMany:(ts,m)=>'正在生成 '+ts.length+' 个会话:'+ts.map(t=>'「'+t+'」').join('')+',约 '+m+' 分钟;这一页每 20 秒自动刷新,全部生成完会换成新结果。',
+  pendingLate:'生成比预计晚了很多,可能已经中断。可以回 Claude Code 再运行一次 /treesight:treesight;如果它其实还在跑,会告诉你正在生成。',
+  gone:'原会话记录已被 Claude Code 清理,这里是账本里保存的内容'}:{
+  done:'Done',found:'Found',scar:'Scar: got stuck along the way',session:'Session',back:'Whole project',backAria:'Back to the whole project',open:'Still open',close:'Close',
+  thisSession:'This session',wholeProject:n=>'Whole project · '+n+' session'+(n===1?'':'s')+' with a tree',today:d=>'Today '+d,
+  foot:d=>'Dark theme only · Local times · Data as of '+d,count:n=>n+' still open',overdueN:n=>' · '+n+' overdue',staleN:n=>' · '+n+' no longer possible',show:' · Show timeline ▸',hide:' · Hide timeline ◂',
+  none:'Nothing left open',cover:(g,m)=>'From '+g+' session'+(g===1?'':'s')+' with a tree'+(m?' · '+m+' not generated yet':''),
+  bOverdue:'Overdue',bStale:'No longer possible',bBoth:'Overdue or no longer possible',bConfirm:'To confirm',bNoTime:'No time set',byRaised:'Below: in the order raised',stale:'No longer possible · close it?',lateDays:n=>n+' day'+(n===1?'':'s')+' overdue',
+  firstYou:x=>'First you: “'+x+'”',waitingOn:x=>'Waiting on '+x,putOff:'Put off',since:(d,n)=>' · since '+d+' · '+n+' day'+(n===1?'':'s'),raised:d=>'Raised '+d,confirm:'Looks done · confirm?',
+  from:x=>'From “'+x+'”',lgTodo:'To do (you)',lgWait:'Waiting (on others, or put off)',
+  stuck:(q,d)=>'Stuck '+(q==='at_least'?'at least ':'about ')+d,min:n=>n+' min',hr:n=>n+' h',day:n=>n+' days',storyHint:'click for the story',rows:['Stuck','Response','Result'],temp:'Temporary',
+  unknownT:'time unknown',approx:t=>'about '+t,before:t=>'before '+t,shelved:'Decided not to',merged:n=>n+' related events merged here',overturned:x=>'↺ Overturned “'+x+'”',overturnedBy:x=>'Later overturned by “'+x+'”',
+  source:'Show source',start:d=>'Started '+d,projStart:d=>'Project started '+d,showAll:n=>'Show all '+n,keyOnly:'Key nodes only',prompts:n=>n+' prompt'+(n===1?'':'s'),nodes:n=>n+' node'+(n===1?'':'s'),sessions:n=>n+' session'+(n===1?'':'s'),
+  current:'Current',currentSession:'Current session',notYet:id=>'No tree yet. Run /treesight:treesight '+id+' in Claude Code, then reload this page.',span:(a,b)=>a===b?a:a+' to '+b,
+  sinceLast:(n,o,c,f)=>'Last run: '+n+' new node'+(n===1?'':'s')+', '+o+' open item'+(o===1?'':'s')+(c?', '+c+' closed':'')+(f?', '+f+' to confirm':''),
+  pending:(t,m)=>'Drawing “'+t+'”, about '+m+' min. This page reloads every 20 s and shows the result when it is done.',
+  pendingMany:(ts,m)=>'Drawing '+ts.length+' sessions: '+ts.map(t=>'“'+t+'”').join(', ')+', about '+m+' min. This page reloads every 20 s and shows the result when they are done.',
+  pendingLate:'This is taking much longer than expected and may have stopped. Run /treesight:treesight again in Claude Code; if it is still running, it will say so.',
+  gone:'Claude Code has deleted this session’s transcript; this is what the ledger kept.'};
+/* ---------- time: stored as ISO with year, shown in local time ---------- */
+const pad=n=>String(n).padStart(2,'0'),TODAY=new Date();
+const parse=s=>/T/.test(s)?new Date(s):new Date(s+'T00:00:00');
+const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const fdate=s=>{const d=parse(s);return d.getFullYear()===TODAY.getFullYear()?pad(d.getMonth()+1)+'-'+pad(d.getDate()):ymd(d)};
+const ftime=s=>fdate(s)+' '+pad(parse(s).getHours())+':'+pad(parse(s).getMinutes());
+const midnight=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+const ago=s=>Math.round((midnight(TODAY)-midnight(parse(s)))/864e5);
+/* an item marked no longer possible counts as that, even when its due date has also passed: its row says so too */
+const late=x=>!!x.due&&ago(x.due)>0, stale=x=>x.state==='stale', overdue=x=>late(x)&&!stale(x), dead=x=>stale(x)||late(x);
+/* ---------- data ---------- */
+const S=D.sessions, byId8={};S.forEach(s=>{byId8[s.id.slice(0,8)]=s});
+const CURS=S.find(s=>s.id===D.current&&s.generated)||null;
+/* the view without a hash: the session this build is about (none yet if its first tree is still being drawn), else the current one */
+const FOCUS=D.focus?S.find(s=>s.id===D.focus)||null:null,HOME=D.focus?(FOCUS&&FOCUS.generated?FOCUS:null):CURS;
+const titleOf=id=>(S.find(s=>s.id===id)||{}).title||id.slice(0,8);
+const allOpen=()=>S.flatMap(s=>s.open.map(o=>Object.assign({session:s.id},o)));
+const $=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
+const NS='http://www.w3.org/2000/svg';
+function shape(kind,size=14){
+  const s=document.createElementNS(NS,'svg');s.setAttribute('viewBox','0 0 16 16');s.setAttribute('width',size);s.setAttribute('height',size);s.setAttribute('class','sh');s.setAttribute('aria-hidden','true');
+  const mk=(t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);s.append(e);return e};
+  if(kind==='done')mk('circle',{cx:8,cy:8,r:5.5,fill:'var(--done)'});
+  else if(kind==='found')mk('path',{d:'M8 .8C8.9 5.3 10.7 7.1 15.2 8 10.7 8.9 8.9 10.7 8 15.2 7.1 10.7 5.3 8.9.8 8 5.3 7.1 7.1 5.3 8 .8Z',fill:'var(--found)'});
+  else if(kind==='todo'){const c=mk('circle',{cx:8,cy:8,r:5.6,'stroke-width':2.2});c.style.fill='var(--waiting-fill)';c.style.stroke='var(--waiting-ring)'}
+  else if(kind==='wait')mk('circle',{cx:8,cy:8,r:5.6,'stroke-width':2.2,'stroke-dasharray':'2.2 2.2',fill:'none',stroke:'var(--hold)'});
+  else if(kind==='late')mk('circle',{cx:8,cy:8,r:6,fill:'var(--late)'});
+  else if(kind==='sess'||kind==='sesscur'){mk('circle',{cx:8,cy:8,r:5.6,fill:kind==='sess'?'var(--sess)':'var(--ink)'});mk('circle',{cx:8,cy:8,r:7.4,class:'hring',transform:'rotate(-90 8 8)'})}
+  return s}
+function legend(shown){
+  const L=document.getElementById('legend');L.textContent='';const it=(sh,t)=>{const s=$('span');s.append(sh,document.createTextNode(t));L.append(s)};
+  if(!shown)return;const has=f=>shown.some(f);
+  if(has(n=>n.kind==='done'))it(shape('done'),W.done);if(has(n=>n.kind==='found'))it(shape('found'),W.found);
+  if(has(n=>n.story))it($('i','scr'),W.scar)}
+let openSlot=null,nodeEls={},CUR=null,showAll=false,fromP=false;
+function arm(left){const s=document.createElementNS(NS,'svg');s.setAttribute('viewBox','0 0 34 26');s.setAttribute('preserveAspectRatio','none');const p=document.createElementNS(NS,'path');p.setAttribute('d',left?'M34 24 C 22 24, 14 20, 0 9':'M0 24 C 12 24, 20 20, 34 9');p.setAttribute('fill','none');p.setAttribute('stroke-width','3');p.setAttribute('stroke-linecap','round');s.append(p);return s}
+function card(line,extra,up){const c=$('span','card'+(up?' up':''));c.append(document.createTextNode(line||''));(extra||[]).forEach(x=>x&&c.append($('em',null,x)));return c}
+/* story: duration level from minutes (under 1 h, 1 h to 1 day, over 1 day) */
+const lvl=m=>m<60?'h':m<1440?'m':'d';
+const dur=m=>m<60?W.min(m):m<1440?W.hr(Math.round(m/6)/10):W.day(Math.round(m/144)/10);
+const stime=st=>st.at_q==='unknown'||!st.at?W.unknownT:st.at_q==='approx'?W.approx(ftime(st.at)):st.at_q==='before'?W.before(ftime(st.at)):ftime(st.at);
+function storyEl(st){
+  const L=lvl(st.minutes),w=$('div','story');w.append($('span','dur '+L,W.stuck(st.q,dur(st.minutes))+(st.basis?(ZH?'(':' (')+st.basis+(ZH?')':')'):'')));const steps=$('div','steps');
+  st.steps.forEach((s,i)=>{const r=$('div','st'),ic=$('div','ic'),h=$('span');
+    h.append(i===0?$('i','ring '+L):i===1?$('i','dotg'):$('i','dn'));ic.append(h);
+    const tx=$('div','tx');tx.append($('i',null,stime(s)),$('b',null,W.rows[i]));if(s.temp)tx.append($('span','stag',W.temp));tx.append(document.createTextNode(s.text));r.append(ic,tx);steps.append(r)});
+  w.append(steps);return w}
+function nodeRow(n,i,o={}){
+  const left=i%2===0,row=$('div','row '+(left?'l':'r'));
+  const slot=$('div','slot'),b=o.href!=null?$('a','node'):$('button','node'),t=$('span','t');if(o.cls)b.classList.add(o.cls);
+  t.append(o.shapeEl||shape(n.kind));
+  const lb=$('span','lb');lb.append($('span','sr',(W[n.kind]||W.session)+': '),document.createTextNode(n.label));if(o.sr)lb.append($('span','sr',' ('+o.sr+')'));if(o.href!=null)lb.append($('span','chev','›'));t.append(lb);
+  const by=o.byId||{};
+  if(n.overturns&&nodeEls.vis&&nodeEls.vis.has(n.overturns))t.append($('span','ov','↺'));
+  const extra=[];
+  if(n.story)extra.push(W.stuck(n.story.q,dur(n.story.minutes))+' · '+W.storyHint);
+  if(n.shelved)extra.push(W.shelved);
+  if(n.merged>1)extra.push(W.merged(n.merged));
+  if(n.overturns&&by[n.overturns])extra.push(W.overturned(by[n.overturns].label));
+  if(n.supBy)extra.push(W.overturnedBy(n.supBy.label));
+  if(o.hint)extra.push(o.hint);
+  b.append(t,$('span','date',o.date||fdate(n.at)));b.append(card(n.line,extra,!!n.overturns));
+  if(n.supBy&&nodeEls.vis&&nodeEls.vis.has(n.supBy.id))b.classList.add('sup');
+  slot.append(b);
+  const more=$('div','more'),ln=$('div','ln');
+  if(n.story)ln.append(storyEl(n.story));else{ln.append(document.createTextNode(n.line||''));extra.forEach(x=>ln.append($('em',null,x)))}
+  more.append(ln);
+  if(n.twigs&&n.twigs.length&&!n.story){const tw=$('div','twigs');n.twigs.forEach(x=>tw.append($('span',null,x)));more.append(tw)}
+  const src=n.evidence&&n.evidence.length?n.evidence.map(e=>e.quote).join('\n\n'):null;
+  if(src){const acts=$('div','acts'),bs=$('button',null,W.source);bs.onclick=e=>{e.stopPropagation();slot.classList.toggle('src-on')};acts.append(bs);more.append(acts,$('div','src',src))}
+  slot.append(more);
+  if(o.href!=null){b.href='#'+o.href;b.onclick=()=>{fromP=true}}else b.onclick=()=>{if(openSlot&&openSlot!==slot){openSlot.classList.remove('open','src-on');openSlot.querySelector('.node').classList.remove('open')}
+    slot.classList.toggle('open');b.classList.toggle('open');b.setAttribute('aria-expanded',slot.classList.contains('open'));openSlot=slot.classList.contains('open')?slot:null};
+  if(o.href==null)b.setAttribute('aria-expanded','false');
+  const other=n.overturns||(n.supBy&&n.supBy.id);
+  if(other&&nodeEls.vis&&nodeEls.vis.has(other)){const on=()=>drawOv(b,other),off=()=>{document.getElementById('ovl').textContent='';document.querySelectorAll('.node.hl').forEach(x=>x.classList.remove('hl'))};b.addEventListener('mouseenter',on);b.addEventListener('focus',on);b.addEventListener('mouseleave',off);b.addEventListener('blur',off)}
+  nodeEls[n.id]=b;const a=$('div','arm');a.append(arm(left));if(n.story)a.append($('i','scar '+lvl(n.story.minutes)));row.append(slot,a);return row}
+function drawOv(from,toId){const to=nodeEls[toId],o=document.getElementById('ovl');if(!to)return;to.classList.add('hl');
+  const box=o.getBoundingClientRect(),a=from.querySelector('svg.sh').getBoundingClientRect(),b=to.querySelector('svg.sh').getBoundingClientRect();
+  const ax=a.left+a.width/2-box.left,ay=a.top+a.height/2-box.top,bx=b.left+b.width/2-box.left,by=b.top+b.height/2-box.top,sa=ax<box.width/2?-1:1,sb=bx<box.width/2?-1:1;
+  const p=document.createElementNS(NS,'path');p.setAttribute('d',`M${ax} ${ay} C ${ax+sa*90} ${ay}, ${bx+sb*90} ${by}, ${bx} ${by}`);o.append(p)}
+function rootEl(t){const r=$('div','root'),s=document.createElementNS(NS,'svg');s.setAttribute('width','110');s.setAttribute('height','30');s.setAttribute('viewBox','0 0 110 30');s.setAttribute('aria-hidden','true');
+  const p=document.createElementNS(NS,'path');p.setAttribute('d','M55 0 C55 12, 36 20, 16 28 M55 0 C55 14, 55 20, 55 30 M55 0 C55 12, 74 20, 94 28');p.setAttribute('fill','none');p.setAttribute('stroke-width','3');p.setAttribute('stroke-linecap','round');s.append(p);r.append(s,$('span',null,t));return r}
+/* ---------- crown and the open-items drawer ---------- */
+function crown(open,o={}){
+  const c=$('div','crown'),nl=open.filter(overdue).length,ns=open.filter(stale).length;
+  if(open.length){const base=W.count(open.length)+(nl?W.overdueN(nl):'')+(ns?W.staleN(ns):'');const r=$('button','todo',base+W.show);r.dataset.base=base;r.setAttribute('aria-expanded','false');r.setAttribute('aria-controls','drawer');r.onclick=e=>{e.stopPropagation();toggleDrawer(open,r)};c.append(r)}
+  else c.append($('span','none',W.none));
+  if(o.cover)c.append($('span','cover',o.cover));
+  return c}
+function toggleDrawer(open,btn){const dr=document.getElementById('drawer');if(dr.classList.contains('on')){closeDrawer();return}openDrawer(open);btn.setAttribute('aria-expanded','true');btn.textContent=btn.dataset.base+W.hide}
+function closeDrawer(){const dr=document.getElementById('drawer');dr.classList.remove('on');dr.setAttribute('aria-hidden','true');document.querySelectorAll('.todo').forEach(b=>{b.setAttribute('aria-expanded','false');if(b.dataset.base)b.textContent=b.dataset.base+W.show})}
+function openDrawer(open){
+  const dr=document.getElementById('drawer'),ax=dr.querySelector('.ax');ax.textContent='';
+  document.getElementById('dscope').textContent=CUR?W.thisSession:W.wholeProject(S.filter(s=>s.generated).length);
+  const els={},byD=(a,b)=>(a.raised_at||'').localeCompare(b.raised_at||'');
+  /* sections come from the data: overdue first, then items to confirm, then each `when` label in order of appearance, then items without a time */
+  const live=x=>!dead(x)&&x.state!=='confirm',whens=[...new Set(open.filter(x=>live(x)&&x.when).map(x=>x.when))];
+  const deadName=open.some(overdue)&&open.some(stale)?W.bBoth:open.some(overdue)?W.bOverdue:W.bStale;
+  const B=[[deadName,x=>dead(x),'late'],[W.bConfirm,x=>!dead(x)&&x.state==='confirm',''],...whens.map(w=>[w,x=>live(x)&&x.when===w,'']),[W.bNoTime,x=>live(x)&&!x.when,'']];
+  const mk=x=>{const it=$('div','oi');it.tabIndex=0;const dd=dead(x);
+    const t=$('span');t.append($('b',null,x.label));const m=$('span','m'+(dd?' late':''));
+    if(x.state==='stale')m.textContent=W.stale;
+    else if(late(x))m.textContent=W.lateDays(ago(x.due));
+    else if(x.state==='confirm')m.textContent=W.confirm;
+    else if(x.blocked_by&&open.some(y=>y.id===x.blocked_by))m.append($('span','w',W.firstYou(open.find(y=>y.id===x.blocked_by).label)));
+    else if(x.kind==='wait')m.append($('span','w',x.who?W.waitingOn(x.who):W.putOff),document.createTextNode(W.since(fdate(x.raised_at),ago(x.raised_at))));
+    else m.textContent=W.raised(fdate(x.raised_at));
+    t.append(m);it.append(shape(dd?'late':x.kind==='wait'?'wait':'todo'),t,card(x.line,[!CUR||x.session!==CUR.id?W.from(titleOf(x.session)):'']));els[x.id]=it;return it};
+  B.forEach(([name,f,cls])=>{const xs=open.filter(f);if(!xs.length)return;ax.append($('div','bk '+cls,name));
+    const ranked=xs.filter(x=>x.kind==='todo'&&x.rank!=null).sort((a,b)=>a.rank-b.rank),rest=xs.filter(x=>x.kind==='todo'&&x.rank==null).sort(byD),waits=xs.filter(x=>x.kind==='wait').sort(byD);
+    ranked.forEach(x=>ax.append(mk(x)));if(ranked.length&&rest.length)ax.append($('div','dv',W.byRaised));rest.forEach(x=>ax.append(mk(x)));waits.forEach(x=>ax.append(mk(x)))});
+  open.filter(x=>x.blocked_by&&els[x.id]&&els[x.blocked_by]).forEach(x=>{const a=els[x.id],b=els[x.blocked_by],on=()=>{a.classList.add('hl');b.classList.add('hl')},off=()=>{a.classList.remove('hl');b.classList.remove('hl')};
+    [a,b].forEach(e=>{e.addEventListener('mouseenter',on);e.addEventListener('focus',on);e.addEventListener('mouseleave',off);e.addEventListener('blur',off)})});
+  /* legend: only the marks this list uses */
+  const dl=document.getElementById('dlg');dl.textContent='';const has=f=>open.some(f);
+  [[has(x=>!dead(x)&&x.kind!=='wait'),'todo',W.lgTodo],[has(x=>!dead(x)&&x.kind==='wait'),'wait',W.lgWait],[has(dead),'late',deadName]].forEach(([ok,k,t])=>{if(!ok)return;const s=$('span');s.append(shape(k,13),document.createTextNode(t));dl.append(s)});
+  dr.classList.add('on');dr.setAttribute('aria-hidden','false');document.getElementById('dclose').focus({preventScroll:true})}
+/* ---------- motion ---------- */
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches||!!D.pending,SEEN='treesight-grown-'+D.asof;
+const store={get:k=>{try{return localStorage.getItem(k)}catch(_){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(_){}}};
+let growing=[];
+function grow(TOTAL,only){
+  const tr=document.querySelector('.tree');if(!tr||RM)return [];
+  const ease='cubic-bezier(.2,.7,.2,1)',spring='cubic-bezier(.34,1.56,.64,1)',A=[];
+  const c=tr.querySelector('.crown'),t=tr.querySelector('.trunk'),root=tr.querySelector('.root');
+  const rows=only||[...tr.querySelectorAll('.rows .row')];
+  t.style.top=(c.offsetTop+c.offsetHeight)+'px';const tb=t.getBoundingClientRect(),oy=Math.min(tb.bottom,innerHeight),span=Math.max(1,oy-tb.top);
+  const an=(el,kf,o)=>{if(el)A.push(el.animate(kf,Object.assign({fill:'backwards',easing:ease},o)))};
+  const frac=r=>{const y=r.getBoundingClientRect().top+13;return Math.min(1,Math.max(0,(oy-y)/span))};
+  const left=r=>r.classList.contains('l');
+  const draw=(r,delay,d)=>{const p=r.querySelector('.arm path');if(!p)return;const L=p.getTotalLength();p.style.strokeDasharray=L;an(p,[{strokeDashoffset:L},{strokeDashoffset:0}],{delay,duration:d})};
+  if(!only){an(root,[{opacity:0,transform:'scale(.7)'},{opacity:1,transform:'none'}],{duration:300});
+    t.style.transformOrigin='50% '+(oy-tb.top)+'px';an(t,[{transform:'scaleY(0)'},{transform:'scaleY(1)'}],{delay:200,duration:1000,easing:'cubic-bezier(.45,.05,.35,1)'})}
+  rows.forEach((r,i)=>{const d=only?40*i:200+1000*frac(r);draw(r,d,200);
+    an(r.querySelector('.slot'),[{opacity:0,transform:`translateX(${left(r)?10:-10}px)`},{opacity:1,transform:'none'}],{delay:d+120,duration:260});
+    an(r.querySelector('.scar'),[{opacity:0,transform:'scale(.4)'},{opacity:1,transform:'none'}],{delay:d+200,duration:320,easing:spring})});
+  if(!only){an(c,[{opacity:0,transform:'translateY(8px) scale(.96)'},{opacity:1,transform:'none'}],{delay:1150,duration:380});
+    an(document.querySelector('.where'),[{opacity:0},{opacity:1}],{duration:300})}
+  if(!A.length)return A;
+  /* scale the whole sequence so the last piece ends at exactly TOTAL ms, whatever the data and the window height */
+  const end=Math.max(...A.map(a=>a.effect.getComputedTiming().endTime));A.rate=end/TOTAL;A.forEach(a=>a.playbackRate=A.rate);
+  return A}
+function settle(){growing.forEach(a=>a.finish());growing=[]}
+function run(total,prev){if(RM)return;
+  const only=prev?Object.keys(nodeEls).filter(k=>k!=='vis'&&!prev.has(k)).map(k=>nodeEls[k].closest('.row')).filter(Boolean):null;
+  growing=grow(total,only);Promise.all(growing.map(a=>a.finished)).then(()=>{growing=[]},()=>{})}
+addEventListener('pointerdown',()=>{if(growing.length)settle()},true);
+addEventListener('keydown',()=>{if(growing.length)settle()},true);
+/* ---------- views ---------- */
+function sinceLine(s){const c=s.last_run;return c?$('span','since',W.sinceLast(c.nodes,c.open,c.closed,c.flagged||0)):null}
+function sessionView(s){
+  if(CUR&&s!==CUR)showAll=false;CUR=s;closeDrawer();document.getElementById('back').hidden=false;
+  const m=document.getElementById('web');m.textContent='';openSlot=null;nodeEls={};
+  const byId={};s.nodes.forEach(n=>{byId[n.id]=n;delete n.supBy});Object.values(byId).forEach(n=>{if(n.overturns&&byId[n.overturns])byId[n.overturns].supBy={id:n.id,label:n.label}});
+  const all=s.nodes.slice().sort((a,b)=>b.at.localeCompare(a.at)),N=Math.min(MAXN,all.length);
+  /* default nodes: the top N by score, ties to the newer; drawn in time order */
+  const pick=new Set(all.slice().sort((a,b)=>(b.score-a.score)||b.at.localeCompare(a.at)).slice(0,N).map(n=>n.id));
+  const shown=showAll||all.length<=N?all:all.filter(n=>pick.has(n.id));nodeEls.vis=new Set(shown.map(n=>n.id));legend(shown);
+  const w=$('div','where'),hd=$('b',null,s.title);if(s===CURS)hd.append($('span','tag',W.current));
+  w.append(hd,$('small',null,W.span(fdate(s.first_at),fdate(s.last_at))+' · '+W.prompts(s.prompts.substantive)+' · '+W.nodes(all.length)));const sl=sinceLine(s);if(sl)w.append(sl);if(s.gone)w.append($('span','since',W.gone));m.append(w);
+  const tr=$('div','tree'),ovl=document.createElementNS(NS,'svg');ovl.id='ovl';
+  const rows=$('div','rows');shown.forEach((n,i)=>rows.append(nodeRow(n,i,{byId})));
+  tr.append($('div','trunk'),crown(s.open.map(o=>Object.assign({session:s.id},o))),rows);
+  const rt=rootEl(W.start(fdate(s.first_at)));
+  if(all.length>N){const tg=$('button','rest',showAll?W.keyOnly:W.showAll(all.length));tg.onclick=()=>{settle();const prev=new Set(nodeEls.vis),more=!showAll;showAll=more;sessionView(s);if(more)run(450,prev)};rt.prepend(tg)}
+  tr.append(rt,ovl);m.append(tr);fixTrunk(tr)}
+function projectView(){
+  CUR=null;closeDrawer();document.getElementById('back').hidden=true;legend(null);
+  const m=document.getElementById('web');m.textContent='';openSlot=null;nodeEls={};
+  const list=S.slice().sort((a,b)=>b.last_at.localeCompare(a.last_at));
+  const w=$('div','where');w.append($('b',null,D.project.path),$('small',null,W.sessions(list.length)));m.append(w);
+  const gen=list.filter(s=>s.generated).length,tr=$('div','tree');tr.append($('div','trunk'),crown(allOpen(),{cover:W.cover(gen,list.length-gen)}));
+  const rows=$('div','rows');
+  list.forEach((s,i)=>{const z=Math.round(10+Math.sqrt(s.prompts.substantive)*1.5),cur=s===CURS||s.id===D.current;
+    rows.append(nodeRow({id:'p'+i,label:s.title,at:s.last_at,line:s.summary||''},i,{date:fdate(s.last_at)+' · '+W.prompts(s.prompts.substantive),shapeEl:shape(cur?'sesscur':'sess',z),cls:'pn',sr:cur?W.currentSession:'',
+      href:s.generated?(s===HOME?'':'s='+s.id.slice(0,8)):null,hint:cur?W.currentSession:s.generated?(s.gone?W.gone:''):W.notYet(s.id.slice(0,8))}))});
+  tr.append(rows,rootEl(D.project.first_at?W.projStart(fdate(D.project.first_at)):''));m.append(tr);fixTrunk(tr)}
+function fixTrunk(tr){requestAnimationFrame(()=>{const c=tr.querySelector('.crown'),t=tr.querySelector('.trunk');if(c&&t)t.style.top=(c.offsetTop+c.offsetHeight)+'px'})}
+(function(){
+  document.title='treesight · '+D.project.name;
+  const back=document.getElementById('back');back.textContent=W.back;back.setAttribute('aria-label',W.backAria);
+  document.getElementById('dtitle').textContent=W.open;document.getElementById('drawer').setAttribute('aria-label',W.open);
+  const dc=document.getElementById('dclose');dc.textContent='×';dc.setAttribute('aria-label',W.close);
+  document.getElementById('foot').textContent=W.foot(ymd(parse(D.asof)));
+  if(D.pending){const p=document.getElementById('pending'),P=D.pending,m=Math.max(1,Math.ceil(Math.max(...P.map(x=>x.estimate_s||0))/60));
+    /* a run 20 minutes past its estimate may have stopped; a new /treesight says "busy" only if it is still at work */
+    const late=P.every(x=>Date.now()>parse(x.started_at||D.asof).getTime()+((x.estimate_s||0)+1200)*1000);
+    p.textContent=late?W.pendingLate:P.length===1?W.pending(P[0].title,m):W.pendingMany(P.map(x=>x.title),m);p.hidden=false}
+  document.getElementById('dtoday').textContent=W.today(ymd(TODAY));
+  dc.onclick=closeDrawer;
+  document.getElementById('drawer').addEventListener('click',e=>e.stopPropagation());
+  document.addEventListener('click',closeDrawer);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer()});
+  back.onclick=()=>{if(fromP)history.back();else location.hash='p'};
+  const route=()=>{const h=new URLSearchParams(location.hash.slice(1));showAll=!!h.get('all');CUR=null;
+    const s=h.has('s')?byId8[h.get('s')]:HOME;
+    if(h.has('p')||!s||!s.generated){fromP=false;projectView()}else sessionView(s);window.scrollTo(0,0);return h};
+  window.addEventListener('hashchange',()=>{settle();route();run(600)});
+  const h=route();
+  if(h.has('t')){growing=grow(1000);const r=growing.rate||1;growing.forEach(a=>{a.pause();a.currentTime=+h.get('t')*r})}   /* stills for screenshots */
+  else{const first=!store.get(SEEN);run(first?1000:600);store.set(SEEN,'1')}
+  if(h.get('drawer')){const r=document.querySelector('.todo');if(r)r.click()}
+  if(h.get('expand')){const n=nodeEls[h.get('expand')];if(n)n.click()}
+})();
+</script>
+</body></html>
