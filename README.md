@@ -4,7 +4,7 @@
 
 # treesight
 
-**Recall what each AI coding session did, and what it left open.**
+**Recall what each AI session did, and what it left open.**
 
 **English** · [中文](README.zh-CN.md)
 
@@ -14,9 +14,9 @@ Three weeks on, it is hard to remember what a session settled and what it left h
 
 It runs inside your own Claude Code: no server, no account, no extra API key, and the page makes no network requests.
 
-![A session's tree grows from its root; one node opens to show it was stuck about 1.5 hours, with the stuck, response and result rows and their times; then the project's open items, grouped as no longer possible, to confirm, after the trip, and no time set](docs/demo.gif)
+VIDEO_EN
 
-<sub>The made-up sample project in this repository (`docs/demo.html`, built by `dev/make_sample.py`), recorded on 2026-10-20, so day counts run to that date. The animation shows the English interface; the page is in Chinese when the browser lists Chinese before English among its preferred languages.</sub>
+<sub>The made-up sample project in this repository (`docs/demo.html`, built by `dev/make_sample.py`; the video is recorded by `dev/record_demo.mjs`). Day counts run to the sample's own date, and the page's interface follows the browser's language.</sub>
 
 > [!NOTE]
 > Unofficial and not affiliated with Anthropic. Early release: Claude Code only, dark theme only.
