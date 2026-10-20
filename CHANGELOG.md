@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.3 (2026-10-20)
 
 - Page: the Chinese interface uses full-width Chinese punctuation (：，；？（）), as Chinese typography guides ask.
 - Secret scrubbing also removes Stripe secret and restricted keys, GitLab, npm and Hugging Face tokens, Google OAuth access tokens and HTTP basic credentials.
