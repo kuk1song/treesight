@@ -1,74 +1,88 @@
+<div align="center">
+
 ![treesight logo: a small tree with two done dots and one open ring](docs/logo.svg)
 
 # treesight
 
-**English** | [中文](README.zh-CN.md)
-
 **See your Claude Code sessions as trees: what each one got done, and what is still open across the project.**
 
-Three weeks on, it is hard to remember what a session settled and what it left hanging. treesight reads the session transcripts on your machine, has Claude pick out each session's landmarks (things done, things found out, where it got stuck) and its open items (yours to do, or waiting on someone), and draws them on a local page. The open items of every session in the project end up in one list: who you are waiting on and for how long, what is overdue, what is blocked by what.
+**English** · [中文](README.zh-CN.md)
+
+</div>
+
+Three weeks on, it is hard to remember what a session settled and what it left hanging. treesight has Claude read a session's transcript on your machine and draws it as a tree: what got done, what was found, where it got stuck, and what is still open, whether it is yours to do or you are waiting on someone. The open items of every session in the project come together in one list.
 
 It runs inside your own Claude Code: no server, no account, no extra API key, and the page makes no network requests.
-
-> [!NOTE]
-> Unofficial and not affiliated with Anthropic. Early release: works in Claude Code only, dark theme only.
 
 ![A session's tree grows from its root; one node opens to show it was stuck about 1.5 hours, with the stuck, response and result rows and their times; then the project's open items, grouped as no longer possible, to confirm, after the trip, and no time set](docs/demo.gif)
 
 <sub>The made-up sample project in this repository (`docs/demo.html`, built by `dev/make_sample.py`), recorded on 2026-10-20, so day counts run to that date. The animation shows the English interface; the page is in Chinese when the browser lists Chinese before English among its preferred languages.</sub>
 
-## Quick start
+> [!NOTE]
+> Unofficial and not affiliated with Anthropic. Early release: Claude Code only, dark theme only.
 
-1. Install the plugin in Claude Code:
+## Install
 
-   ```
-   /plugin marketplace add kuk1song/treesight
-   /plugin install treesight@treesight
-   ```
+In Claude Code 2.1.275 or later:
 
-2. Open a session you want to see (for example with `claude --resume`) and run `/treesight:treesight`.
+```
+/plugin install treesight --marketplace kuk1song/treesight
+```
 
-3. Within seconds (7 to 12 in testing) treesight asks your browser to open the page. The session's tree appears there when the background run is done, which takes a few minutes for most sessions (see [What it costs](#what-it-costs)); you can keep working meanwhile.
+Then choose where to install it. On an older version, run `/plugin marketplace add kuk1song/treesight` and then `/plugin install treesight@treesight`.
 
-Needs Claude Code (tested with 2.1.299), `python3` 3.9 or later (the one that comes with macOS works), and macOS or Linux. Windows is untested.
+**Letting your coding agent set it up?** Ask it to run this in a terminal (Claude Code 2.1.292 or later), then run `/reload-plugins` yourself or start a new session:
 
-## Using it
+```
+claude plugin install treesight --marketplace kuk1song/treesight
+```
 
-- **Another session of the same project:** add its id or words from its title, as in `/treesight:treesight 0a182a7b` or `/treesight:treesight release`. The project page lists every session; the ones without a tree show the command to run.
-- **Running it again** reads only what is new in the session. If you start it while a run is still going, Claude Code runs the second one in the foreground, so your conversation waits until it is done.
-- **Correcting the page:** `/treesight:treesight close <words from the item>`, or `reopen`, `hide`, or `set <item> when=after the trip` (fields: label, line, kind, due, when, who, rank, score, blocked_by). Your corrections always win over extraction.
-- **One-step install:** in a terminal, `claude plugin install treesight --marketplace kuk1song/treesight` does both install commands at once (checked with Claude Code 2.1.299).
+treesight also needs `python3` 3.9 or later (the one that comes with macOS works) on macOS or Linux; Windows is untested. Tested with Claude Code 2.1.299. Updates are off by default for a marketplace like this one: turn them on in `/plugin`, or run `claude plugin update treesight@treesight`.
+
+## Use
+
+Open the session you want to see (for example with `claude --resume`) and run:
+
+```
+/treesight:treesight
+```
+
+Within seconds treesight asks your browser to open the page, and the session's tree appears there when the background run is done, a few minutes for most sessions. Keep working meanwhile.
+
+- **Another session of this project:** add its id or words from its title, as in `/treesight:treesight 0a182a7b` or `/treesight:treesight release`. The project page lists every session; the ones without a tree show the command to run.
+- **Run it again** to read only what is new. A run started while another is still going runs in the foreground, so your conversation waits for it.
+- **Correct the page:** `/treesight:treesight close <words from the item>`, or `reopen`, `hide`, or `set <item> when=after the trip` (fields: label, line, kind, due, when, who, rank, score, blocked_by). Your corrections always win.
 
 ## How it works
 
-1. **Read.** A script reads the session's transcript in `~/.claude/projects` without any model, removes common secret formats, masks IPv4 addresses and emails, and writes a digest of prompts, replies, automatic recaps and compaction summaries. Texts are kept whole: only pasted content (its first 400 characters), compaction summaries (their key sections, up to 8,000 characters) and any single entry longer than a whole digest are shortened, and the digest says so. treesight's own command and the turn your conversation spends on its report are left out.
-2. **Extract.** The skill runs in a separate subagent, so your conversation is left as it is. It uses the same model and account as your Claude Code. The skill pre-approves only two things: running treesight's own script, which also prints the digest for it to read, and writing its result under `~/.cache/treesight`. Anything else it tried would follow your usual permission settings. Every node and open item it adds must carry a quote copied from the session; it can also propose closing an open item, again with a quote.
-3. **Check and save.** Before anything is saved, a script checks the output against a JSON Schema and checks that every quote really appears in the message it cites. Results go into an append-only ledger. What is saved stays as it is; the next run reads only new messages. Unsure closes and items that look impossible now are left for you to confirm. A quote said before an item was raised cannot close it. If you draw an older session after newer ones, its new items are checked against what the newer sessions recorded, since those runs never saw them.
-4. **Draw.** A script builds one static HTML page per project from the ledger. No model is involved.
+1. **Read:** a script reads the transcript in `~/.claude/projects` without any model, removes common secret formats, and masks IPv4 addresses and emails.
+2. **Extract:** a subagent in the background picks out the nodes and open items with your own model and account, leaving your conversation as it is. Each must quote the session word for word.
+3. **Check and save:** a script checks every quote against the message it cites, then appends the result to a local ledger. Later runs read only what is new; closes the model is unsure about wait for you to confirm.
+4. **Draw:** a script builds one static page per project. No model is involved.
 
-Where things live: the ledger is in `~/.local/share/treesight/` (or `$XDG_DATA_HOME/treesight`, or `$TREESIGHT_HOME`) and is not deleted when you uninstall the plugin. It also keeps each session's title and times, so a session stays on the page after Claude Code deletes its transcript (after 30 days by default). Pages are in the plugin's data folder, which Claude Code removes on uninstall; they can be rebuilt. While a run is going on, its digest and extraction are in `~/.cache/treesight/work/` (or `$TREESIGHT_WORK`, but then Claude Code asks before writing there); they are deleted once saved. Only you can read any of these files.
-
-## What it costs
-
-Extraction counts against your Claude Code plan like any other request. treesight favours finding every open item over speed and cost, so the skill runs at xhigh effort whatever effort your session uses (only the `CLAUDE_CODE_EFFORT_LEVEL` environment variable overrides it); the model is your session's. Nearly all of the time goes into the model's thinking and its written extraction, at about 110 output tokens a second. Full runs measured on 2026-10-16 with Opus 5.5 at xhigh effort, in manual permission mode with no permission denied, shown as API-price equivalents:
-
-| Session | Time | Cost |
-|---|---|---|
-| Made-up sample, 15 prompts | 3.1 min | $0.64 |
-| A real session, 4 prompts | 4.0 min | $0.97 |
-| A real session, 73 prompts and 7 compactions, read in two passes | 21 min | $8.50 |
-
-On that 73-prompt session the run found all 17 items the session's own last pending list named (16 matched by a script, the 17th checked by hand because it was worded differently; the list itself has not been reviewed by hand yet), plus earlier ones the list had dropped. An earlier version cut every prompt and the last reply of each turn to 1,500 characters and the other replies to 500; on a real 8-prompt session it missed 8 open items that the current version found. With that earlier version, lower effort or a smaller model found only 3 to 10 of the 17. Later runs on the same session only read what is new. Redrawing the page uses no model.
+The skill pre-approves only two things: running its own script, and writing its result under `~/.cache/treesight`. Anything else follows your usual permission settings. What is shortened, what is checked and where each file lives are in [docs/design.md](docs/design.md).
 
 ## Privacy
 
-- The page makes no network requests. Its Content Security Policy allows no network access and no script but its own, and the data sits in a non-executing block, so text from a session cannot run as code.
-- The digest reaches the model the same way your Claude Code conversation does: same account, same provider. Common secret formats are removed and IPv4 addresses and emails masked before that.
-- treesight sends nothing anywhere else.
+- The page makes no network requests. Its Content Security Policy allows no network access and no script but its own, and session text sits in a non-executing block, so it cannot run as code.
+- The digest reaches the model the same way your conversation does: same account, same provider, after common secret formats are removed and IPv4 addresses and emails are masked.
+- treesight sends nothing anywhere else. Its ledger (in `~/.local/share/treesight/` by default) stays after you uninstall the plugin; delete that folder to remove what treesight recorded.
 
-## Compared with
+## Time and cost
 
-Checked against each project's own README or docs on 2026-10-15.
+Extraction counts against your Claude Code plan. treesight favours finding every open item over speed, so it runs at xhigh effort with your session's model. Measured on 2026-10-16 with Opus 5.5, as API-price equivalents: a 15-prompt session took 3.1 minutes ($0.64), and a 73-prompt session with 7 compactions took 21 minutes ($8.50) and found all 17 items on that session's own last to-do list. Later runs read only what is new, and redrawing the page uses no model. All measurements: [docs/design.md](docs/design.md#6-known-limits-and-what-remains-to-verify).
+
+## Limitations
+
+- Extraction is not deterministic, so the ledger keeps the first result rather than redrawing it.
+- The page waits for the model's first reply before it opens; once in testing that took 3.4 minutes.
+- The run's report comes back to your conversation, and Claude may comment on it.
+- The transcript format is internal to Claude Code and may change in any release.
+
+The rest, with numbers, is in [docs/design.md](docs/design.md#6-known-limits-and-what-remains-to-verify).
+
+<details>
+<summary><b>Compared with similar tools</b> (checked on 2026-10-15)</summary>
 
 | Tool | What it does | What treesight adds |
 |---|---|---|
@@ -78,24 +92,15 @@ Checked against each project's own README or docs on 2026-10-15.
 | [alluvia](https://github.com/dylanp12/alluvia) | A Claude Code plugin that extracts decisions with verbatim, string-matched quotes and lists unresolved questions; uses your configured LLM provider and API key. | A tree per session and the project-wide open list, using Claude Code itself. |
 | [context-visualizer](https://github.com/Abudulaz/context-visualizer) | Draws typed milestones from the transcripts, linked back to the source; needs an OpenRouter key. | Open items, and no extra key. |
 
-## Limitations
-
-- Extraction is not deterministic. With the earlier version, two runs on the same large session shared about 70% of their nodes and listed 27 and 38 open items. The ledger keeps the first result rather than redrawing it.
-- One digest holds up to 150,000 characters; more new text is read in passes, at most two per run, and the next run goes on where the last one stopped.
-- The report of a run goes back to your conversation. treesight asks Claude there not to act on it, but it may still comment.
-- The page is opened by the background run's second step, so it waits for the model's first reply. Once in testing that reply broke off and Claude Code had to ask for it again, so the page opened after 3.4 minutes.
-- An older session drawn after newer ones is checked only against what those recorded as nodes and closes. Something they settled without recording it stays open until you close it.
-- The transcript format is internal to Claude Code and may change in any release; all reading of it is in `scripts/transcript.py`.
-- The page cannot run the extraction itself: run the command in Claude Code, then reload the page.
-- Dark theme only. Windows is untested.
+</details>
 
 ## Help
 
 Questions, ideas and bugs: [open an issue](https://github.com/kuk1song/treesight/issues/new/choose); the bug form asks you not to paste anything from your sessions. For a security problem, see [SECURITY.md](SECURITY.md).
 
-## Development
+## Contributing
 
-Tests, checks, pull requests and releases are in [CONTRIBUTING.md](CONTRIBUTING.md). The design and its reasons are in [docs/design.md](docs/design.md), and the data formats in [schema/](schema/).
+Tests, checks, pull requests and releases are in [CONTRIBUTING.md](CONTRIBUTING.md); the design and its reasons are in [docs/design.md](docs/design.md), and the data formats in [schema/](schema/).
 
 ## License
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- README: a centered header; a logo that grows once, pings its open ring twice and is still within about 4 seconds (its resting state is the finished tree, so it shows whole where animation does not run); Install first, with the one-step command in Claude Code, the command a coding agent can run in a terminal, and how to update; details and measurements left to `docs/design.md` instead of repeated; the comparison table folded.
+
 ## 0.1.1 (2026-10-20)
 
 - The page's interface language is the first of the browser's preferred languages that the page has (Chinese or English), instead of only the first preferred language.
