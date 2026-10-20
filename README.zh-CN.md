@@ -94,14 +94,7 @@
 
 ## 开发
 
-```bash
-python3 -m unittest discover -s tests     # 测试,只用标准库
-python3 dev/make_sample.py                # 用 fixtures/ 里编造的项目重新生成 docs/demo.html
-python3 dev/palcheck.py                   # 配色对比度检查
-claude plugin validate --strict .         # 在干净的检出里运行
-```
-
-设计和理由见 [docs/design.md](docs/design.md),数据格式见 [schema/](schema/)。
+测试、检查、PR 和发版流程见 [CONTRIBUTING.md](CONTRIBUTING.md)(英文)。设计和理由见 [docs/design.md](docs/design.md),数据格式见 [schema/](schema/)。
 
 ## 许可证
 
