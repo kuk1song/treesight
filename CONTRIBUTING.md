@@ -8,7 +8,7 @@ treesight reads people's own Claude Code sessions, so nothing from a real sessio
 
 ## Checks
 
-Python 3.9 or later and the standard library only.
+Python 3.9 or later and the standard library only. Two tests of the page's script need `node`, and one cross-check needs the `jsonschema` package; they are skipped when those are missing.
 
 ```bash
 python3 -m unittest discover -s tests     # tests

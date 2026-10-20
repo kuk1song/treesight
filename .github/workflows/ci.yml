@@ -41,7 +41,7 @@ jobs:
         run: python dev/make_sample.py --out "$RUNNER_TEMP/demo.html"
       - name: Colour contrast
         run: python dev/palcheck.py
-      - name: Both READMEs have the same sections
+      - name: Both READMEs have the same number of sections
         run: test "$(grep -c '^## ' README.md)" = "$(grep -c '^## ' README.zh-CN.md)"
       - name: plugin.json's version has its CHANGELOG section
         run: python dev/check_release.py

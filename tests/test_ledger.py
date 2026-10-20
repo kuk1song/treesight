@@ -1,4 +1,4 @@
-"""The ledger: ids, appending, closing across sessions, and the user's edits winning. Run: python3 -m unittest -v"""
+"""The ledger: ids, appending, closing across sessions, and the user's edits winning. Run: python3 -m unittest discover -s tests"""
 import copy
 import glob
 import json
