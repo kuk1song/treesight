@@ -10,14 +10,18 @@ const env = {...process.env, TREESIGHT_HOME: T + '/home', TREESIGHT_WORK: T + '/
 const ts = (...a) => JSON.parse(execFileSync('python3', [R + '/scripts/treesight.py', ...a, '--current', S1, '--cache', T + '/cache'], {env}).toString());
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let p = ts('prepare'); fs.copyFileSync(R + '/fixtures/extract/tidepool-1.json', p.extract); ts('apply'); const page = ts('build', '--done', '--session', S1).url;
-const port = 9400 + Math.floor(Math.random() * 400), args = [`--remote-debugging-port=${port}`, `--user-data-dir=${T}/profile`,
+// port 0: the browser picks a free port and writes it to DevToolsActivePort in its profile (a fixed or random one can collide)
+const args = ['--remote-debugging-port=0', `--user-data-dir=${T}/profile`,
   '--use-mock-keychain', '--password-store=basic', '--no-first-run', 'about:blank'];
 if (path.basename(bin) !== 'chrome-headless-shell') args.unshift('--headless=new', ...(process.platform === 'linux' ? ['--no-sandbox'] : []));
 const proc = spawn(bin, args, {stdio: 'ignore', detached: true});     // its own process group, so its helpers stop with it
 const fail = [];
 try {
-  let list; for (let i = 0; i < 100 && !list; i++) { try { list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json() } catch { await sleep(100) } }
-  const ws = new WebSocket(list.find(t => t.type === 'page').webSocketDebuggerUrl); await new Promise(r => ws.onopen = r);
+  // a cold start on a CI runner can take well over 10 s
+  let port; for (let i = 0; i < 300 && !port; i++) { try { port = +fs.readFileSync(`${T}/profile/DevToolsActivePort`, 'utf8').split('\n')[0] } catch { await sleep(100) } }
+  let target; for (let i = 0; port && i < 100 && !target; i++) { try { target = (await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()).find(t => t.type === 'page') } catch { await sleep(100) } }
+  if (!target) throw new Error('the browser gave no page to drive within 30 s' + (port ? ' (port ' + port + ')' : ''));
+  const ws = new WebSocket(target.webSocketDebuggerUrl); await new Promise(r => ws.onopen = r);
   let seq = 0; const pend = new Map(); ws.onmessage = e => { const m = JSON.parse(e.data); if (m.id && pend.has(m.id)) { pend.get(m.id)(m.result); pend.delete(m.id) } };
   const send = (method, params = {}) => new Promise(res => { const id = ++seq; pend.set(id, res); ws.send(JSON.stringify({id, method, params})) });
   // a page in the middle of reloading has no answer yet: {} and the caller tries again
