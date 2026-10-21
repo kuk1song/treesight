@@ -13,7 +13,7 @@ let p = ts('prepare'); fs.copyFileSync(R + '/fixtures/extract/tidepool-1.json', 
 const port = 9400 + Math.floor(Math.random() * 400), args = [`--remote-debugging-port=${port}`, `--user-data-dir=${T}/profile`,
   '--use-mock-keychain', '--password-store=basic', '--no-first-run', 'about:blank'];
 if (path.basename(bin) !== 'chrome-headless-shell') args.unshift('--headless=new', ...(process.platform === 'linux' ? ['--no-sandbox'] : []));
-const proc = spawn(bin, args, {stdio: 'ignore'});
+const proc = spawn(bin, args, {stdio: 'ignore', detached: true});     // its own process group, so its helpers stop with it
 const fail = [];
 try {
   let list; for (let i = 0; i < 100 && !list; i++) { try { list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json() } catch { await sleep(100) } }
@@ -38,9 +38,13 @@ try {
   ts('edit', 'hide', 'lightning', 'talk', 'proposal'); ts('build');
   await until({hash: '#s=0a182a7b', focus: ''}, 'a correction keeps the session the page showed');
 } finally {
-  // the browser writes to its profile while it shuts down (on Linux, removing the folder at once failed with ENOTEMPTY)
-  const gone = new Promise(r => { proc.once('exit', r); setTimeout(r, 5000) }); proc.kill(); if (proc.exitCode === null) await gone;
-  fs.rmSync(T, {recursive: true, force: true, maxRetries: 10, retryDelay: 200})
+  // Chrome's helper processes write to the profile while they shut down (on Linux CI, removing it at once failed with
+  // ENOTEMPTY): stop the whole group, wait, and only warn if the temporary folder still cannot be removed
+  const gone = new Promise(r => { proc.once('exit', r); setTimeout(r, 5000) });
+  try { process.kill(-proc.pid, 'SIGTERM') } catch { proc.kill() }
+  if (proc.exitCode === null && proc.signalCode === null) await gone;
+  await sleep(300);
+  try { fs.rmSync(T, {recursive: true, force: true, maxRetries: 10, retryDelay: 200}) } catch (e) { console.error('could not remove ' + T + ': ' + e.code) }
 }
 console.log(fail.length ? fail.join('\n') : 'ok: the open page followed corrections, a run starting and a run ending');
 process.exit(fail.length ? 1 : 0);
