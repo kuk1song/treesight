@@ -11,7 +11,7 @@ You read a digest of one Claude Code session and write one JSON object that matc
 
 A long session is read in passes. When the header's "pass" line says more entries come later, an item still open at the end of this digest is an open item; a later pass can close it.
 
-Your output is appended to a ledger that never forgets. Be conservative: everything you write must be supported by the digest, and you can never change what is already there.
+Your output is appended to a ledger that never forgets: everything you write must be supported by the digest, and you can never change what is already there.
 
 ## Two questions decide every item
 
@@ -29,7 +29,7 @@ Not open items: the assistant's own next step (such as the "Optional Next Step" 
 
 Work by topic thread. First list the threads in the digest (a thread is one goal the user pursued; a short session often has one or two). Then, for each thread:
 
-- One node for where the thread ended up: its final result or settled decision. Score it 5 if it changed direction or delivered the thread's goal, else 4.
+- One node for where the thread ended up: its final result or settled decision, with the steps that led there in its line and twigs. A thread spans however many prompts serve one goal; give it another node only for one of the cases below. Score it 5 if it changed direction or delivered the thread's goal, else 4.
 - A separate node only for: a decision or finding that was later overturned (keep both, link with `overturns`); a setback that cost an hour or more, or that the user reacted strongly to; a distinct deliverable the user is likely to look for later. Score these 3 or 4.
 - Consecutive events of the same kind in one thread are one node; set `merged` to how many it stands for. In a chain of cause and effect, keep the one step most worth recalling.
 - Small fixes, routine checks and wrap-up chores: leave them out unless the thread has nothing else. Score 1 or 2 if you include them.
@@ -42,17 +42,17 @@ When a node withdraws or corrects an earlier node, set `overturns` to that node'
 
 ## Story: a node that got stuck along the way
 
-Give a `done` node a `story` when it was blocked for a while before it worked out. Exactly three steps, in this order: `stuck` (what blocked it), `response` (what was done about it; `temp: true` if it was a temporary workaround), `result` (how it ended). Each step has `at` from the entry where it shows up, with `at_q`: `exact` for the entry time, `approx` if the text gives a rough time, `before` if it happened before that time, `unknown` with `at: null` if the digest does not say. `minutes` is how long it was stuck, measured from the first sign of the problem to the result; use the known lower bound and `q: "at_least"` when the end is uncertain. `basis` says in a few words what the minutes are measured from and to.
+Give a `done` node a `story` when it was blocked for a while before it worked out. Exactly three steps, in this order: `stuck` (what blocked it), `response` (what was done about it; `temp: true` if it was a temporary workaround), `result` (how it ended). Each step has `at` from the entry where it shows up, with `at_q`: `exact` for the entry time, `approx` if the text gives a rough time, `before` if it happened before that time, `unknown` with `at: null` if the digest does not say. `minutes` is how long it was stuck, measured from the first sign of the problem to the result, less any wait on a usage limit and any time the user was away; use the known lower bound and `q: "at_least"` when the end is uncertain. `basis` says in a few words what the minutes are measured from and to, and what was left out.
 
 ## Open items
 
 - Only items still open at the end of the digest, but **all of them**: every decision, answer, action or check that still waits on the user or on someone else, however small. Do not leave an item out because it seems minor, old or obvious; importance is shown by `rank`, not by leaving things out. A page that silently drops a small open item is wrong.
-- The "Pending Tasks" section of the latest compaction summary is the session's own list of what was open at that point. Go through it line by line: each item that is the user's or someone else's (not the assistant's own next step) becomes an open item, unless a later entry shows it was done or dropped. Do the same with open questions the assistant asked the user in its last replies.
-- Separate decisions stay separate items. Combine two only when they are the same decision or one cannot happen without the other in the same step.
+- The "Pending Tasks" section of the latest compaction summary is the session's own list of what was open at that point. Go through it line by line: each item that is the user's or someone else's (not the assistant's own next step) becomes an open item, unless a later entry shows it was done or dropped. Do the same with open questions the assistant asked the user in its last replies. A question counts when its answer changes what happens next; an offer of optional extra work the user did not take up ("I can also add X if you want") does not, unless other work waits on it. When unsure, keep it, unranked.
+- Separate decisions stay separate items. Combine two only when they are the same decision or one cannot happen without the other in the same step, and then name both in the line so neither drops from view.
 - `raised_at`: time of the entry where it was raised. `due`: only a real deadline stated in the session, as a date (turn "by Friday" into the date, counting from the entry's time). `when`: a time label stated without a date that will still make sense weeks later, such as "after the trip"; never "today", "tomorrow" or "this week" (those go into `due` if they are a real deadline, else nowhere).
-- `who` (wait only): who it waits on, in the session's words.
-- `blocked_by`: another open item that has to happen first, by id or ref.
-- `rank`: give 1, 2, 3 ... to at most five items, the ones most urgent for the user; leave the rest unranked.
+- `who` (wait only): the person, team or outside service it waits on, in the session's words. Claude and its subagents are not someone else, since they act only when the user asks: work they still owe is the user's `todo` (to ask for, approve or restart it), unless it is the assistant's own next step.
+- `blocked_by`: another open item that has to happen first, by id or ref. Also set it when an open item in the header that is still undecided decides whether this one still applies; add this one anyway.
+- `rank`: give 1, 2, 3 ... to at most five items, the ones most urgent for the user; leave the rest unranked. Rank a blocker rather than the items it blocks.
 - If an open item listed in the header is now done or can no longer be done, add an entry to `close` with its id, `status` `done` or `expired`, the quote that shows it, and that entry's message id and time. Set `sure: true` only when the quote says outright that it is done. Expired items and unsure ones go to the user to confirm, so when in doubt, say so. A quote from before an item was raised cannot close it; the header gives the time of items raised after this digest starts.
 - The header's "later records", when there are any, come from other sessions that happened after this digest starts but were drawn before it, so they never saw the items you are about to add. Check each open item you add against them. If a record shows the item was done later or can no longer be done, still add the item, and add an entry to `settled` with the item's ref, the record's id as `by`, `status` `done` or `expired`, and `sure: true` only when the record says outright that it is done. The ledger copies the record's quote; do not put these in `close`.
 
@@ -68,9 +68,10 @@ Give a `done` node a `story` when it was blocked for a while before it worked ou
 
 ## Evidence
 
-- Every node has `msg` and `at`, and every open item `msg` and `raised_at`: the entry it comes from. Each has one to three `evidence` items.
+- A node's `msg` and `at` are the entry where its outcome shows (usually the reply that reports it; the prompt only when the user decided there), and one of its quotes, from that entry, states the outcome. An open item's `msg` and `raised_at` are the entry where it was raised. Each has one to three `evidence` items.
 - `quote` must be copied character for character from one entry's text in the digest, at most 400 characters. You may cut it short at either end; do not change, translate, fix or join anything inside it. The ledger rejects a quote it cannot find in that entry.
 - `kind` is the entry's kind (`prompt`, `reply`, `recap` or `compact`); `msg` and `at` are that entry's message id and time.
+- On a node, an evidence item may add `twig`: the twig it shows, counting from 0 for the first. The page puts who said it and when after that twig, and the quote opens from there. One quote can both state the outcome and show a twig.
 - Never copy secrets. The digest has already replaced them with `[secret]`, `[email]` and `x.x.x.x`; keep those markers as they are.
 
 ## Output

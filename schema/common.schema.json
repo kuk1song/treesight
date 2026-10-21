@@ -27,7 +27,8 @@
         "quote": {"type": "string", "minLength": 1, "maxLength": 400},
         "kind": {"enum": ["prompt", "reply", "recap", "compact"]},
         "msg": {"$ref": "#/$defs/uuid"},
-        "at": {"$ref": "#/$defs/datetime"}
+        "at": {"$ref": "#/$defs/datetime"},
+        "twig": {"description": "Nodes only: the index of the twig this quote shows, so the page puts the quote's speaker and time after that twig.", "type": "integer", "minimum": 0, "maximum": 2}
       }
     },
     "evidenceList": {"type": "array", "minItems": 1, "maxItems": 3, "items": {"$ref": "#/$defs/evidence"}},

@@ -111,6 +111,9 @@ def check(ext, digest_text, known=None):
     new_open = {o["ref"] for o in ext["open"]}
     for i, n in enumerate(ext["nodes"]):
         cites("nodes[%d]" % i, n["msg"], n["at"], n["evidence"])
+        for j, e in enumerate(n["evidence"]):
+            if "twig" in e and e["twig"] >= len(n.get("twigs") or []):
+                probs.append("nodes[%d].evidence[%d].twig %d: the node has %d twig(s)" % (i, j, e["twig"], len(n.get("twigs") or [])))
         ov = n.get("overturns")
         if ov and ov not in node_ids | new_nodes:
             probs.append("nodes[%d].overturns %s is neither in the ledger nor in this output" % (i, ov))
@@ -267,10 +270,16 @@ def view(events, edits=()):
         sid = e.get("session")
         s = sessions.setdefault(sid, {"through": None, "runs": 0, "nodes": [], "last_run": None, "meta": None}) if sid else None
         ev = e.get("ev")
-        this_run = s is not None and s["last_run"] and e.get("run") == s["last_run"]["id"]
+        this_run = s is not None and s["last_run"] and e.get("run") in s["last_run"]["ids"]
         if ev == "run":
             s["through"], s["runs"] = e["through"], s["runs"] + 1
-            s["last_run"] = {"id": e["run"], "at": e["at"], "nodes": 0, "open": 0, "closed": 0, "flagged": 0, "_closes": []}
+            # a later pass of the same run (prepare --continue) adds to it: the page counts what the whole run did, as
+            # the report does, and keeps what every pass was unsure about
+            lr = s["last_run"] if e.get("pass", 1) > 1 and s["last_run"] else None
+            notes = "\n\n".join(x.strip() for x in ((lr or {}).get("notes"), e.get("notes")) if x and x.strip())
+            s["last_run"] = {"id": e["run"], "ids": (lr["ids"] if lr else []) + [e["run"]], "at": e["at"],
+                             "nodes": lr["nodes"] if lr else 0, "open": lr["open"] if lr else 0, "closed": 0, "flagged": 0,
+                             "_closes": lr["_closes"] if lr else [], "notes": notes or None}
             s["meta"] = e.get("session_meta") or s["meta"]
         elif this_run and ev in ("node", "open"):
             s["last_run"]["nodes" if ev == "node" else "open"] += 1
@@ -374,16 +383,23 @@ def _next_numbers(events, prefix):
 SESSION_META = ("title", "custom_title", "first_at", "last_at", "prompts", "compactions", "summary", "cwd")
 
 
-def apply(ext, digest_text, key, model=None, meta=None):
+def _own_first(x):
+    """Its evidence with the quotes from its own message first: the first quote is the one later sessions are shown
+    (known_for), and the message a node or item comes from is where its outcome or request is stated."""
+    return sorted(x["evidence"], key=lambda e: e["msg"] != x["msg"])
+
+
+def apply(ext, digest_text, key, model=None, meta=None, pass_number=1):
     """Check an extraction output and append it. Returns (problems, summary); nothing is written when there are problems.
 
     meta is the session's metadata as its transcript has it now (see SESSION_META); it is stored with the run.
+    pass_number above 1 marks a later pass of the run before it, so the two count as one run (see view).
     The whole read, check and append happens under the project lock."""
     with project_lock(key):
-        return _apply(ext, digest_text, key, model, meta)
+        return _apply(ext, digest_text, key, model, meta, pass_number)
 
 
-def _apply(ext, digest_text, key, model, meta):
+def _apply(ext, digest_text, key, model, meta, pass_number):
     d = project_dir(key)
     events, edits = _read(os.path.join(d, "ledger.jsonl")), _read(os.path.join(d, "edits.jsonl"))
     state = view(events, edits)
@@ -392,6 +408,9 @@ def _apply(ext, digest_text, key, model, meta):
     prev = (state["sessions"].get(ext.get("session")) or {}).get("through") if isinstance(ext, dict) else None
     if not probs and prev and prev in parse_digest(digest_text)[1]:
         probs.append("the digest repeats entries the ledger already read; build it with --after %s" % prev)
+    start = re.search(r"^range: .*?(?:, continuing after (\S+))?$", digest_text, re.M)
+    if not probs and start and start.group(1) != prev:    # two runs of one session: only the first to apply is recorded
+        probs.append("another run recorded this session since this digest was made; nothing from this run was recorded")
     if probs:
         return probs, None
     sid, p8 = ext["session"], ext["session"][:8]
@@ -407,18 +426,20 @@ def _apply(ext, digest_text, key, model, meta):
     base = {"v": 1, "at": at, "run": run, "session": sid}
     run_ev = dict(base, ev="run", through=ext["through"], after=(state["sessions"].get(sid) or {}).get("through"),
                   rules=ext["schema"], model=model, notes=ext.get("notes"))
+    if pass_number > 1:
+        run_ev["pass"] = pass_number
     if meta:
         run_ev["session_meta"] = {k: meta[k] for k in SESSION_META if k in meta}
     out = [run_ev]
     for n in ext["nodes"]:
         node = {k: v for k, v in n.items() if k != "ref"}
-        node.update(id=ids[n["ref"]], by="model")
+        node.update(id=ids[n["ref"]], by="model", evidence=_own_first(n))
         if "overturns" in n:
             node["overturns"] = ids.get(n["overturns"], n["overturns"])
         out.append(dict(base, ev="node", node=node))
     for o in ext["open"]:
         item = {k: v for k, v in o.items() if k != "ref"}
-        item.update(id=ids[o["ref"]], by="model")
+        item.update(id=ids[o["ref"]], by="model", evidence=[{k: v for k, v in e.items() if k != "twig"} for e in _own_first(o)])
         if "blocked_by" in o:
             item["blocked_by"] = ids.get(o["blocked_by"], o["blocked_by"])
         out.append(dict(base, ev="open", item=item))
@@ -432,7 +453,9 @@ def _apply(ext, digest_text, key, model, meta):
     _append(os.path.join(d, "ledger.jsonl"), out)
     after = view(events + out, edits)
     lr = after["sessions"][sid]["last_run"]
-    return [], {"run": run, "nodes": len(ext["nodes"]), "open": len(ext["open"]), "close": len(ext["close"]),
+    # nodes, open, closed and to_confirm count the whole run so far (all its passes, as the page does); close and
+    # settled count what this pass proposed
+    return [], {"run": run, "nodes": lr["nodes"], "open": lr["open"], "close": len(ext["close"]),
                 "settled": len(ext.get("settled", [])), "closed": lr["closed"], "to_confirm": lr["flagged"],
                 "open_in_project": len(after["open"]), "ids": ids}
 

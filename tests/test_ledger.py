@@ -119,6 +119,36 @@ class Ledger(unittest.TestCase):
         probs, _ = ledger.apply(EXTRACT1, self.d1, PROJECT)
         self.assertTrue(any("already read" in p for p in probs))
 
+    def test_a_digest_made_before_another_run_recorded_the_session_is_refused(self):
+        """Two runs of one session (the user restarted one that was in fact still going): the second to apply read from
+        where the ledger was before the first applied, so it would record the same entries again."""
+        self.first()
+        short = transcript.digest(T1, until="2026-09-14T12:00:00Z")      # made from the start, ending before the first run's end
+        _, es = ledger.parse_digest(short)
+        stale = {"schema": "treesight/extract@1", "session": EXTRACT1["session"], "through": list(es)[-1], "nodes": [], "open": [], "close": []}
+        probs, _ = ledger.apply(stale, short, PROJECT)
+        self.assertTrue(any("another run recorded" in p for p in probs), probs)
+
+    def test_twigs_and_their_quotes(self):
+        """A node's quote may name the twig it shows; the index must be one of the node's twigs. Quotes from the node's
+        own message come first (later sessions are shown the first), and open items, which have no twigs, drop the field."""
+        ext = copy.deepcopy(EXTRACT1)
+        n = next(x for x in ext["nodes"] if len(x.get("twigs") or []) in (1, 2) and len(x["evidence"]) > 1)   # the schema allows 0 to 2
+        own = next(i for i, e in enumerate(n["evidence"]) if e["msg"] == n["msg"])
+        n["evidence"].append(n["evidence"].pop(own))                  # the node's own quote last
+        n["evidence"][0]["twig"] = len(n["twigs"])                     # one past the last twig
+        probs, _ = ledger.apply(ext, self.d1, PROJECT)
+        self.assertTrue(any(".twig %d: the node has" % len(n["twigs"]) in p for p in probs), probs)
+        n["evidence"][0]["twig"] = 0
+        ext["open"][0]["evidence"][0]["twig"] = 0
+        probs, _ = ledger.apply(ext, self.d1, PROJECT)
+        self.assertEqual(probs, [])
+        state = ledger.load(PROJECT)
+        stored = next(x for x in state["sessions"][ext["session"]]["nodes"] if x["label"] == n["label"])
+        self.assertEqual(stored["evidence"][0]["msg"], n["msg"])
+        self.assertEqual([e.get("twig") for e in stored["evidence"]][1:2], [0])
+        self.assertNotIn("twig", state["open"][0]["evidence"][0])
+
     def test_later_session_closes_earlier_items(self):
         self.first()
         by = self.labels(ledger.load(PROJECT))
@@ -253,6 +283,22 @@ class Ledger(unittest.TestCase):
         self.assertEqual(state["sessions"]["b"]["last_run"]["flagged"], 1)
         state = ledger.view(events[:4], [{"ev": "hide", "target": item["id"], "at": "2026-09-21T00:00:00Z"}])
         self.assertEqual((state["sessions"]["b"]["last_run"]["flagged"], state["closes"]), (0, []))   # hidden: neither counted nor evidence
+
+    def test_the_passes_of_one_run_count_as_that_run(self):
+        """A run read in two passes is one run on the page: the counts add up, and what each pass was unsure about is
+        kept. Before, the second pass replaced the first, so the page showed only its counts, and the first pass's
+        notes reached neither the page nor (once the report stopped listing them) the conversation."""
+        node = lambda r, i: {"ev": "node", "session": "a", "run": r, "node": {"id": "aaaaaaaa-n%d" % i}}
+        item = lambda r, i: {"ev": "open", "session": "a", "run": r, "item": {"id": "aaaaaaaa-o%d" % i, "label": "x"}}
+        run = lambda r, notes, **k: dict({"ev": "run", "session": "a", "run": r, "at": "2026-10-21T0%d:00:00Z" % len(r),
+                                          "through": r, "notes": notes}, **k)
+        events = [run("r1", "first pass: unsure about o1"), node("r1", 1), item("r1", 1),
+                  run("r22", " ", **{"pass": 2}), node("r22", 2), item("r22", 2), item("r22", 3)]
+        lr = ledger.view(events)["sessions"]["a"]["last_run"]
+        self.assertEqual((lr["nodes"], lr["open"], lr["notes"]), (2, 3, "first pass: unsure about o1"))
+        events += [run("r333", "second run", **{"pass": 1}), node("r333", 3)]          # a new run starts over
+        lr = ledger.view(events)["sessions"]["a"]["last_run"]
+        self.assertEqual((lr["nodes"], lr["open"], lr["notes"]), (1, 0, "second run"))
 
     def test_items_raised_after_the_digest_starts_say_when(self):
         d2 = transcript.digest(T2)

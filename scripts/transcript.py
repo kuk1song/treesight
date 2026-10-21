@@ -33,21 +33,48 @@ _SECRETS = [
     re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),                          # AWS access key id
     re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b"),                              # Google API key
     re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"),   # JWT
+    re.compile(r"\bgsk_[A-Za-z0-9]{40,}"),                                # Groq
+    re.compile(r"\bGOCSPX-[A-Za-z0-9_-]{20,}"),                            # Google OAuth client secret
+    re.compile(r"\bwhsec_[A-Za-z0-9+/=]{20,}"),                            # Stripe webhook signing secret
+    re.compile(r"\bxapp-\d-[A-Za-z0-9-]{10,}"),                             # Slack app-level token
+    re.compile(r"\bshp(?:at|ca|pa|ss)_[A-Fa-f0-9]{32}\b"),                 # Shopify access token
+    re.compile(r"\bhttps://hooks\.slack\.com/(?:services|workflows|triggers)/[A-Za-z0-9/_-]+"),     # Slack webhook
+    re.compile(r"\bhttps://(?:ptb\.|canary\.)?discord(?:app)?\.com/api/webhooks/\d+/[A-Za-z0-9_-]+"),   # Discord webhook
+    re.compile(r"(?i)\bAccountKey=[A-Za-z0-9+/]{20,}={0,2}"),               # Azure storage connection string
+    re.compile(r"(?i)(?<![\w-])--(?:password|passwd|passphrase|token|secret|api-key)\s+(?!-)[^\s'\"]{6,}"),   # --password hunter2
+    re.compile(r"\bSG\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}"),            # SendGrid
+    re.compile(r"\b\d{8,10}:AA[A-Za-z0-9_-]{33}(?![A-Za-z0-9_-])"),       # Telegram bot token (it may end in -)
+    # Discord bot token: the user id in base64 (M, N or O first), a time and an HMAC; a digit somewhere in the token
+    # keeps out dotted names such as ModelSerializerFactoryImpl.create.serialize..., and the bound keeps the look ahead
+    # linear on long runs of letters and dots
+    re.compile(r"\b(?=[MNO][A-Za-z0-9._-]{0,80}\d)[MNO][A-Za-z0-9]{23,25}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27,}"),
     # a name with token, password, secret or api key in it (DB_PASSWORD, client_secret, "password" in JSON), then a value
-    re.compile(r"(?i)\b[a-z0-9_]*(?:token|password|passwd|secret|api[_-]?key)[a-z0-9_]*['\"]?\s*[:=]\s*['\"]?(?![0-9]+\b)[^\s'\"]{8,}"),
+    # that is not just a number (max_tokens: 4096 and password_changed_at: 1729500000 stay); at most 100 name characters
+    # after the word, which keeps a long run of such words linear
+    re.compile(r"(?i)\b[a-z0-9_]*(?:token|password|passwd|passphrase|secret|api[_-]?key)[a-z0-9_]{0,100}['\"]?\s*[:=]\s*['\"]?(?![0-9]+\b)[^\s'\"]{8,}"),
+    # a name that ends in password, then a value of digits only (DB_PASSWORD=12345678)
+    re.compile(r"(?i)\b[a-z0-9_]*(?:password|passwd|passphrase)['\"]?\s*[:=]\s*['\"]?[0-9]{6,}\b"),
+    # any other name ending in _key (OPENAI_KEY, ACCESS_KEY), when the value looks like a key: 16 or more letters and
+    # digits, both present, not followed by a dot or a slash, so routing_key = "orders.created.v1", s3_key paths and
+    # file names stay (values over 512 characters are left: the bound keeps a long run of such names linear)
+    re.compile(r"(?i)\b[a-z0-9]+(?:_[a-z0-9]+)*_key['\"]?\s*[:=]\s*['\"]?(?=[A-Za-z0-9_+=-]{0,512}\d)(?=[A-Za-z0-9_+=-]{0,512}[a-z])[A-Za-z0-9_+=-]{16,512}(?![A-Za-z0-9_+=./-])"),
     re.compile(r"\bBearer\s+[A-Za-z0-9._~+/=-]{16,}"),
     re.compile(r"(?i)\bauthorization:\s*basic\s+[A-Za-z0-9+/]{8,}={0,2}"),   # HTTP basic credentials
-    re.compile(r"\b[a-z][a-z0-9+.-]*://[^\s/:@]+:[^\s/@]+@"),              # credentials inside a URL
+    re.compile(r"\b[a-z][a-z0-9+.-]{0,31}://[^\s/:@]+:[^\s/@]+@"),         # credentials inside a URL (a scheme is short;
+                                                                           # the bound keeps long dotted runs linear)
     re.compile(r"\b(?:vless|vmess|trojan|ss|ssr|hysteria2?|tuic)://\S+"),  # proxy share links
 ]
 _IPV4 = re.compile(r"(?<![\d.])(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}(?![\d.]*\d)")
-_EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[A-Za-z]{2,}")
+# starting only where a run of address characters starts: the same matches, in linear time on a long run without @
+_EMAIL = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[A-Za-z]{2,}")
 
 
 def scrub(text):
     for rx in _SECRETS:
         text = rx.sub("[secret]", text)
-    text = _EMAIL.sub("[email]", text)
+    masked = None
+    while masked != text:       # again after a mask: an address right after another starts a new run there
+        masked, text = text, _EMAIL.sub("[email]", text)
     return _IPV4.sub("x.x.x.x", text)
 
 
@@ -138,6 +165,27 @@ def _short_paste(text, keep=400):
         more = len(inner) - keep
         return "[pasted] " + inner[:keep] + (" ...[%d more characters pasted]" % more if more > 0 else "") + " [/pasted]"
     return _PASTED.sub(cut, text)
+
+
+def scrub_prompt(text):
+    """scrub() for a prompt: the text around pasted blocks and each block's content separately, so a value pattern can
+    never run into a block's closing tag and swallow the rest of the prompt."""
+    out, last = [], 0
+    for m in _PASTED.finditer(text):
+        out += [scrub(text[last:m.start()]), text[m.start():m.start(1)], scrub(m.group(1)), text[m.end(1):m.end()]]
+        last = m.end()
+    return "".join(out) + scrub(text[last:])
+
+
+def session_line(meta, entries):
+    """One line about a session for the page: Claude Code's own recap of it, else its first prompt that is not pasted
+    output, with pasted text shortened. Scrubbed before anything is cut, since a secret cut in half no longer matches its pattern."""
+    if meta["summary"]:
+        return scrub(meta["summary"])
+    prompts = [e["text"] for e in entries if e["k"] == "P"]
+    # a prompt that starts with Claude Code's reply marker is output pasted from another session, not this one's request
+    first = next((t for t in prompts if not t.lstrip().startswith("\u23fa")), prompts[0] if prompts else "")
+    return _short_paste(scrub_prompt(first), 120)
 
 
 # compaction summaries: drop the sections that repeat the prompts or dump code; when the rest is still too long,
@@ -265,12 +313,14 @@ def _pastes_cut(text):
 def _block(e, limit=None):
     """One entry as the model reads it. Nothing is cut except pasted content and compaction summaries (both
     reported in the header), and an entry longer than a whole pass (limit), which is reported too."""
-    text = e["text"]
+    # scrubbed before anything is cut: a secret cut in half no longer matches its pattern
     if e["k"] == "P":
-        text = _short_paste(text, PASTE_KEEP)
+        text = _short_paste(scrub_prompt(e["text"].strip()), PASTE_KEEP)
     elif e["k"] == "C":
-        text = _trim_compact(text, COMPACT_LIMIT)
-    text = _HEADER_LIKE.sub(" ", scrub(text.strip()))
+        text = _trim_compact(scrub(e["text"].strip()), COMPACT_LIMIT)
+    else:
+        text = scrub(e["text"].strip())
+    text = _HEADER_LIKE.sub(" ", text.strip())
     if limit is not None and len(text) > limit:
         text = text[:limit] + " ...[cut: %d more characters not shown]" % (len(text) - limit)
     return "[%s %s %s]\n%s" % (_KIND_NAME[e["k"]], e["at"], e["msg"], text)
@@ -349,7 +399,7 @@ def digest_pass(path, after=None, known=None, max_chars=PASS_CHARS, until=None, 
     mine = entries[first[0]:first[1]]
     body = [_block(e, budget - 200) if len(blocks[first[0] + j]) > budget else blocks[first[0] + j] for j, e in enumerate(mine)]
     cut = sum(1 for j in range(len(mine)) if len(blocks[first[0] + j]) > budget)
-    pastes = sum(_pastes_cut(e["text"]) for e in mine if e["k"] == "P")
+    pastes = sum(_pastes_cut(scrub_prompt(e["text"])) for e in mine if e["k"] == "P")
     compacts = sum(1 for e in mine if e["k"] == "C")
     zh = sum(1 for e in mine if e["k"] == "P" and re.search("[一-鿿]", e["text"]))
     np_ = sum(1 for e in mine if e["k"] == "P")

@@ -20,7 +20,7 @@
       "properties": {"total": {"type": "integer", "minimum": 0}, "substantive": {"type": "integer", "minimum": 0}}
     },
     "compactions": {"type": "integer", "minimum": 0},
-    "summary": {"description": "One line for the project view, taken from the latest automatic recap without a model.", "type": "string", "maxLength": 600},
+    "summary": {"description": "One line for the project view, without a model: the latest automatic recap, else the first prompt that is not output pasted from another session.", "type": "string", "maxLength": 600},
     "generated": {"description": "Whether the tree has been extracted at least once.", "type": "boolean"},
     "gone": {"description": "True when Claude Code has deleted the session's transcript; the session is drawn from what the ledger kept.", "type": "boolean"},
     "through": {"description": "The last message the ledger has extracted.", "$ref": "common.schema.json#/$defs/uuid"},
@@ -34,7 +34,8 @@
         "nodes": {"type": "integer", "minimum": 0},
         "open": {"type": "integer", "minimum": 0},
         "closed": {"description": "Open items it closed.", "type": "integer", "minimum": 0},
-        "flagged": {"description": "Open items it left for the user to confirm: an unsure close, or no longer possible.", "type": "integer", "minimum": 0}
+        "flagged": {"description": "Open items it left for the user to confirm: an unsure close, or no longer possible.", "type": "integer", "minimum": 0},
+        "notes": {"description": "What the model was unsure about in its last pass, shown on request under the title instead of in the report.", "type": "string", "maxLength": 2000}
       }
     },
     "nodes": {"type": "array", "items": {"$ref": "#/$defs/node"}},

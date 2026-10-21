@@ -44,10 +44,10 @@ Open the session you want to see (for example with `claude --resume`) and run:
 /treesight:treesight
 ```
 
-Within seconds treesight asks your browser to open the page, and the session's tree appears there when the background run is done, a few minutes for most sessions. Keep working meanwhile.
+Within seconds treesight asks your browser to open the page, and the session's tree appears there when the background run is done, a few minutes for most sessions. Keep working meanwhile. Later runs and corrections in the same conversation update that page instead of opening another tab.
 
-- **Another session of this project:** add its id or words from its title, as in `/treesight:treesight 0a182a7b` or `/treesight:treesight release`. The project page lists every session; the ones without a tree show the command to run.
-- **Run it again** to read only what is new. A run started while another is still going runs in the foreground, so your conversation waits for it.
+- **Another session of this project:** add its id or words from its title, in any order, as in `/treesight:treesight 0a182a7b` or `/treesight:treesight release`. The project page lists every session; the ones without a tree show the command to run.
+- **Run it again** to read only what is new. A run started while another is still going runs in the foreground, so your conversation waits for it. If you stopped a run, add `--restart` to start that session again.
 - **Correct the page:** `/treesight:treesight close <words from an item's label>`, or `reopen`, `hide`, or `set <item> when=after the trip` (fields: label, line, kind, due, when, who, rank, score, blocked_by). Your corrections always win.
 
 ## How it works
@@ -61,13 +61,13 @@ The skill pre-approves only two things: running its own script, and writing its 
 
 ## Privacy
 
-- The page makes no network requests. Its Content Security Policy allows no network access and no script but its own, and session text sits in a non-executing block, so it cannot run as code.
+- The page makes no network requests. Its Content Security Policy runs no script but its own (allowed by hash) and the files that script loads, and the only one it loads is a one-line stamp next to the page, which tells an open page that a newer build exists. Session text sits in a non-executing block, so it cannot run as code.
 - The digest reaches the model the same way your conversation does: same account, same provider, after common secret formats are removed and IPv4 addresses and emails are masked.
 - treesight sends nothing anywhere else. Its ledger (in `~/.local/share/treesight/` by default) stays after you uninstall the plugin; delete that folder and `~/.cache/treesight` to remove what treesight kept.
 
 ## Time and cost
 
-Extraction counts against your Claude Code plan. treesight favours finding every open item over speed, so it runs at xhigh effort with your session's model. Measured on 2026-10-16 with Opus 5.5, as API-price equivalents: a 15-prompt session took 3.1 minutes ($0.64), and a 73-prompt session with 7 compactions took 21 minutes ($8.50) and found all 17 items on that session's own last to-do list. Later runs read only what is new, and a run with nothing new costs one short model turn. All measurements: [docs/design.md](docs/design.md#6-known-limits-and-what-remains-to-verify).
+Extraction counts against your Claude Code plan. treesight favours finding every open item over speed, so it runs at xhigh effort with your session's model. Measured on 2026-10-16 with Opus 5.5, as API-price equivalents: a 15-prompt session took 3.1 minutes ($0.64), and a 73-prompt session with 7 compactions took 21 minutes ($8.50) and found all 17 items on that session's own last to-do list. Later runs read only what is new, and a run with nothing new still takes a few short model requests (about 20 seconds in testing). All measurements: [docs/design.md](docs/design.md#6-known-limits-and-what-remains-to-verify).
 
 ## Limitations
 
@@ -76,6 +76,7 @@ Extraction counts against your Claude Code plan. treesight favours finding every
 - The run's report comes back to your conversation, and Claude may comment on it.
 - The transcript format is internal to Claude Code and may change in any release.
 - The page has a dark theme only.
+- An open page updating itself is tested in Chrome only; Safari and Firefox are untested.
 
 The rest, with numbers, is in [docs/design.md](docs/design.md#6-known-limits-and-what-remains-to-verify).
 

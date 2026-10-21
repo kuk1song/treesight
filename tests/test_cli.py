@@ -16,6 +16,7 @@ import unittest
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 
+import build  # noqa: E402
 import ledger  # noqa: E402
 import treesight  # noqa: E402
 
@@ -35,6 +36,12 @@ def page_data(path):
     with open(path, encoding="utf-8") as f:
         html = f.read()
     return html, json.loads(re.search(r'<script type="application/json" id="data">(.*?)</script>', html, re.S).group(1))
+
+
+def stamp(page):
+    """What the stamp next to a page says: the build it names, the session it is about, and whether a run is going on."""
+    with open(build.stamp_path(page), encoding="utf-8") as f:
+        return json.loads(re.search(r"__treesight\((.*)\);", f.read()).group(1))
 
 
 def empty_extract(digest_path):
@@ -105,8 +112,14 @@ class Cli(unittest.TestCase):
         self.assertIn(S2, f("0a182a7b", S1))
         self.assertIn(S2, f("release 0.3", S1))
         self.assertIn(S2, f(f("0a182a7b", S1), None))
-        with self.assertRaises(treesight.Problem):
-            f("no such title", S1)
+        self.assertIn(S1, f("tidepool NOAA", S1))           # each word anywhere in the title, in any order
+        self.assertIn("0c0f810a", f("0c0f810a", S1))         # a whole short id finds a session of another project
+        for name in ("no such title", "0c0f"):               # a short number is not taken for another project's session
+            with self.assertRaises(treesight.Problem):
+                f(name, S1)
+        with self.assertRaises(treesight.Problem) as e:
+            f("a", S1)                                        # in several titles: they are listed, so the user can pick
+        self.assertIn("\u201cAdd ICS export", str(e.exception))
         with self.assertRaises(treesight.Problem):
             f("", None)
 
@@ -152,6 +165,88 @@ class Cli(unittest.TestCase):
         run("build", "--done", "--session", S1, *self.common)
         code, fresh = run("prepare", *self.common)
         self.assertEqual((fresh.get("busy"), fresh["pass_number"]), (None, 1))
+
+    def test_what_a_run_was_unsure_about_goes_to_the_page(self):
+        """The report in the conversation stays short; the run's notes are on the page, under the session's title."""
+        self.first_run()
+        code, b = run("build", *self.common)
+        html, data = page_data(b["page"])
+        notes = next(s for s in data["sessions"] if s["id"] == S1)["last_run"]["notes"]
+        self.assertTrue(notes.startswith("o4 (publish 0.3.0)"), notes)
+
+    def test_a_run_in_two_passes_is_one_run_on_the_page(self):
+        """What both passes were unsure about reaches the page, and apply's counts are the whole run's, as the page's."""
+        code, out = run("prepare", "--max-chars", "3000", *self.common)
+        for n in (1, 2):
+            dig = out["extract"].replace(".extract.json", ".digest.txt")
+            with open(out["extract"], "w", encoding="utf-8") as f:
+                json.dump(dict(empty_extract(dig), notes="pass %d was unsure" % n), f)
+            code, res = run("apply", *self.common)
+            self.assertTrue(res["ok"], res)
+            if n == 1:
+                self.assertTrue(res["go_on"], res)
+                code, out = run("prepare", "--continue", "--max-chars", "3000", *self.common)
+                self.assertEqual(out["pass_number"], 2)
+        run("build", "--done", "--session", S1, *self.common)
+        code, b = run("build", *self.common)
+        html, data = page_data(b["page"])
+        lr = next(s for s in data["sessions"] if s["id"] == S1)["last_run"]
+        self.assertEqual(lr["notes"], "pass 1 was unsure\n\npass 2 was unsure")
+        self.assertEqual(ledger.load(PROJECT)["sessions"][S1]["runs"], 2)
+
+    def test_the_browser_is_asked_once_per_conversation(self):
+        """Later runs and corrections in the same conversation update the page that is already open (it reads its
+        stamp) instead of opening another tab; another conversation opens it again."""
+        asked = []
+        real, build.open_page = build.open_page, lambda res: asked.append(res["page"]) or res.update(browser_asked=True) or res
+        try:
+            code, first = run("build", "--open", *self.common)
+            code, again = run("build", "--open", *self.common)
+            code, other = run("build", "--open", "--current", S2, "--cache", self.cache)
+        finally:
+            build.open_page = real
+        self.assertEqual(len(asked), 2)
+        self.assertEqual((first["browser_asked"], again["browser_asked"], again.get("open_page_updates"), other["browser_asked"]), (True, False, True, True))
+        self.assertTrue(first["url"].startswith("file:///") and first["url"].endswith(".html"))
+        # a conversation resumed after a long pause gets the page again: its tab is likely gone
+        path = os.path.join(self.cache, "opened", PROJECT + ".json")
+        with open(path, encoding="utf-8") as f:
+            seen = json.load(f)
+        seen[S1] -= treesight.OPEN_KEEP_S + 1
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(seen, f)
+        build.open_page = lambda res: asked.append(res["page"]) or res.update(browser_asked=True) or res
+        try:
+            code, later = run("build", "--open", *self.common)
+        finally:
+            build.open_page = real
+        self.assertEqual((later["browser_asked"], len(asked)), (True, 3))
+
+    def test_titles_are_matched_as_written(self):
+        """Scrubbing is for showing a title: words such as an address or a key name in it still find the session."""
+        projects = os.path.join(self.tmp, "projects")
+        shutil.copytree(os.environ["TREESIGHT_PROJECTS"], projects)
+        os.environ["TREESIGHT_PROJECTS"] = projects
+        with open(os.path.join(projects, PROJECT, S2 + ".jsonl"), "a", encoding="utf-8") as f:
+            f.write(json.dumps({"type": "custom-title", "customTitle": "Deploy to 192.0.2.5 and rotate api_key: staging2026x"}) + "\n")
+        self.assertIn(S2, treesight.find_session("deploy to 192.0.2.5", S1))
+        self.assertIn(S2, treesight.find_session("rotate api_key", S1))
+
+    def test_a_run_the_user_stopped_can_be_restarted(self):
+        code, out = run("prepare", *self.common)
+        code, busy = run("prepare", *self.common)
+        self.assertTrue(busy["busy"])
+        self.assertGreaterEqual(busy["free_in_min"], 20)          # when it would count as stopped by itself
+        code, again = run("prepare", "--restart", *self.common)
+        self.assertEqual((code, again.get("busy"), again["pass_number"]), (0, None, 1), again)
+        code, again = run("prepare", "--session", S1[:8] + " --restart", *self.common)   # the flag left among the words
+        self.assertEqual((code, again.get("busy")), (0, None), again)
+
+    def test_wrong_arguments_come_back_as_json(self):
+        code, out = run("edit", "hide", *self.common)               # no item named
+        self.assertEqual((code, out["ok"]), (1, False), out)
+        code, out = run("prepare", "--no-such-flag", *self.common)
+        self.assertEqual((code, out["ok"]), (1, False), out)
 
     def test_a_stopped_run_does_not_block_the_next(self):
         code, out = run("prepare", *self.common)
@@ -204,6 +299,13 @@ class Cli(unittest.TestCase):
         parts = treesight.split_parts(long, 4000)
         self.assertEqual("".join(parts), long)
         self.assertTrue(all(len(p) <= 4000 for p in parts))
+        # sizes are bytes: Claude Code saved a 20,000-character part of mostly Chinese text (34,858 bytes) to a file
+        # instead of showing it, so the model had to read it back with a tool it was not pre-approved for
+        zh = "[reply 2026-09-14T09:00:00.000Z 00000001-0000-4000-8000-000000000000]\n" + ("读完了整个会话。\n" * 3000)
+        parts = treesight.split_parts(zh, 24000)
+        self.assertEqual("".join(parts), zh)
+        self.assertTrue(all(len(p.encode("utf-8")) <= 24000 for p in parts))
+        self.assertTrue(all(p.endswith("\n") for p in parts))      # still broken at lines
 
     def test_long_sessions_are_read_in_passes(self):
         seen, go_on = [], False
@@ -240,6 +342,9 @@ class Cli(unittest.TestCase):
         code, e = run("edit", "close", "PyPI", *self.common)   # matches the token item and the release item
         self.assertEqual(code, 1)
         self.assertIn("more than one", e["error"])
+        self.assertIn("\u201cPyPI token from org admin\u201d", e["error"])   # by the labels the page shows, not by ids
+        code, e = run("edit", "set", "PyCon proposal", "--field", "blocked_by=token PyPI", *self.common)    # words in any order
+        self.assertEqual((code, e["fields"]), (0, {"blocked_by": ledger.load(PROJECT)["open"][2]["id"]}), e)
         code, rows = run("list", *self.common)
         self.assertEqual([r["tree"] for r in rows if r["id"] == S1[:8]], [True])
         code, b = run("build", *self.common)
@@ -268,12 +373,12 @@ class Cli(unittest.TestCase):
         page = glob.glob(os.path.join(self.cache, "pages", "*.html"))[0]
         html, d = page_data(page)
         self.assertEqual([p["session"] for p in d["pending"]], [S2])
-        self.assertIn('http-equiv="refresh"', html)
+        self.assertEqual(stamp(page), {"v": d["version"], "focus": S2, "pending": True})   # an open page sees the run start
         self.assertEqual(d["focus"], S2)
         code, _ = run("build", "--done", "--session", S2, *self.common)
         html, d = page_data(page)
         self.assertNotIn("pending", d)
-        self.assertNotIn('http-equiv="refresh"', html)
+        self.assertEqual(stamp(page), {"v": d["version"], "focus": S2, "pending": False})  # and end
 
     @unittest.skipUnless(ledger.fcntl, "no file locks on this system")
     def test_a_build_that_read_an_older_state_cannot_write_its_page_last(self):
@@ -309,7 +414,7 @@ class Cli(unittest.TestCase):
         html, d = page_data(glob.glob(os.path.join(self.cache, "pages", "*.html"))[0])
         self.assertEqual(sum(s["generated"] for s in d["sessions"]), 2)
         self.assertNotIn("pending", d)
-        self.assertNotIn('http-equiv="refresh"', html)
+        self.assertFalse(stamp(glob.glob(os.path.join(self.cache, "pages", "*.html"))[0])["pending"])
 
     @unittest.skipUnless(ledger.fcntl, "no file locks on this system")
     def test_two_builds_at_once_cannot_leave_a_finished_run_shown_as_in_progress(self):
@@ -342,7 +447,7 @@ class Cli(unittest.TestCase):
         done.join(10)
         html, d = page_data(glob.glob(os.path.join(self.cache, "pages", "*.html"))[0])
         self.assertNotIn("pending", d)
-        self.assertNotIn('http-equiv="refresh"', html)
+        self.assertFalse(stamp(glob.glob(os.path.join(self.cache, "pages", "*.html"))[0])["pending"])
         self.assertEqual(d["focus"], S2)
 
     def test_the_project_starts_with_its_earliest_session_even_when_that_one_was_active_last(self):

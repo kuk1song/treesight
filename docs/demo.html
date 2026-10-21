@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-brU9vUwQjQg99JcO1o7h91WjaDOkbPOKBUI8EZ0JbH8='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-YZtiom73yY9TtzvwagA478VIVHIqVOfAQFCuDM44fT8='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>treesight</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%23131417'/%3E%3Cg transform='translate%284.4 3.6%29 scale%28.78%29'%3E%3Cpath d='M20 37V16.5' stroke='%23E9E8E3' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M20 29C14 29 10.5 26 8 21M20 21C26 21 29.5 18 32 13' fill='none' stroke='%23E9E8E3' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='21' r='4.6' fill='%23C8FF00'/%3E%3Ccircle cx='32' cy='13' r='4.6' fill='%23C8FF00'/%3E%3Ccircle cx='20' cy='7.5' r='4.8' fill='none' stroke='%23C8FF00' stroke-width='3.2'/%3E%3C/g%3E%3C/svg%3E">
@@ -31,6 +31,16 @@ main{max-width:940px;margin:0 auto;padding:0 20px 60px}
 .where{text-align:center;margin:6px 0 0;display:grid;justify-items:center;gap:4px}
 .where b{font-size:15px;font-weight:600;overflow-wrap:anywhere}.where small{font-family:var(--mono);font-size:11.5px;color:var(--mut)}
 .where .since{font-family:var(--f);font-size:12px;color:var(--mut)}
+.unsure{all:unset;cursor:pointer;color:var(--mut);text-decoration:underline dotted;text-underline-offset:3px}.unsure:hover{color:var(--ink)}
+.notes{max-width:560px;margin:6px auto 0;text-align:left;font-size:12.5px;color:var(--ink);background:var(--panel);border-radius:10px;padding:8px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.notes[hidden]{display:none}
+.unsure:focus-visible,.cmd button:focus-visible,.oit:focus-visible,.pz:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.more .sum{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.run{display:grid;gap:4px}.row.l .run{justify-items:end}
+.cmd{display:inline-flex;align-items:center;gap:8px;background:var(--panel);border-radius:8px;padding:4px 6px 4px 10px;max-width:100%}
+.cmd code{font-family:var(--mono);font-size:12px;overflow-wrap:anywhere;user-select:all}
+.cmd button{all:unset;cursor:pointer;font-size:12px;color:var(--mut);background:var(--fill);border-radius:6px;padding:1px 8px}.cmd button:hover{color:var(--ink)}
+.cmdhint{font-size:11.5px;color:var(--faint)}
 svg.sh{flex:none;display:block;overflow:visible}
 .tree{position:relative;padding:8px 0 30px}
 .trunk{position:absolute;left:50%;top:150px;bottom:46px;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--trunk)}
@@ -72,17 +82,19 @@ a.node{color:inherit;text-decoration:none}
 .node:hover>.card,.node:focus-visible>.card{opacity:1}
 .node.open>.card{display:none}
 .more{display:none;margin-top:8px;gap:8px}
+.card,.more{overflow-wrap:anywhere}   /* long file names and paths wrap instead of running off a narrow screen */
+/* evidence as citations: who said it and when, after the twig it shows (after Google Meet's notes); a click opens the quote */
+.tws{display:grid;gap:2px;font-size:13px;color:var(--ink)}
+.cite{all:unset;cursor:pointer;color:var(--mut);font-size:12px;font-variant-numeric:tabular-nums;margin-left:6px;border-bottom:1px dotted var(--faint);white-space:nowrap}
+.cite:hover,.cite:focus-visible{color:var(--ink)}.cite:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.cq{display:none;font-size:12.5px;color:var(--mut);margin:2px 0 4px;white-space:pre-wrap}
+.cite[aria-expanded=true]+.cq{display:block}
+.srcs{font-size:12px;color:var(--mut)}
+@media (hover:hover){.more .ln.dup,.more .ln>.dup{display:none}}   /* the line is in the hover card; where there is no hover, it shows here (notes such as "merged" always do) */
+.oiex{display:none;margin-top:3px;font-size:12px}.oi.open .oiex{display:block}.oi.open>.card{display:none}
 .slot.open .more{display:grid}
 .more .ln{font-size:13.5px;max-width:420px}.row.l .more .ln{margin-left:auto}
 .more .ln em{font-style:normal;display:block;color:var(--mut);font-size:12.5px}
-.twigs{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--mut)}
-.row.l .twigs{justify-content:flex-end}
-.twigs span::before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--mut);margin-right:6px;vertical-align:middle}
-.acts{display:flex;gap:8px}.row.l .acts{justify-content:flex-end}
-.acts button{all:unset;cursor:pointer;font-size:12.5px;color:var(--mut);background:var(--panel);border-radius:6px;padding:3px 9px}
-.acts button:hover,.acts button:focus-visible{color:var(--ink)}
-.src{display:none;font-size:12.5px;color:var(--mut);background:var(--panel);border-radius:10px;padding:10px 12px;text-align:left;max-width:420px;white-space:pre-wrap}
-.row.l .src{margin-left:auto}.slot.src-on .src{display:block}
 /* the story of a bumpy node: equal rows, one dashed segment from icon centre to icon centre */
 .story{display:grid;gap:6px;max-width:420px;text-align:left}.row.l .story{margin-left:auto}
 .story .dur{font-size:12.5px;color:var(--scar-m)}.story .dur.h{color:var(--scar-h)}.story .dur.d{color:var(--scar-d)}
@@ -117,15 +129,24 @@ a.node{color:inherit;text-decoration:none}
 .bk.late{color:var(--late)}.bk.late::before{background:var(--late)}
 .dv{font-size:10.5px;color:var(--faint);border-top:1px solid var(--line);padding-top:4px;margin-top:2px}
 .oi{position:relative;display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.35;padding:2px 4px;border-radius:8px}
-.oi:hover,.oi:focus-visible{background:var(--fill);outline:none}
+.oi:hover,.oi:has(.oit:focus-visible){background:var(--fill)}
+.oit{all:unset;cursor:pointer;display:block;border-radius:4px}
 .oi svg{margin-top:1px}.oi b{font-weight:500}
 .oi .m{display:block;font-family:var(--mono);font-size:10.5px;color:var(--mut)}.oi .m.late{color:var(--late)}
 .oi .w{font-family:var(--f);color:var(--ink);background:var(--fill);border-radius:5px;padding:0 5px;font-size:11px}
 .oi .card{top:calc(100% + 4px);left:0}
-.oi:hover>.card,.oi:focus-visible>.card{opacity:1}
+.oi:hover>.card,.oi:has(.oit:focus-visible)>.card{opacity:1}
 .oi.hl{background:var(--fill);box-shadow:inset 0 0 0 1px var(--mut)}
 .pending{max-width:940px;margin:0 auto 6px;padding:8px 14px;border-radius:10px;background:var(--panel);color:var(--ink);font-size:13px;text-align:center}
 .pending[hidden]{display:none}
+/* while drawing: a light running round the line (stopped by a click, by reduced motion, and once the run seems to have stopped) */
+@property --ts-a{syntax:'<angle>';inherits:false;initial-value:0deg}
+.pending{position:relative;cursor:pointer}
+.pending.beam::before{content:"";position:absolute;inset:-1px;border-radius:11px;padding:1.5px;pointer-events:none;background:conic-gradient(from var(--ts-a),transparent 0 72%,color-mix(in srgb,var(--done) 30%,transparent) 84%,var(--done) 92%,transparent 100%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:ts-spin 3.2s linear infinite}
+.pending.paused::before{animation-play-state:paused}
+.pz{all:unset;cursor:pointer;margin-left:10px;padding:0 6px;border-radius:5px;color:var(--mut);font-size:11px}.pz:hover{color:var(--ink)}.pz[hidden]{display:none}.paused .pz{color:var(--ink)}
+@keyframes ts-spin{to{--ts-a:360deg}}
+@media (prefers-reduced-motion:reduce){.pending.beam::before{animation:none}}
 footer{max-width:940px;margin:0 auto;padding:0 20px 30px;text-align:center;font-size:11.5px;color:var(--faint)}
 @media (max-width:640px){.row{grid-template-columns:1fr 30px 1fr}.node .t{font-size:14px}
   .card,.card.up,.row.l .card,.row.r .card{position:fixed;left:16px;right:16px;top:auto;bottom:16px;width:auto;margin:0}}
@@ -140,10 +161,10 @@ footer{max-width:940px;margin:0 auto;padding:0 20px 30px;text-align:center;font-
 <footer id="foot"></footer>
 <aside class="drawer" id="drawer" aria-hidden="true"><header><div><b id="dtitle"></b><small><span id="dscope"></span> · <span id="dtoday"></span></small></div><button id="dclose"></button></header>
 <div class="lg" id="dlg"></div><div class="scroll"><div class="ax"></div></div></aside>
-<script type="application/json" id="data">{"schema":"treesight/page@1","asof":"2026-10-03T09:00:00Z","current":"0c0f810a-baaf-50cb-bf29-d8b405abbf9c","project":{"path":"/home/kuki/recipe-box","name":"recipe-box","first_at":"2026-09-14T09:02:10.000Z"},"sessions":[{"schema":"treesight/session@1","id":"0c0f810a-baaf-50cb-bf29-d8b405abbf9c","title":"release 1.2","custom_title":true,"first_at":"2026-09-23T09:01:14.000Z","last_at":"2026-09-23T10:36:10.000Z","prompts":{"total":6,"substantive":6},"compactions":0,"generated":true,"nodes":[{"kind":"done","label":"Photos moved to the storage bucket","line":"New photos go to the storage bucket, and the 37 photos already on disk were copied over.","score":4,"at":"2026-09-23T09:19:52.000Z","msg":"6d64b1f7-4d09-5805-8f07-020b119a0c44","evidence":[{"quote":"Sam sent the storage keys.","kind":"prompt","msg":"145b7e82-b152-5ef4-acb9-227076dac11a","at":"2026-09-23T09:01:14.000Z"},{"quote":"Photos now go to the storage bucket, and the 37 photos already on disk were copied over.","kind":"reply","msg":"6d64b1f7-4d09-5805-8f07-020b119a0c44","at":"2026-09-23T09:19:52.000Z"}],"id":"0c0f810a-n1","by":"model"},{"kind":"done","label":"1.2 is live with photo upload","line":"You deployed 1.2, and the site is live with photo upload.","score":5,"at":"2026-09-23T09:44:08.000Z","msg":"30a0c6ce-ae42-528f-be23-f31346b9d5b7","evidence":[{"quote":"Deployed 1.2. The site is live with photo upload.","kind":"prompt","msg":"30a0c6ce-ae42-528f-be23-f31346b9d5b7","at":"2026-09-23T09:44:08.000Z"}],"id":"0c0f810a-n2","by":"model"}],"open":[{"kind":"todo","label":"Write the 1.2 announcement","line":"A short blog post on 1.2 that you plan to write on Friday, about photo upload and photos that show the right way up.","due":"2026-09-25","rank":1,"raised_at":"2026-09-23T10:20:15.000Z","msg":"7d7e496f-a3e4-5fb9-aac9-537e54f5d3a3","evidence":[{"quote":"Let's write a short announcement for 1.2 on the blog. I'll do it on Friday.","kind":"prompt","msg":"7d7e496f-a3e4-5fb9-aac9-537e54f5d3a3","at":"2026-09-23T10:20:15.000Z"},{"quote":"The highlights would be photo upload and photos that now show the right way up.","kind":"reply","msg":"231c5395-02ac-5463-9047-8ec65a767fa2","at":"2026-09-23T10:21:00.000Z"}],"id":"0c0f810a-o1","by":"model","state":"open"},{"kind":"wait","label":"Alex's test on Android","line":"Alex offered to test 1.2 on his Android phone, and you are waiting for his results.","who":"Alex","raised_at":"2026-09-23T10:35:40.000Z","msg":"cd12b641-2bdc-5111-a0d1-9b08022e51bc","evidence":[{"quote":"Alex offered to test 1.2 on his Android phone. Waiting for his results.","kind":"prompt","msg":"cd12b641-2bdc-5111-a0d1-9b08022e51bc","at":"2026-09-23T10:35:40.000Z"}],"id":"0c0f810a-o2","by":"model","state":"open"}],"summary":"Sam sent the storage keys. Let's move the photos to the bucket and get 1.2 out.","through":"318bd440-7e61-5370-b6c5-a94222758db6","last_run":{"at":"2026-10-03T09:00:00Z","nodes":2,"open":2,"closed":2,"flagged":2}},{"schema":"treesight/session@1","id":"0c4f931d-e9a4-580f-989d-08dc086e7f1e","title":"Add photo upload to recipes","custom_title":false,"first_at":"2026-09-14T09:02:10.000Z","last_at":"2026-09-14T12:19:20.000Z","prompts":{"total":12,"substantive":12},"compactions":0,"generated":true,"nodes":[{"kind":"done","label":"Photo upload added","line":"Each recipe page got an Upload photo button, with the photo shown at the top of the recipe and 4 new tests.","score":4,"twigs":["One photo per recipe","4 new upload tests"],"at":"2026-09-14T09:19:45.000Z","msg":"cb955082-2960-5a1d-85fb-06a819120364","evidence":[{"quote":"Photo upload is in. Each recipe page now has an Upload photo button, and the photo shows at the top of the recipe.","kind":"reply","msg":"cb955082-2960-5a1d-85fb-06a819120364","at":"2026-09-14T09:19:45.000Z"}],"id":"0c4f931d-n1","by":"model"},{"kind":"done","label":"Phone photos upload fine","line":"Photos from your phone failed until two 1 MB limits, the web server's and the app's own, went up to 10 MB.","score":5,"twigs":["Server limit: 10 MB","App limit: 10 MB","Test with a 6 MB photo"],"story":{"minutes":87,"q":"about","basis":"first failed upload to the working one","steps":[{"role":"stuck","text":"Photos from your phone failed with Upload failed; small test images worked.","at":"2026-09-14T09:41:12.000Z","at_q":"exact"},{"role":"response","text":"Raised the web server's limit, then the app's own 1 MB cap, to 10 MB.","at":"2026-09-14T10:52:37.000Z","at_q":"exact"},{"role":"result","text":"A 6 MB photo from your phone uploaded fine.","at":"2026-09-14T11:08:20.000Z","at_q":"exact"}]},"at":"2026-09-14T11:08:20.000Z","msg":"bbced6e4-2076-520f-8de1-dfa6d06478bc","evidence":[{"quote":"Uploading a photo from my phone fails.","kind":"prompt","msg":"06eccbdd-3142-5708-89e8-7b373be39359","at":"2026-09-14T09:41:12.000Z"},{"quote":"Found a second limit: the app itself also capped uploads at 1 MB.","kind":"reply","msg":"11c8df04-30d2-5624-8e6f-685fae57740f","at":"2026-09-14T10:52:37.000Z"},{"quote":"Works now. A 6 MB photo from my phone uploaded fine.","kind":"prompt","msg":"bbced6e4-2076-520f-8de1-dfa6d06478bc","at":"2026-09-14T11:08:20.000Z"}],"id":"0c4f931d-n2","by":"model"},{"kind":"found","label":"Phones store photo rotation separately","line":"Phones save the rotation as a separate tag instead of turning the pixels, and the page ignored it, so photos showed sideways.","score":3,"at":"2026-09-14T11:22:48.000Z","msg":"98b53c9d-4a57-5e75-bbe0-95801b2c13d8","evidence":[{"quote":"Phones save the rotation as a separate tag instead of turning the pixels, and the page ignored that tag.","kind":"reply","msg":"98b53c9d-4a57-5e75-bbe0-95801b2c13d8","at":"2026-09-14T11:22:48.000Z"}],"id":"0c4f931d-n3","by":"model"},{"kind":"done","label":"Photos show the right way up","line":"Each photo is now turned the right way up when it is uploaded, and you checked it.","score":3,"at":"2026-09-14T11:30:10.000Z","msg":"9edc827f-4f47-557d-9743-908706e7310d","evidence":[{"quote":"I now turn each photo the right way up when it is uploaded.","kind":"reply","msg":"98b53c9d-4a57-5e75-bbe0-95801b2c13d8","at":"2026-09-14T11:22:48.000Z"},{"quote":"Perfect, it's the right way up now.","kind":"prompt","msg":"9edc827f-4f47-557d-9743-908706e7310d","at":"2026-09-14T11:30:10.000Z"}],"id":"0c4f931d-n4","by":"model"}],"open":[{"kind":"wait","label":"Lena's feedback on the photo layout","line":"Lena is checking the new photo layout on her phone, and the release waits for her feedback.","who":"Lena","rank":2,"raised_at":"2026-09-14T11:52:44.000Z","msg":"7e2ab88a-2025-5232-bff5-83f041fbbe14","evidence":[{"quote":"Lena is checking the new photo layout on her phone. I'll wait for her feedback before the release.","kind":"prompt","msg":"7e2ab88a-2025-5232-bff5-83f041fbbe14","at":"2026-09-14T11:52:44.000Z"}],"id":"0c4f931d-o2","by":"model","state":"confirm"},{"kind":"wait","label":"Shrink photos after the launch","line":"You put off shrinking photos before they are saved until after the launch.","when":"after the launch","raised_at":"2026-09-14T12:01:09.000Z","msg":"4fe14470-9223-50d7-8309-63f544324d97","evidence":[{"quote":"Shrinking photos before saving would be nice, but let's leave that until after the launch.","kind":"prompt","msg":"4fe14470-9223-50d7-8309-63f544324d97","at":"2026-09-14T12:01:09.000Z"}],"id":"0c4f931d-o4","by":"model","state":"open"},{"kind":"todo","label":"Sign up for the meetup demo","line":"You want to demo recipe-box at the web meetup on September 20 and planned to sign up for a slot this week.","due":"2026-09-20","rank":1,"raised_at":"2026-09-14T12:10:33.000Z","msg":"fa5ccbc7-3002-564a-899e-b13f8b75ff2a","evidence":[{"quote":"I want to demo recipe-box at the web meetup on September 20. I'll sign up for a demo slot this week.","kind":"prompt","msg":"fa5ccbc7-3002-564a-899e-b13f8b75ff2a","at":"2026-09-14T12:10:33.000Z"}],"id":"0c4f931d-o5","by":"model","state":"stale"},{"kind":"todo","label":"Delete a recipe's photo with it","line":"Deleting a recipe should also delete its photo; it is not done yet.","rank":5,"raised_at":"2026-09-14T12:18:47.000Z","msg":"6e3c17c2-65dd-5ba1-967a-f4a0419e345e","evidence":[{"quote":"deleting a recipe should delete its photo too.","kind":"prompt","msg":"6e3c17c2-65dd-5ba1-967a-f4a0419e345e","at":"2026-09-14T12:18:47.000Z"},{"quote":"It isn't done yet.","kind":"reply","msg":"3829adda-bb4b-5fbb-8ec7-05355c5c4674","at":"2026-09-14T12:19:20.000Z"}],"id":"0c4f931d-o6","by":"model","state":"open"}],"summary":"You're adding photo upload to recipe-box. Phone photos still fail after the server limit went up to 10 MB; next is finding what else rejects them.","through":"3829adda-bb4b-5fbb-8ec7-05355c5c4674","last_run":{"at":"2026-10-03T09:00:00Z","nodes":4,"open":6,"closed":0,"flagged":0}},{"schema":"treesight/session@1","id":"12517ac7-75a9-5873-9412-61fd418d69bc","title":"Fix the flaky login test","custom_title":false,"first_at":"2026-10-02T12:10:20.000Z","last_at":"2026-10-02T12:20:44.000Z","prompts":{"total":2,"substantive":2},"compactions":0,"generated":false,"nodes":[],"open":[],"summary":"The login test fails about one run in ten. Can you find out why?"}],"today":"2026-10-03T09:00:00Z"}</script>
+<script type="application/json" id="data">{"schema":"treesight/page@1","asof":"2026-10-03T09:00:00Z","current":"0c0f810a-baaf-50cb-bf29-d8b405abbf9c","project":{"path":"/home/kuki/recipe-box","name":"recipe-box","first_at":"2026-09-14T09:02:10.000Z"},"sessions":[{"schema":"treesight/session@1","id":"0c0f810a-baaf-50cb-bf29-d8b405abbf9c","title":"release 1.2","custom_title":true,"first_at":"2026-09-23T09:01:14.000Z","last_at":"2026-09-23T10:36:10.000Z","prompts":{"total":6,"substantive":6},"compactions":0,"generated":true,"nodes":[{"kind":"done","label":"Photos moved to the storage bucket","line":"New photos go to the storage bucket, and the 37 photos already on disk were copied over.","score":4,"at":"2026-09-23T09:19:52.000Z","msg":"6d64b1f7-4d09-5805-8f07-020b119a0c44","evidence":[{"quote":"Photos now go to the storage bucket, and the 37 photos already on disk were copied over.","kind":"reply","msg":"6d64b1f7-4d09-5805-8f07-020b119a0c44","at":"2026-09-23T09:19:52.000Z"},{"quote":"Sam sent the storage keys.","kind":"prompt","msg":"145b7e82-b152-5ef4-acb9-227076dac11a","at":"2026-09-23T09:01:14.000Z"}],"id":"0c0f810a-n1","by":"model"},{"kind":"done","label":"1.2 is live with photo upload","line":"You deployed 1.2, and the site is live with photo upload.","score":5,"at":"2026-09-23T09:44:08.000Z","msg":"30a0c6ce-ae42-528f-be23-f31346b9d5b7","evidence":[{"quote":"Deployed 1.2. The site is live with photo upload.","kind":"prompt","msg":"30a0c6ce-ae42-528f-be23-f31346b9d5b7","at":"2026-09-23T09:44:08.000Z"}],"id":"0c0f810a-n2","by":"model"}],"open":[{"kind":"todo","label":"Write the 1.2 announcement","line":"A short blog post on 1.2 that you plan to write on Friday, about photo upload and photos that show the right way up.","due":"2026-09-25","rank":1,"raised_at":"2026-09-23T10:20:15.000Z","msg":"7d7e496f-a3e4-5fb9-aac9-537e54f5d3a3","evidence":[{"quote":"Let's write a short announcement for 1.2 on the blog. I'll do it on Friday.","kind":"prompt","msg":"7d7e496f-a3e4-5fb9-aac9-537e54f5d3a3","at":"2026-09-23T10:20:15.000Z"},{"quote":"The highlights would be photo upload and photos that now show the right way up.","kind":"reply","msg":"231c5395-02ac-5463-9047-8ec65a767fa2","at":"2026-09-23T10:21:00.000Z"}],"id":"0c0f810a-o1","by":"model","state":"open"},{"kind":"wait","label":"Alex's test on Android","line":"Alex offered to test 1.2 on his Android phone, and you are waiting for his results.","who":"Alex","raised_at":"2026-09-23T10:35:40.000Z","msg":"cd12b641-2bdc-5111-a0d1-9b08022e51bc","evidence":[{"quote":"Alex offered to test 1.2 on his Android phone. Waiting for his results.","kind":"prompt","msg":"cd12b641-2bdc-5111-a0d1-9b08022e51bc","at":"2026-09-23T10:35:40.000Z"}],"id":"0c0f810a-o2","by":"model","state":"open"}],"summary":"Sam sent the storage keys. Let's move the photos to the bucket and get 1.2 out.","through":"318bd440-7e61-5370-b6c5-a94222758db6","last_run":{"at":"2026-10-03T09:00:00Z","nodes":2,"open":2,"closed":2,"flagged":2}},{"schema":"treesight/session@1","id":"0c4f931d-e9a4-580f-989d-08dc086e7f1e","title":"Add photo upload to recipes","custom_title":false,"first_at":"2026-09-14T09:02:10.000Z","last_at":"2026-09-14T12:19:20.000Z","prompts":{"total":12,"substantive":12},"compactions":0,"generated":true,"nodes":[{"kind":"done","label":"Photo upload added","line":"Each recipe page got an Upload photo button, with the photo shown at the top of the recipe and 4 new tests.","score":4,"twigs":["One photo per recipe","4 new upload tests"],"at":"2026-09-14T09:19:45.000Z","msg":"cb955082-2960-5a1d-85fb-06a819120364","evidence":[{"quote":"Photo upload is in. Each recipe page now has an Upload photo button, and the photo shows at the top of the recipe.","kind":"reply","msg":"cb955082-2960-5a1d-85fb-06a819120364","at":"2026-09-14T09:19:45.000Z","twig":0}],"id":"0c4f931d-n1","by":"model"},{"kind":"done","label":"Phone photos upload fine","line":"Photos from your phone failed until two 1 MB limits, the web server's and the app's own, went up to 10 MB.","score":5,"twigs":["Server limit: 10 MB","App limit: 10 MB","Test with a 6 MB photo"],"story":{"minutes":87,"q":"about","basis":"first failed upload to the working one","steps":[{"role":"stuck","text":"Photos from your phone failed with Upload failed; small test images worked.","at":"2026-09-14T09:41:12.000Z","at_q":"exact"},{"role":"response","text":"Raised the web server's limit, then the app's own 1 MB cap, to 10 MB.","at":"2026-09-14T10:52:37.000Z","at_q":"exact"},{"role":"result","text":"A 6 MB photo from your phone uploaded fine.","at":"2026-09-14T11:08:20.000Z","at_q":"exact"}]},"at":"2026-09-14T11:08:20.000Z","msg":"bbced6e4-2076-520f-8de1-dfa6d06478bc","evidence":[{"quote":"Works now. A 6 MB photo from my phone uploaded fine.","kind":"prompt","msg":"bbced6e4-2076-520f-8de1-dfa6d06478bc","at":"2026-09-14T11:08:20.000Z","twig":2},{"quote":"Uploading a photo from my phone fails.","kind":"prompt","msg":"06eccbdd-3142-5708-89e8-7b373be39359","at":"2026-09-14T09:41:12.000Z"},{"quote":"Found a second limit: the app itself also capped uploads at 1 MB.","kind":"reply","msg":"11c8df04-30d2-5624-8e6f-685fae57740f","at":"2026-09-14T10:52:37.000Z","twig":1}],"id":"0c4f931d-n2","by":"model"},{"kind":"found","label":"Phones store photo rotation separately","line":"Phones save the rotation as a separate tag instead of turning the pixels, and the page ignored it, so photos showed sideways.","score":3,"at":"2026-09-14T11:22:48.000Z","msg":"98b53c9d-4a57-5e75-bbe0-95801b2c13d8","evidence":[{"quote":"Phones save the rotation as a separate tag instead of turning the pixels, and the page ignored that tag.","kind":"reply","msg":"98b53c9d-4a57-5e75-bbe0-95801b2c13d8","at":"2026-09-14T11:22:48.000Z"}],"id":"0c4f931d-n3","by":"model"},{"kind":"done","label":"Photos show the right way up","line":"Each photo is now turned the right way up when it is uploaded, and you checked it.","score":3,"at":"2026-09-14T11:30:10.000Z","msg":"9edc827f-4f47-557d-9743-908706e7310d","evidence":[{"quote":"Perfect, it's the right way up now.","kind":"prompt","msg":"9edc827f-4f47-557d-9743-908706e7310d","at":"2026-09-14T11:30:10.000Z"},{"quote":"I now turn each photo the right way up when it is uploaded.","kind":"reply","msg":"98b53c9d-4a57-5e75-bbe0-95801b2c13d8","at":"2026-09-14T11:22:48.000Z"}],"id":"0c4f931d-n4","by":"model"}],"open":[{"kind":"wait","label":"Lena's feedback on the photo layout","line":"Lena is checking the new photo layout on her phone, and the release waits for her feedback.","who":"Lena","rank":2,"raised_at":"2026-09-14T11:52:44.000Z","msg":"7e2ab88a-2025-5232-bff5-83f041fbbe14","evidence":[{"quote":"Lena is checking the new photo layout on her phone. I'll wait for her feedback before the release.","kind":"prompt","msg":"7e2ab88a-2025-5232-bff5-83f041fbbe14","at":"2026-09-14T11:52:44.000Z"}],"id":"0c4f931d-o2","by":"model","state":"confirm"},{"kind":"wait","label":"Shrink photos after the launch","line":"You put off shrinking photos before they are saved until after the launch.","when":"after the launch","raised_at":"2026-09-14T12:01:09.000Z","msg":"4fe14470-9223-50d7-8309-63f544324d97","evidence":[{"quote":"Shrinking photos before saving would be nice, but let's leave that until after the launch.","kind":"prompt","msg":"4fe14470-9223-50d7-8309-63f544324d97","at":"2026-09-14T12:01:09.000Z"}],"id":"0c4f931d-o4","by":"model","state":"open"},{"kind":"todo","label":"Sign up for the meetup demo","line":"You want to demo recipe-box at the web meetup on September 20 and planned to sign up for a slot this week.","due":"2026-09-20","rank":1,"raised_at":"2026-09-14T12:10:33.000Z","msg":"fa5ccbc7-3002-564a-899e-b13f8b75ff2a","evidence":[{"quote":"I want to demo recipe-box at the web meetup on September 20. I'll sign up for a demo slot this week.","kind":"prompt","msg":"fa5ccbc7-3002-564a-899e-b13f8b75ff2a","at":"2026-09-14T12:10:33.000Z"}],"id":"0c4f931d-o5","by":"model","state":"stale"},{"kind":"todo","label":"Delete a recipe's photo with it","line":"Deleting a recipe should also delete its photo; it is not done yet.","rank":5,"raised_at":"2026-09-14T12:18:47.000Z","msg":"6e3c17c2-65dd-5ba1-967a-f4a0419e345e","evidence":[{"quote":"deleting a recipe should delete its photo too.","kind":"prompt","msg":"6e3c17c2-65dd-5ba1-967a-f4a0419e345e","at":"2026-09-14T12:18:47.000Z"},{"quote":"It isn't done yet.","kind":"reply","msg":"3829adda-bb4b-5fbb-8ec7-05355c5c4674","at":"2026-09-14T12:19:20.000Z"}],"id":"0c4f931d-o6","by":"model","state":"open"}],"summary":"You're adding photo upload to recipe-box. Phone photos still fail after the server limit went up to 10 MB; next is finding what else rejects them.","through":"3829adda-bb4b-5fbb-8ec7-05355c5c4674","last_run":{"at":"2026-10-03T09:00:00Z","nodes":4,"open":6,"closed":0,"flagged":0}},{"schema":"treesight/session@1","id":"12517ac7-75a9-5873-9412-61fd418d69bc","title":"Fix the flaky login test","custom_title":false,"first_at":"2026-10-02T12:10:20.000Z","last_at":"2026-10-02T12:20:44.000Z","prompts":{"total":2,"substantive":2},"compactions":0,"generated":false,"nodes":[],"open":[],"summary":"The login test fails about one run in ten. Can you find out why?"}],"today":"2026-10-03T09:00:00Z"}</script>
 <script>
 "use strict";
-const D=JSON.parse(document.getElementById('data').textContent), MAXN=9;
+const D=JSON.parse(document.getElementById('data').textContent), MAXN=9, STAMP=[2,5], RMQ=matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* ---------- words: in the first of the browser's preferred languages that the page has (Chinese or English), else English ---------- */
 const LANGS=(navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language||'']).map(l=>String(l).toLowerCase());
 const ZH=(LANGS.find(l=>/^(zh|en)\b/.test(l))||'en').startsWith('zh');
@@ -152,33 +173,33 @@ const W=ZH?{
   done:'做完',found:'发现',scar:'树疤：中间卡过',session:'会话',back:'整个项目',backAria:'返回整个项目',open:'待完成的事',close:'关闭',
   thisSession:'这个会话',wholeProject:n=>'整个项目 · 已生成的 '+n+' 个会话',today:d=>'今天 '+d,
   foot:d=>'目前只有深色 · 时刻为本地时间 · 数据截至 '+d,count:n=>'待完成 '+n+' 件',overdueN:n=>' · 已过期 '+n,staleN:n=>' · 已失效 '+n,show:' · 显示时间轴 ▸',hide:' · 收起时间轴 ◂',
-  none:'没有待完成的事',cover:(g,m)=>'来自已生成的 '+g+' 个会话'+(m?' · 另有 '+m+' 个还没生成':''),
-  bOverdue:'已过期',bStale:'已失效',bBoth:'已过期或失效',bConfirm:'待你确认',bNoTime:'没定时间',byRaised:'以下按提出先后',stale:'已失效 · 关掉？',lateDays:n=>'过期 '+n+' 天',
-  firstYou:x=>'先要你「'+x+'」',waitingOn:x=>'在等'+(/^[\p{Script=Latin}\p{Nd}]/u.test(x)?' ':'')+x,putOff:'先放着',since:(d,n)=>' · 自 '+d+' · 已过 '+n+' 天',raised:d=>d+' 提出',confirm:'看起来已做完 · 待你确认',
+  none:'没有待完成的事',cover:(g,n)=>g===n?'统计自全部 '+n+' 个会话':'只统计已生成树的 '+g+' 个会话（共 '+n+' 个）',
+  bOverdue:'已过期',bStale:'已失效',bBoth:'已过期或失效',bConfirm:'待你确认',bDue:'有截止日期',bNoTime:'没定时间',byRaised:'以下按提出先后',stale:'已失效 · 关掉？',lateDays:n=>'过期 '+n+' 天',
+  firstYou:x=>'先要你「'+x+'」',waitingOn:x=>'在等'+(/^[\p{Script=Latin}\p{Nd}]/u.test(x)?' ':'')+x,putOff:'先放着',since:(d,n)=>' · 自 '+d+' · 已过 '+n+' 天',raised:d=>d+' 提出',due:(d,n)=>n===0?'今天截止':'截止 '+d+' · 还有 '+n+' 天',confirm:'看起来已做完 · 待你确认',
   from:x=>'来自「'+x+'」',lgTodo:'待办（你来）',lgWait:'等待（在等别人或先放着）',
   stuck:(q,d)=>'卡了'+(q==='at_least'?'至少 ':'约 ')+d,min:n=>n+' 分钟',hr:n=>n+' 小时',day:n=>n+' 天',storyHint:'点开看经过',rows:['卡在','应对','结果'],temp:'临时',
   unknownT:'时刻不详',approx:t=>'约 '+t,before:t=>t+' 前',shelved:'决定不做',merged:n=>'这里合了 '+n+' 件相关的事',overturned:x=>'↺ 推翻了「'+x+'」',overturnedBy:x=>'后来被「'+x+'」推翻',
-  source:'看原文',start:d=>'起点 '+d,projStart:d=>'项目起点 '+d,showAll:n=>'显示全部 '+n+' 个',keyOnly:'只看重点',prompts:n=>n+' 次提问',nodes:n=>n+' 个节点',sessions:n=>n+' 个会话',
-  current:'当前',currentSession:'当前会话',notYet:id=>'这个会话的树还没生成。回 Claude Code 运行 /treesight:treesight '+id+'，再刷新这一页。',span:(a,b)=>a===b?a:a+' 至 '+b,
+  you:'你',recapBy:'自动回顾',compactBy:'压缩摘要',cites:'依据',start:d=>'起点 '+d,projStart:d=>'项目起点 '+d,showAll:n=>'显示全部 '+n+' 个',keyOnly:'只看重点',prompts:n=>n+' 次提问',nodes:n=>n+' 个节点',sessions:n=>n+' 个会话',
+  current:'当前',currentSession:'当前会话',notYetTip:'还没生成树 · 点开看摘要和命令',runHint:'在 Claude Code 里运行这条命令。',copy:'复制',copied:'已复制',selected:'已选中，可以直接复制',unsure:'这次拿不准的地方',span:(a,b)=>a===b?a:a+' 至 '+b,
   sinceLast:(n,o,c,f)=>'上次生成：新增 '+n+' 个节点、'+o+' 件待完成'+(c?'，关掉 '+c+' 件':'')+(f?'，'+f+' 件待你确认':''),
-  pending:(t,m)=>'正在生成「'+t+'」，约 '+m+' 分钟；这一页每 20 秒自动刷新，生成完会换成新结果。',
-  pendingMany:(ts,m)=>'正在生成 '+ts.length+' 个会话：'+ts.map(t=>'「'+t+'」').join('')+'，约 '+m+' 分钟；这一页每 20 秒自动刷新，全部生成完会换成新结果。',
+  pending:(t,m)=>'正在生成会话「'+t+'」的树 · 约 '+m+' 分钟 · 好了会自动更新',
+  pendingMany:(ts,m)=>'正在生成 '+ts.length+' 个会话的树：'+ts.map(t=>'「'+t+'」').join('')+' · 约 '+m+' 分钟 · 好了会自动更新',pause:'点一下暂停或继续动画',
   pendingLate:'生成比预计晚了很多，可能已经中断。可以回 Claude Code 再运行一次 /treesight:treesight；如果它其实还在跑，会告诉你正在生成。',
   gone:'原会话记录已被 Claude Code 清理，这里是账本里保存的内容。'}:{
   done:'Done',found:'Found',scar:'Scar: got stuck along the way',session:'Session',back:'Whole project',backAria:'Back to the whole project',open:'Still open',close:'Close',
   thisSession:'This session',wholeProject:n=>'Whole project · '+n+' session'+(n===1?'':'s')+' with a tree',today:d=>'Today '+d,
   foot:d=>'Dark theme only · Local times · Data as of '+d,count:n=>n+' still open',overdueN:n=>' · '+n+' overdue',staleN:n=>' · '+n+' no longer possible',show:' · Show timeline ▸',hide:' · Hide timeline ◂',
-  none:'Nothing left open',cover:(g,m)=>'From '+g+' session'+(g===1?'':'s')+' with a tree'+(m?' · '+m+' not generated yet':''),
-  bOverdue:'Overdue',bStale:'No longer possible',bBoth:'Overdue or no longer possible',bConfirm:'To confirm',bNoTime:'No time set',byRaised:'Below: in the order raised',stale:'No longer possible · close it?',lateDays:n=>n+' day'+(n===1?'':'s')+' overdue',
-  firstYou:x=>'First you: “'+x+'”',waitingOn:x=>'Waiting on '+x,putOff:'Put off',since:(d,n)=>' · since '+d+' · '+n+' day'+(n===1?'':'s'),raised:d=>'Raised '+d,confirm:'Looks done · confirm?',
+  none:'Nothing left open',cover:(g,n)=>g===n?'From all '+n+' session'+(n===1?'':'s'):'Only the '+g+' session'+(g===1?'':'s')+' with a tree, of '+n,
+  bOverdue:'Overdue',bStale:'No longer possible',bBoth:'Overdue or no longer possible',bConfirm:'To confirm',bDue:'With a due date',bNoTime:'No time set',byRaised:'Below: in the order raised',stale:'No longer possible · close it?',lateDays:n=>n+' day'+(n===1?'':'s')+' overdue',
+  firstYou:x=>'First you: “'+x+'”',waitingOn:x=>'Waiting on '+x,putOff:'Put off',since:(d,n)=>' · since '+d+' · '+n+' day'+(n===1?'':'s'),raised:d=>'Raised '+d,due:(d,n)=>n===0?'Due today':'Due '+d+' · in '+n+' day'+(n===1?'':'s'),confirm:'Looks done · confirm?',
   from:x=>'From “'+x+'”',lgTodo:'To do (you)',lgWait:'Waiting (on others, or put off)',
   stuck:(q,d)=>'Stuck '+(q==='at_least'?'at least ':'about ')+d,min:n=>n+' min',hr:n=>n+' h',day:n=>n+' day'+(n===1?'':'s'),storyHint:'click for the story',rows:['Stuck','Response','Result'],temp:'Temporary',
   unknownT:'time unknown',approx:t=>'about '+t,before:t=>'before '+t,shelved:'Decided not to',merged:n=>n+' related events merged here',overturned:x=>'↺ Overturned “'+x+'”',overturnedBy:x=>'Later overturned by “'+x+'”',
-  source:'Show source',start:d=>'Started '+d,projStart:d=>'Project started '+d,showAll:n=>'Show all '+n,keyOnly:'Key nodes only',prompts:n=>n+' prompt'+(n===1?'':'s'),nodes:n=>n+' node'+(n===1?'':'s'),sessions:n=>n+' session'+(n===1?'':'s'),
-  current:'Current',currentSession:'Current session',notYet:id=>'No tree yet. Run /treesight:treesight '+id+' in Claude Code, then reload this page.',span:(a,b)=>a===b?a:a+' to '+b,
+  you:'You',recapBy:'Recap',compactBy:'Compaction summary',cites:'Sources',start:d=>'Started '+d,projStart:d=>'Project started '+d,showAll:n=>'Show all '+n,keyOnly:'Key nodes only',prompts:n=>n+' prompt'+(n===1?'':'s'),nodes:n=>n+' node'+(n===1?'':'s'),sessions:n=>n+' session'+(n===1?'':'s'),
+  current:'Current',currentSession:'Current session',notYetTip:'No tree yet · click for the summary and the command',runHint:'Run this command in Claude Code.',copy:'Copy',copied:'Copied',selected:'Selected; copy it',unsure:'What this run was unsure about',span:(a,b)=>a===b?a:a+' to '+b,
   sinceLast:(n,o,c,f)=>'Last run: '+n+' new node'+(n===1?'':'s')+', '+o+' open item'+(o===1?'':'s')+(c?', '+c+' closed':'')+(f?', '+f+' to confirm':''),
-  pending:(t,m)=>'Drawing “'+t+'”, about '+m+' min. This page reloads every 20 s and shows the result when it is done.',
-  pendingMany:(ts,m)=>'Drawing '+ts.length+' sessions: '+ts.map(t=>'“'+t+'”').join(', ')+', about '+m+' min. This page reloads every 20 s and shows the result when they are done.',
+  pending:(t,m)=>'Drawing the tree of session “'+t+'” · about '+m+' min · updates itself when done',
+  pendingMany:(ts,m)=>'Drawing the trees of '+ts.length+' sessions: '+ts.map(t=>'“'+t+'”').join(', ')+' · about '+m+' min · updates itself when done',pause:'Click to pause or resume the animation',
   pendingLate:'This is taking much longer than expected and may have stopped. Run /treesight:treesight again in Claude Code; if it is still running, it will say so.',
   gone:'Claude Code has deleted this session’s transcript; this is what the ledger kept.'};
 /* ---------- time: stored as ISO with year, shown in local time ---------- */
@@ -192,6 +213,16 @@ const midnight=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
 const ago=s=>Math.round((midnight(TODAY)-midnight(parse(s)))/864e5);
 /* an item marked no longer possible counts as that, even when its due date has also passed: its row says so too */
 const late=x=>!!x.due&&ago(x.due)>0, stale=x=>x.state==='stale', overdue=x=>late(x)&&!stale(x), dead=x=>stale(x)||late(x);
+/* the drawer's sections come from the data: overdue first, then items to confirm, then items whose due date is still
+   ahead (soonest first), then each `when` label in order of appearance, then items without a time; empty ones are left out */
+const live=x=>!dead(x)&&x.state!=='confirm',ahead=x=>live(x)&&!!x.due;
+const deadName=open=>open.some(overdue)&&open.some(stale)?W.bBoth:open.some(overdue)?W.bOverdue:W.bStale;
+function sections(open){
+  const whens=[...new Set(open.filter(x=>live(x)&&!x.due&&x.when).map(x=>x.when))];
+  return [[deadName(open),x=>dead(x),'late'],[W.bConfirm,x=>!dead(x)&&x.state==='confirm',''],[W.bDue,ahead,'due'],
+    ...whens.map(w=>[w,x=>live(x)&&!x.due&&x.when===w,'']),[W.bNoTime,x=>live(x)&&!x.due&&!x.when,'']]
+    .map(([name,f,cls])=>[name,open.filter(f),cls]).filter(b=>b[1].length)
+    .map(b=>b[2]==='due'?[b[0],b[1].slice().sort((x,y)=>x.due.localeCompare(y.due)),b[2]]:b)}
 /* ---------- data ---------- */
 const S=D.sessions, byId8={};S.forEach(s=>{byId8[s.id.slice(0,8)]=s});
 const CURS=S.find(s=>s.id===D.current&&s.generated)||null;
@@ -218,6 +249,18 @@ function legend(shown){
   if(has(n=>n.story))it($('i','scr'),W.scar)}
 let openSlot=null,nodeEls={},CUR=null,showAll=false,fromP=false;
 function arm(left){const s=document.createElementNS(NS,'svg');s.setAttribute('viewBox','0 0 34 26');s.setAttribute('preserveAspectRatio','none');const p=document.createElementNS(NS,'path');p.setAttribute('d',left?'M34 24 C 22 24, 14 20, 0 9':'M0 24 C 12 24, 20 20, 34 9');p.setAttribute('fill','none');p.setAttribute('stroke-width','3');p.setAttribute('stroke-linecap','round');s.append(p);return s}
+/* a quote's citation: who said it and when; a click opens the quote below it */
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const ctime=s=>{const d=parse(s),y=d.getFullYear()!==TODAY.getFullYear(),hm=pad(d.getHours())+':'+pad(d.getMinutes());
+  return ZH?(y?d.getFullYear()+'年':'')+(d.getMonth()+1)+'月'+d.getDate()+'日 '+hm:d.getDate()+' '+MON[d.getMonth()]+(y?' '+d.getFullYear():'')+' '+hm};
+const who=e=>e.kind==='prompt'?W.you:e.kind==='reply'?'Claude':e.kind==='recap'?W.recapBy:W.compactBy;
+function cite(e){const f=document.createDocumentFragment(),b=$('button','cite',who(e)+(ZH?'，':', ')+ctime(e.at));b.setAttribute('aria-expanded','false');
+  b.onclick=x=>{x.stopPropagation();b.setAttribute('aria-expanded',String(b.getAttribute('aria-expanded')!=='true'))};f.append(b,$('span','cq','\u201c'+e.quote+'\u201d'));return f}
+function citations(ev,twigs){const box=document.createDocumentFragment(),n=(twigs||[]).length;
+  if(n){const tw=$('div','tws');twigs.forEach((x,j)=>{const r=$('div','tw',x);ev.filter(e=>e.twig===j).forEach(e=>r.append(cite(e)));tw.append(r)});box.append(tw)}
+  const free=ev.filter(e=>!(e.twig!=null&&e.twig<n));
+  if(free.length){const r=$('div','srcs',W.cites);free.forEach(e=>r.append(cite(e)));box.append(r)}
+  return box}
 function card(line,extra,up){const c=$('span','card'+(up?' up':''));c.append(document.createTextNode(line||''));(extra||[]).forEach(x=>x&&c.append($('em',null,x)));return c}
 /* story: duration level from minutes (under 1 h, 1 h to 1 day, over 1 day) */
 const lvl=m=>m<60?'h':m<1440?'m':'d';
@@ -243,17 +286,16 @@ function nodeRow(n,i,o={}){
   if(n.overturns&&by[n.overturns])extra.push(W.overturned(by[n.overturns].label));
   if(n.supBy)extra.push(W.overturnedBy(n.supBy.label));
   if(o.hint)extra.push(o.hint);
-  b.append(t,$('span','date',o.date||fdate(n.at)));b.append(card(n.line,extra,!!n.overturns));
+  b.append(t,$('span','date',o.date||fdate(n.at)));b.append(o.tip!=null?card(o.tip):card(n.line,extra,!!n.overturns));
   if(n.supBy&&nodeEls.vis&&nodeEls.vis.has(n.supBy.id))b.classList.add('sup');
   slot.append(b);
-  const more=$('div','more'),ln=$('div','ln');
-  if(n.story)ln.append(storyEl(n.story));else{ln.append(document.createTextNode(n.line||''));extra.forEach(x=>ln.append($('em',null,x)))}
-  more.append(ln);
-  if(n.twigs&&n.twigs.length&&!n.story){const tw=$('div','twigs');n.twigs.forEach(x=>tw.append($('span',null,x)));more.append(tw)}
-  const src=n.evidence&&n.evidence.length?n.evidence.map(e=>e.quote).join('\n\n'):null;
-  if(src){const acts=$('div','acts'),bs=$('button',null,W.source);bs.onclick=e=>{e.stopPropagation();slot.classList.toggle('src-on')};acts.append(bs);more.append(acts,$('div','src',src))}
+  const more=$('div','more');
+  if(o.more)o.more.forEach(x=>more.append(x));else{
+  if(n.story){const st=$('div','ln');st.append(storyEl(n.story));more.append(st)}
+  else{const ln=$('div',extra.length?'ln':'ln dup');ln.append(extra.length?$('span','dup',n.line||''):document.createTextNode(n.line||''));extra.forEach(x=>ln.append($('em',null,x)));more.append(ln)}
+  more.append(citations(n.evidence||[],n.twigs))}
   slot.append(more);
-  if(o.href!=null){b.href='#'+o.href;b.onclick=()=>{fromP=true}}else b.onclick=()=>{if(openSlot&&openSlot!==slot){openSlot.classList.remove('open','src-on');openSlot.querySelector('.node').classList.remove('open')}
+  if(o.href!=null){b.href='#'+o.href;b.onclick=()=>{fromP=true}}else b.onclick=()=>{if(openSlot&&openSlot!==slot){openSlot.classList.remove('open');openSlot.querySelector('.node').classList.remove('open')}
     slot.classList.toggle('open');b.classList.toggle('open');b.setAttribute('aria-expanded',slot.classList.contains('open'));openSlot=slot.classList.contains('open')?slot:null};
   if(o.href==null)b.setAttribute('aria-expanded','false');
   const other=n.overturns||(n.supBy&&n.supBy.id);
@@ -278,30 +320,35 @@ function openDrawer(open){
   const dr=document.getElementById('drawer'),ax=dr.querySelector('.ax');ax.textContent='';
   document.getElementById('dscope').textContent=CUR?W.thisSession:W.wholeProject(S.filter(s=>s.generated).length);
   const els={},byD=(a,b)=>(a.raised_at||'').localeCompare(b.raised_at||'');
-  /* sections come from the data: overdue first, then items to confirm, then each `when` label in order of appearance, then items without a time */
-  const live=x=>!dead(x)&&x.state!=='confirm',whens=[...new Set(open.filter(x=>live(x)&&x.when).map(x=>x.when))];
-  const deadName=open.some(overdue)&&open.some(stale)?W.bBoth:open.some(overdue)?W.bOverdue:W.bStale;
-  const B=[[deadName,x=>dead(x),'late'],[W.bConfirm,x=>!dead(x)&&x.state==='confirm',''],...whens.map(w=>[w,x=>live(x)&&x.when===w,'']),[W.bNoTime,x=>live(x)&&!x.when,'']];
-  const mk=x=>{const it=$('div','oi');it.tabIndex=0;const dd=dead(x);
-    const t=$('span');t.append($('b',null,x.label));const m=$('span','m'+(dd?' late':''));
+  const mk=x=>{const it=$('div','oi');const dd=dead(x);
+    const t=$('span'),tb=$('button','oit');tb.append($('b',null,x.label));t.append(tb);const m=$('span','m'+(dd?' late':''));
     if(x.state==='stale')m.textContent=W.stale;
     else if(late(x))m.textContent=W.lateDays(ago(x.due));
     else if(x.state==='confirm')m.textContent=W.confirm;
     else if(x.blocked_by&&open.some(y=>y.id===x.blocked_by))m.append($('span','w',W.firstYou(open.find(y=>y.id===x.blocked_by).label)));
     else if(x.kind==='wait')m.append($('span','w',x.who?W.waitingOn(x.who):W.putOff),document.createTextNode(W.since(fdate(x.raised_at),ago(x.raised_at))));
-    else m.textContent=W.raised(fdate(x.raised_at));
-    t.append(m);it.append(shape(dd?'late':x.kind==='wait'?'wait':'todo'),t,card(x.line,[!CUR||x.session!==CUR.id?W.from(titleOf(x.session)):'']));els[x.id]=it;return it};
-  B.forEach(([name,f,cls])=>{const xs=open.filter(f);if(!xs.length)return;ax.append($('div','bk '+cls,name));
-    const ranked=xs.filter(x=>x.kind==='todo'&&x.rank!=null).sort((a,b)=>a.rank-b.rank),rest=xs.filter(x=>x.kind==='todo'&&x.rank==null).sort(byD),waits=xs.filter(x=>x.kind==='wait').sort(byD);
+    else if(!ahead(x))m.textContent=W.raised(fdate(x.raised_at));
+    if(ahead(x))m.append(document.createTextNode((m.textContent?' · ':'')+W.due(fdate(x.due),-ago(x.due))));
+    tb.append(m);const from=!CUR||x.session!==CUR.id?W.from(titleOf(x.session)):'';
+    const ex=$('div','oiex'),ln=$('div','ln dup',x.line||'');if(from)ln.append($('em',null,from));ex.append(ln,citations(x.evidence||[]));t.append(ex);
+    tb.setAttribute('aria-expanded','false');
+    tb.onclick=()=>{it.classList.toggle('open');tb.setAttribute('aria-expanded',String(it.classList.contains('open')))};
+    it.append(shape(dd?'late':x.kind==='wait'?'wait':'todo'),t,card(x.line,[from]));els[x.id]=it;return it};
+  sections(open).forEach(([name,xs,cls])=>{ax.append($('div','bk '+cls,name));
+    if(cls==='due'){xs.forEach(x=>ax.append(mk(x)));return}
+    /* ranks are given within one run of one session, so across sessions the newer session's come first; waiting items keep theirs */
+    const rec=x=>(S.find(z=>z.id===x.session)||{}).last_at||'';
+    const ranked=xs.filter(x=>x.rank!=null).sort((a,b)=>rec(b).localeCompare(rec(a))||a.rank-b.rank),rest=xs.filter(x=>x.kind==='todo'&&x.rank==null).sort(byD),waits=xs.filter(x=>x.kind==='wait'&&x.rank==null).sort(byD);
     ranked.forEach(x=>ax.append(mk(x)));if(ranked.length&&rest.length)ax.append($('div','dv',W.byRaised));rest.forEach(x=>ax.append(mk(x)));waits.forEach(x=>ax.append(mk(x)))});
   open.filter(x=>x.blocked_by&&els[x.id]&&els[x.blocked_by]).forEach(x=>{const a=els[x.id],b=els[x.blocked_by],on=()=>{a.classList.add('hl');b.classList.add('hl')},off=()=>{a.classList.remove('hl');b.classList.remove('hl')};
-    [a,b].forEach(e=>{e.addEventListener('mouseenter',on);e.addEventListener('focus',on);e.addEventListener('mouseleave',off);e.addEventListener('blur',off)})});
+    [a,b].forEach(e=>{e.addEventListener('mouseenter',on);e.addEventListener('focusin',on);e.addEventListener('mouseleave',off);e.addEventListener('focusout',off)})});
   /* legend: only the marks this list uses */
   const dl=document.getElementById('dlg');dl.textContent='';const has=f=>open.some(f);
-  [[has(x=>!dead(x)&&x.kind!=='wait'),'todo',W.lgTodo],[has(x=>!dead(x)&&x.kind==='wait'),'wait',W.lgWait],[has(dead),'late',deadName]].forEach(([ok,k,t])=>{if(!ok)return;const s=$('span');s.append(shape(k,13),document.createTextNode(t));dl.append(s)});
+  [[has(x=>!dead(x)&&x.kind!=='wait'),'todo',W.lgTodo],[has(x=>!dead(x)&&x.kind==='wait'),'wait',W.lgWait],[has(dead),'late',deadName(open)]].forEach(([ok,k,t])=>{if(!ok)return;const s=$('span');s.append(shape(k,13),document.createTextNode(t));dl.append(s)});
   dr.classList.add('on');dr.setAttribute('aria-hidden','false');document.getElementById('dclose').focus({preventScroll:true})}
 /* ---------- motion ---------- */
-const RM=matchMedia('(prefers-reduced-motion: reduce)').matches||!!D.pending,SEEN='treesight-grown-'+D.asof;
+/* the build this project's page last grew for: one key per project (keys used to be one per build, and never went away) */
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches||!!D.pending,SEEN='treesight-grown:'+D.project.path;
 const store={get:k=>{try{return localStorage.getItem(k)}catch(_){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(_){}}};
 let growing=[];
 function grow(TOTAL,only){
@@ -309,7 +356,7 @@ function grow(TOTAL,only){
   const ease='cubic-bezier(.2,.7,.2,1)',spring='cubic-bezier(.34,1.56,.64,1)',A=[];
   const c=tr.querySelector('.crown'),t=tr.querySelector('.trunk'),root=tr.querySelector('.root');
   const rows=only||[...tr.querySelectorAll('.rows .row')];
-  t.style.top=(c.offsetTop+c.offsetHeight)+'px';const tb=t.getBoundingClientRect(),oy=Math.min(tb.bottom,innerHeight),span=Math.max(1,oy-tb.top);
+  t.style.top=c?(c.offsetTop+c.offsetHeight)+'px':'0px';const tb=t.getBoundingClientRect(),oy=Math.min(tb.bottom,innerHeight),span=Math.max(1,oy-tb.top);
   const an=(el,kf,o)=>{if(el)A.push(el.animate(kf,Object.assign({fill:'backwards',easing:ease},o)))};
   const frac=r=>{const y=r.getBoundingClientRect().top+13;return Math.min(1,Math.max(0,(oy-y)/span))};
   const left=r=>r.classList.contains('l');
@@ -332,7 +379,10 @@ function run(total,prev){if(RM)return;
 addEventListener('pointerdown',()=>{if(growing.length)settle()},true);
 addEventListener('keydown',()=>{if(growing.length)settle()},true);
 /* ---------- views ---------- */
-function sinceLine(s){const c=s.last_run;return c?$('span','since',W.sinceLast(c.nodes,c.open,c.closed,c.flagged||0)):null}
+function sinceLine(s){const c=s.last_run;if(!c)return null;const l=$('span','since',W.sinceLast(c.nodes,c.open,c.closed,c.flagged||0));if(!c.notes)return l;
+  /* what the run was unsure about: on the page, on request, rather than in the report in the conversation */
+  const box=$('div','since'),b=$('button','unsure',W.unsure+' ▸'),n=$('div','notes',c.notes);n.hidden=true;b.setAttribute('aria-expanded','false');
+  b.onclick=()=>{n.hidden=!n.hidden;b.setAttribute('aria-expanded',String(!n.hidden));b.textContent=W.unsure+(n.hidden?' ▸':' ▾')};box.append(l,' · ',b,n);return box}
 function sessionView(s){
   if(CUR&&s!==CUR)showAll=false;CUR=s;closeDrawer();document.getElementById('back').hidden=false;
   const m=document.getElementById('web');m.textContent='';openSlot=null;nodeEls={};
@@ -354,13 +404,21 @@ function projectView(){
   const m=document.getElementById('web');m.textContent='';openSlot=null;nodeEls={};
   const list=S.slice().sort((a,b)=>b.last_at.localeCompare(a.last_at));
   const w=$('div','where');w.append($('b',null,D.project.path),$('small',null,W.sessions(list.length)));m.append(w);
-  const gen=list.filter(s=>s.generated).length,tr=$('div','tree');tr.append($('div','trunk'),crown(allOpen(),{cover:W.cover(gen,list.length-gen)}));
+  /* open items only once a tree exists: before that, "nothing left open" would be a false zero */
+  const gen=list.filter(s=>s.generated).length,tr=$('div','tree');tr.append($('div','trunk'));if(gen)tr.append(crown(allOpen(),{cover:W.cover(gen,list.length)}));
   const rows=$('div','rows');
   list.forEach((s,i)=>{const z=Math.round(10+Math.sqrt(s.prompts.substantive)*1.5),cur=s===CURS||s.id===D.current;
-    rows.append(nodeRow({id:'p'+i,label:s.title,at:s.last_at,line:s.summary||''},i,{date:fdate(s.last_at)+' · '+W.prompts(s.prompts.substantive),shapeEl:shape(cur?'sesscur':'sess',z),cls:'pn',sr:cur?W.currentSession:'',
-      href:s.generated?(s===HOME?'':'s='+s.id.slice(0,8)):null,hint:cur?W.currentSession:s.generated?(s.gone?W.gone:''):W.notYet(s.id.slice(0,8))}))});
+    const o={date:fdate(s.last_at)+' · '+W.prompts(s.prompts.substantive),shapeEl:shape(cur?'sesscur':'sess',z),cls:'pn',sr:cur?W.currentSession:''};
+    if(s.generated)Object.assign(o,{href:s===HOME?'':'s='+s.id.slice(0,8),hint:cur?W.currentSession:s.gone?W.gone:''});
+    else Object.assign(o,{tip:(cur?W.currentSession+' · ':'')+W.notYetTip,more:[$('div','ln sum',s.summary||''),runCmd('/treesight:treesight '+s.id.slice(0,8))]});
+    rows.append(nodeRow({id:'p'+i,label:s.title,at:s.last_at,line:s.summary||''},i,o))});
   tr.append(rows,rootEl(D.project.first_at?W.projStart(fdate(D.project.first_at)):''));m.append(tr);fixTrunk(tr)}
-function fixTrunk(tr){requestAnimationFrame(()=>{const c=tr.querySelector('.crown'),t=tr.querySelector('.trunk');if(c&&t)t.style.top=(c.offsetTop+c.offsetHeight)+'px'})}
+function fixTrunk(tr){requestAnimationFrame(()=>{const c=tr.querySelector('.crown'),t=tr.querySelector('.trunk');if(t)t.style.top=c?(c.offsetTop+c.offsetHeight)+'px':'0px'})}
+/* the command for a session without a tree, with a copy button; where the clipboard is not allowed, the command is selected instead */
+function runCmd(cmd){const r=$('div','cmd'),c=$('code',null,cmd),b=$('button',null,W.copy);
+  b.onclick=e=>{e.stopPropagation();const sel=()=>{const g=document.createRange();g.selectNodeContents(c);const w=getSelection();w.removeAllRanges();w.addRange(g);b.textContent=W.selected};
+    try{navigator.clipboard.writeText(cmd).then(()=>{b.textContent=W.copied;setTimeout(()=>{b.textContent=W.copy},1500)},sel)}catch(x){sel()}};
+  r.append(c,b);const h=$('div','cmdhint',W.runHint);const box=$('div','run');box.append(r,h);return box}
 (function(){
   document.title='treesight · '+D.project.name;
   const back=document.getElementById('back');back.textContent=W.back;back.setAttribute('aria-label',W.backAria);
@@ -368,9 +426,36 @@ function fixTrunk(tr){requestAnimationFrame(()=>{const c=tr.querySelector('.crow
   const dc=document.getElementById('dclose');dc.textContent='×';dc.setAttribute('aria-label',W.close);
   document.getElementById('foot').textContent=W.foot(ymd(parse(D.asof)));
   if(D.pending){const p=document.getElementById('pending'),P=D.pending,m=Math.max(1,Math.ceil(Math.max(...P.map(x=>x.estimate_s||0))/60));
-    /* a run 20 minutes past its estimate may have stopped; a new /treesight says "busy" only if it is still at work */
-    const late=P.every(x=>Date.now()>parse(x.started_at||D.asof).getTime()+((x.estimate_s||0)+1200)*1000);
-    p.textContent=late?W.pendingLate:P.length===1?W.pending(P[0].title,m):W.pendingMany(P.map(x=>x.title),m);p.hidden=false}
+    /* a run 20 minutes past its estimate may have stopped; a new /treesight says "busy" only if it is still at work.
+       The light running round the line stops then too, so it never moves for a run that has stopped; a click pauses it. */
+    const late=()=>P.every(x=>Date.now()>parse(x.started_at||D.asof).getTime()+((x.estimate_s||0)+1200)*1000);
+    const msg=$('span'),pz=$('button','pz','\u2016');pz.setAttribute('aria-label',W.pause);pz.title=W.pause;pz.setAttribute('aria-pressed','false');
+    pz.onclick=e=>{e.stopPropagation();p.classList.toggle('paused');pz.setAttribute('aria-pressed',String(p.classList.contains('paused')))};
+    const show=()=>{const l=late(),t=l?W.pendingLate:P.length===1?W.pending(P[0].title,m):W.pendingMany(P.map(x=>x.title),m);
+      if(msg.textContent!==t)msg.textContent=t;p.classList.toggle('beam',!l);pz.hidden=l||RMQ};
+    p.append(msg,pz);show();p.hidden=false;p.onclick=()=>pz.click();setInterval(show,30000)}
+  /* the page keeps itself current: every build rewrites the stamp next to it (a one-line script in the same folder), and
+     the page reloads when the stamp names a newer build. A run for another session, or a run that just ended, opens as a
+     fresh page would; any other change keeps the view and where it was scrolled to. It also checks while hidden (the
+     browser slows that down), so most reloads happen out of sight, and at once when shown again. */
+  let kept=false;   /* reloaded in place after a correction: the tree is shown as it was, without growing again */
+  if(D.live){const base=location.href.split(/[?#]/)[0],url=base.replace(/\.html$/,'')+'.stamp.js';let wait=0,fails=0,timer=0;
+    /* kept across reloads of this tab: in sessionStorage, else in window.name */
+    const keep=(k,v)=>{try{if(v===undefined)return JSON.parse(sessionStorage.getItem(k)||'null');sessionStorage.setItem(k,JSON.stringify(v));return v}
+      catch(x){let o={};try{o=JSON.parse(window.name)||{}}catch(y){}if(v===undefined)return o[k]==null?null:o[k];o[k]=v;window.name=JSON.stringify(o);return v}};
+    /* a loop guard: reloading for the same build three times without getting it means the stamp and the page disagree for
+       good (a page that cannot be rewritten, say); then it gives up on that build, and a newer one is tried again.
+       Reloads for builds that keep coming are not limited. */
+    window.__treesight=st=>{if(!st)return;if(st.v===D.version){keep('treesight-wanted',null);return}
+      const w=keep('treesight-wanted')||{},n=w.v===st.v?(w.n||0)+1:1;if(n>3)return;keep('treesight-wanted',{v:st.v,n});
+      if(st.focus&&(st.focus!==D.focus||(D.pending&&!st.pending))){location.replace(base);return}
+      /* anything else keeps the view: written into the address first, since without one the page would open on another session */
+      const here=location.hash||(CUR?'#s='+CUR.id.slice(0,8):'#p');keep('treesight-scroll',[here,scrollY]);history.replaceState(null,'',base+here);location.reload()};
+    const check=()=>{if(wait&&Date.now()-wait<10000)return;wait=Date.now();const sc=document.createElement('script');sc.src=url+'?t='+Date.now();
+      sc.onload=sc.onerror=e=>{wait=0;sc.remove();fails=e.type==='error'?fails+1:0;if(fails===5){clearInterval(timer);timer=setInterval(check,30000)}};document.head.append(sc)};
+    timer=setInterval(check,(D.pending?STAMP[0]:STAMP[1])*1000);
+    const now=()=>{if(!document.hidden)check()};document.addEventListener('visibilitychange',now);document.addEventListener('resume',now);addEventListener('pageshow',now);
+    const sv=keep('treesight-scroll');keep('treesight-scroll',null);if(sv&&sv[0]===location.hash){kept=true;requestAnimationFrame(()=>scrollTo(0,sv[1]))}}
   document.getElementById('dtoday').textContent=W.today(ymd(TODAY));
   dc.onclick=closeDrawer;
   document.getElementById('drawer').addEventListener('click',e=>e.stopPropagation());
@@ -383,9 +468,11 @@ function fixTrunk(tr){requestAnimationFrame(()=>{const c=tr.querySelector('.crow
   window.addEventListener('hashchange',()=>{settle();route();run(600)});
   const h=route();
   if(h.has('t')){growing=grow(1000);const r=growing.rate||1;growing.forEach(a=>{a.pause();a.currentTime=+h.get('t')*r})}   /* stills for screenshots */
-  else{const first=!store.get(SEEN);run(first?1000:600);store.set(SEEN,'1')}
+  else if(!kept){const first=store.get(SEEN)!==D.asof;run(first?1000:600);store.set(SEEN,D.asof)}
+  try{for(let i=localStorage.length;i--;){const k=localStorage.key(i);if(k&&k.startsWith('treesight-grown-'))localStorage.removeItem(k)}}catch(_){}   /* the old keys */
   if(h.get('drawer')){const r=document.querySelector('.todo');if(r)r.click()}
   if(h.get('expand')){const n=nodeEls[h.get('expand')];if(n)n.click()}
+  if(h.get('poke'))document.querySelectorAll('.cite,.oit,.unsure,.cmd button,.pz').forEach(x=>x.click());   /* dev/check_page.py: each of these handlers runs once */
 })();
 </script>
 </body></html>

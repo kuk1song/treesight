@@ -20,7 +20,8 @@
      "quote": "Photo upload is in. Each recipe page now has an Upload photo button, and the photo shows at the top of the recipe.",
      "kind": "reply",
      "msg": "cb955082-2960-5a1d-85fb-06a819120364",
-     "at": "2026-09-14T09:19:45.000Z"
+     "at": "2026-09-14T09:19:45.000Z",
+     "twig": 0
     }
    ]
   },
@@ -73,13 +74,15 @@
      "quote": "Found a second limit: the app itself also capped uploads at 1 MB.",
      "kind": "reply",
      "msg": "11c8df04-30d2-5624-8e6f-685fae57740f",
-     "at": "2026-09-14T10:52:37.000Z"
+     "at": "2026-09-14T10:52:37.000Z",
+     "twig": 1
     },
     {
      "quote": "Works now. A 6 MB photo from my phone uploaded fine.",
      "kind": "prompt",
      "msg": "bbced6e4-2076-520f-8de1-dfa6d06478bc",
-     "at": "2026-09-14T11:08:20.000Z"
+     "at": "2026-09-14T11:08:20.000Z",
+     "twig": 2
     }
    ]
   },
