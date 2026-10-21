@@ -37,6 +37,10 @@ try {
   // a page with no view in its address (as the browser first opens it) keeps showing the same session after a correction
   ts('edit', 'hide', 'lightning', 'talk', 'proposal'); ts('build');
   await until({hash: '#s=0a182a7b', focus: ''}, 'a correction keeps the session the page showed');
-} finally { proc.kill(); fs.rmSync(T, {recursive: true, force: true}) }
+} finally {
+  // the browser writes to its profile while it shuts down (on Linux, removing the folder at once failed with ENOTEMPTY)
+  const gone = new Promise(r => { proc.once('exit', r); setTimeout(r, 5000) }); proc.kill(); if (proc.exitCode === null) await gone;
+  fs.rmSync(T, {recursive: true, force: true, maxRetries: 10, retryDelay: 200})
+}
 console.log(fail.length ? fail.join('\n') : 'ok: the open page followed corrections, a run starting and a run ending');
 process.exit(fail.length ? 1 : 0);
