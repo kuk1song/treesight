@@ -158,7 +158,7 @@ class Transcript(unittest.TestCase):
         s = transcript.scrub
         self.assertEqual(s("ip 192.0.2.20 and v2.1.288"), "ip x.x.x.x and v2.1.288")   # documentation addresses (RFC 5737, RFC 2606)
         self.assertEqual(s("mail a.b@example.com now"), "mail [email] now")
-        self.assertEqual(s("key sk-ant-api03-abcdefghijklmnopqrstuvwxyz"), "key [secret]")
+        self.assertEqual(s("key " + "sk-" + "ant-" + "api03-" + "abcdefghij" * 3), "key [secret]")
         self.assertEqual(s("api_key=abcd1234efgh5678"), "[secret]")
         self.assertEqual(s("secret detection and token budgets"), "secret detection and token budgets")
         self.assertEqual(s("vless://abc@host:443?x=y"), "[secret]")
@@ -170,10 +170,77 @@ class Transcript(unittest.TestCase):
             self.assertEqual(s(text), want, text)
         # provider formats, built at run time so that no file in the repository holds a string shaped like a real key
         for token in ("sk_" + "live_" + "a1" * 12, "rk_" + "test_" + "b2" * 12, "glpat-" + "c3" * 10, "npm_" + "d4" * 18,
-                      "hf_" + "e5" * 16, "ya29." + "f6" * 12):
+                      "hf_" + "e5" * 16, "ya29." + "f6" * 12, "gsk_" + "a7" * 24, "SG." + "b8" * 11 + "." + "c9" * 21,
+                      "1234567890:" + "AA" + "d1" * 16 + "e", "1234567890:" + "AA" + "d1" * 16 + "-",
+                      "M" + "a1" * 12 + "." + "b2c3d4" + "." + "e5" * 14, "O" + "a1" * 12 + "." + "b2c3d4" + "." + "e5" * 14,
+                      "GOCSPX-" + "f7" * 14, "whsec_" + "g8" * 16, "xapp-1-" + "A0B1C2" * 4, "shpat_" + "ab12" * 8,
+                      "https://hooks." + "slack.com/services/" + "T0A1/B2C3/" + "d4e5" * 6,
+                      "https://discord" + ".com/api/webhooks/" + "1234567890/" + "h9" * 30,
+                      "AccountKey=" + "i0J1" * 11 + "==", "--password " + "hunter2x", "--api-key " + "k1" * 10):
             self.assertEqual(s("token " + token + " end"), "token [secret] end", token)
+        # names ending in _key with a key-like value and all-digit passwords; ordinary settings, interface text and paths stay
+        for text, want in (("OPENAI_KEY=" + "ab12" * 5, "[secret]"), ("export ACCESS_KEY=" + "cd34" * 5, "export [secret]"),
+                           ("DB_PASSWORD=" + "1234" * 3, "[secret]"), ("sort_key=created_at", "sort_key=created_at"),
+                           ("primary_key: id", "primary_key: id"), ("MAX_KEY_LEN=12", "MAX_KEY_LEN=12"),
+                           ("the time is 12:30 now", "the time is 12:30 now"),
+                           ('"forgot_password": "Forgot your password?"', '"forgot_password": "Forgot your password?"'),
+                           ("password_changed_at: 1729500000", "password_changed_at: 1729500000"),
+                           ("secret_version = 20241021", "secret_version = 20241021"),
+                           ('routing_key = "orders.created.v1"', 'routing_key = "orders.created.v1"'),
+                           ("ssh_key=/Users/me/.ssh/id_ed25519", "ssh_key=/Users/me/.ssh/id_ed25519"),
+                           ("s3_key=uploads2026abcdefgh/photo.jpg", "s3_key=uploads2026abcdefgh/photo.jpg"),
+                           ('cache_key = "user_profile_12345.json"', 'cache_key = "user_profile_12345.json"'),
+                           ("DB_PASSWORD=ab<cd" + "efgh1234", "[secret]"), ('"password": "Tr0ub<dor&3xyz"', '"[secret]"'),
+                           ("mail a@b.co" + "x.y+z@example.org", "mail [email][email]"),
+                           ("SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET=" + "Abc123" * 3, "[secret]"),
+                           ("--token-file ~/.config/app/tok", "--token-file ~/.config/app/tok"),
+                           ("ModelSerializerFactoryImpl.create.serializeWithCustomOptionsForAll",
+                            "ModelSerializerFactoryImpl.create.serializeWithCustomOptionsForAll")):
+            self.assertEqual(s(text), want, text)
         self.assertEqual(s("Authorization: Basic " + "dXNlcjpwYXNz" * 2), "[secret]")
         self.assertEqual(s("npm_modules and hf_hub are names, not keys"), "npm_modules and hf_hub are names, not keys")
+
+    def test_scrubbing_takes_linear_time(self):
+        """Long runs without spaces (minified code, base64, dotted names) took seconds to minutes: the email, URL,
+        Discord and token-name patterns each tried every start in the run and scanned to its end."""
+        import time
+        for text in ("Na-" * 20000, "a." * 30000, "password" * 7500, "x" * 60000 + "@"):
+            t0 = time.time()
+            transcript.scrub(text)
+            self.assertLess(time.time() - t0, 2, text[:12])     # about 0.1 s each; 5 to 17 s before
+
+    def test_secrets_are_masked_before_anything_is_cut(self):
+        """A private key cut in half (pasted text keeps 400 characters, a session line 120) no longer matched the
+        pattern, which needs its END line, so its first lines reached the digest and the page."""
+        pem = "PRIVATE " + "KEY-----"         # built at run time, so secret scanners see no key header in the file
+        key = "-----BEGIN " + pem + "\n" + "\n".join(["MIIEvQIBADAN" + "Bg" * 26] * 12) + "\n-----END " + pem
+        path, ids = write_transcript([("<pasted_content>" + key + "</pasted_content> is this right?", ["Do not paste keys."])])
+        try:
+            meta, entries = transcript.read_session(path)
+            self.assertNotIn("BEGIN", transcript.digest(path))
+            self.assertNotIn("BEGIN", transcript.session_line(meta, entries))
+            self.assertIn("[secret]", transcript.session_line(meta, entries))
+        finally:
+            os.unlink(path)
+        summary = {"k": "C", "at": "2026-09-14T09:00:00.000Z", "msg": ids[0], "text": "1. Primary Request:\n" + "x" * 7900 + "\n" + key}
+        self.assertNotIn("BEGIN", transcript._block(summary))       # a compaction summary cut at 8,000 characters
+        # a value at the very end of a paste must not swallow the closing tag and, with it, what the user typed after it
+        prompt = ("<pasted_content>" + "line of config\n" * 60 + "API_KEY=" + "abcd1234" * 2 + "</pasted_content>\nwhy does it fail?\n"
+                  "<pasted_content>" + "log line\n" * 10 + "</pasted_content>")
+        block = transcript._block({"k": "P", "at": "2026-09-14T09:00:00.000Z", "msg": ids[0], "text": prompt})
+        self.assertIn("why does it fail?", block)
+        self.assertEqual(block.count("[/pasted]"), 2)
+
+    def test_a_session_line_skips_pasted_output(self):
+        """A first prompt that is another session's output pasted in (it starts with Claude Code's reply marker) said
+        nothing about this session, and filled the project page's card with someone else's words."""
+        path, _ = write_transcript([("\u23fa Done: the docs and the code agree again, nine fixes today.", ["Noted."]),
+                                    ("Now add photo upload to recipes", ["On it."])])
+        try:
+            meta, entries = transcript.read_session(path)
+            self.assertEqual(transcript.session_line(meta, entries), "Now add photo upload to recipes")
+        finally:
+            os.unlink(path)
 
     def test_compaction_keeps_pending_tasks(self):
         long = "x " * 3000

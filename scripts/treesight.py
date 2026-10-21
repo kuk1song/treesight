@@ -4,7 +4,7 @@
   prepare  find the session, write the digest of its next pass after what the ledger already holds, print JSON
   show     print the extraction guide (instructions and schemas) or one part of the digest, for the model to read
   apply    check the extraction the model wrote and append it to the ledger
-  build    build the project page (and open it)
+  build    build the project page (and ask the browser to open it, once per conversation)
   edit     the user's own change to an item or node: close, reopen, hide, set
   list     sessions of the project, and whether each has a tree
 
@@ -34,7 +34,8 @@ import transcript  # noqa: E402
 GUIDE = [os.path.join(HERE, "..", "skills", "treesight", "extract.md"),
          os.path.join(HERE, "..", "schema", "common.schema.json"),
          os.path.join(HERE, "..", "schema", "extract.schema.json")]
-PART_CHARS = 20000     # one part of `show`: well under the about 30,000 characters a Bash result shows inline
+PART_BYTES = 24000     # one part of `show`, in UTF-8 bytes: Claude Code shows a Bash result inline only up to about
+                       # 30,000 bytes (2026-10-21: 25,000 bytes of Chinese shown inline, 33,000 saved to a file instead)
 MAX_PASSES = 2         # passes in one run, so the model's context stays bounded; the next run goes on
 JOB_GRACE_S = 20 * 60  # a run counts as stopped once it is this far past its estimate and has not touched its mark for as long
 
@@ -50,37 +51,45 @@ def projects_root():
     return os.path.join(os.path.expanduser(base), "projects")
 
 
-def _by_id(prefix):
-    if not re.fullmatch(r"[0-9a-f-]{4,36}", prefix or ""):
+def _by_id(prefix, folder=None):
+    """Transcripts whose id starts with the prefix: in the folder given, else in every project, but there only for 8
+    characters or more, so a number in a title (8080, 2026) is not taken for a session of another project."""
+    if not re.fullmatch(r"[0-9a-f-]{4,36}", prefix or "") or (folder is None and len(prefix) < 8):
         return []
-    return glob.glob(os.path.join(projects_root(), "*", prefix + "*.jsonl"))
+    return glob.glob(os.path.join(folder or os.path.join(projects_root(), "*"), prefix + "*.jsonl"))
+
+
+def matching(words, items, text):
+    """The items whose text holds the words: as one phrase if any does, else each word anywhere, in any order."""
+    words = words.lower().split()
+    flat = [" ".join((text(x) or "").lower().split()) for x in items]
+    hits = [x for x, t in zip(items, flat) if " ".join(words) in t]
+    return hits or [x for x, t in zip(items, flat) if all(w in t for w in words)]
 
 
 def find_session(name, current=None):
-    """Return the transcript path of the named session; words from a title are matched within the current project."""
+    """Return the transcript path of the named session: an id or id prefix, or words from a title of the current
+    project (as one phrase, or each word anywhere)."""
     name = (name or "").strip()
+    here = _by_id(current) if current else []
     if not name:
         if not current:
             raise Problem("no session named and no current session id")
-        hits = _by_id(current)
-        if not hits:
+        if not here:
             raise Problem("the current session %s has no transcript on disk yet" % current)
-        return hits[0]
+        return here[0]
     if name.endswith(".jsonl") and os.path.exists(os.path.expanduser(name)):
         return os.path.abspath(os.path.expanduser(name))
-    hits = _by_id(name.lower())
-    if not hits:
-        here = _by_id(current) if current else []
-        folder = os.path.dirname(here[0]) if here else None
-        if folder:
-            words = name.lower()
-            for p in sorted(glob.glob(os.path.join(folder, "*.jsonl"))):
-                meta, _ = transcript.read_session(p)
-                if meta["title"] and words in meta["title"].lower():
-                    hits.append(p)
+    folder = os.path.dirname(here[0]) if here else None
+    hits = (_by_id(name.lower(), folder) if folder else []) or _by_id(name.lower())
+    titled = {}
+    if not hits and folder:
+        for p in sorted(glob.glob(os.path.join(folder, "*.jsonl"))):
+            titled[p] = transcript.read_session(p)[0]["title"] or ""     # matched as written; scrubbed only when shown
+        hits = matching(name, list(titled), titled.get)
     if len(hits) != 1:
-        raise Problem("%s session matches %r%s" % ("no" if not hits else "more than one", name,
-                      "" if not hits else ": " + ", ".join(os.path.basename(h)[:8] for h in hits[:5])))
+        named = [os.path.basename(h)[:8] + (" \u201c%s\u201d" % transcript.scrub(titled[h]) if titled.get(h) else "") for h in hits[:5]]
+        raise Problem("%s session matches %r%s" % ("no" if not hits else "more than one", name, ": " + ", ".join(named) if hits else ""))
     return hits[0]
 
 
@@ -117,7 +126,7 @@ def _alive(job):
     return now - job.get("touched", 0) < JOB_GRACE_S or now < job.get("started", 0) + job.get("estimate_s", 0) + JOB_GRACE_S
 
 
-def _load_job(path):
+def _load_json(path):
     try:
         with open(path, encoding="utf-8") as f:
             return json.load(f)
@@ -126,7 +135,7 @@ def _load_job(path):
 
 
 def read_job(cache, key, sid):
-    job = _load_job(_job_path(cache, key, sid))
+    job = _load_json(_job_path(cache, key, sid))
     return job if job and _alive(job) else None
 
 
@@ -147,7 +156,7 @@ def touch_job(cache, key, sid):
 def live_jobs(cache, key):
     out = []
     for p in sorted(glob.glob(os.path.join(cache, "jobs", key, "*.json"))):
-        job = _load_job(p)
+        job = _load_json(p)
         if job and _alive(job):
             out.append({k: job[k] for k in ("session", "title", "estimate_s", "started_at") if k in job})
     return out
@@ -160,11 +169,9 @@ def _now_iso():
 # ---------- the steps ----------
 def session_meta(meta, entries):
     """What the ledger keeps about a session so the page can still show it after its transcript is gone."""
-    first = next((e["text"] for e in entries if e["k"] == "P"), "")
-    line = meta["summary"] or transcript._short_paste(first, 120)
     out = {k: meta[k] for k in ("custom_title", "first_at", "last_at", "prompts", "compactions", "cwd")}
     out["title"] = transcript.scrub(meta["title"]) if meta["title"] else None
-    out["summary"] = transcript.scrub(re.sub(r"\s+", " ", line or "").strip())[:600] or None
+    out["summary"] = re.sub(r"\s+", " ", transcript.session_line(meta, entries)).strip()[:600] or None
     return out
 
 
@@ -175,6 +182,8 @@ def estimate_s(digest_chars):
 
 
 def prepare(a):
+    if re.search(r"(?:^|\s)--restart$", a.session.strip()):      # the flag left among the session words
+        a.session, a.restart = a.session.strip()[:-len("--restart")].strip(), True
     path = find_session(a.session, a.current)
     key = ledger.project_key(path)
     meta, entries = transcript.read_session(path)
@@ -182,8 +191,11 @@ def prepare(a):
     out = {"session": meta["id"], "title": transcript.scrub(meta["title"] or ""), "transcript": path, "project": key}
     with ledger.project_lock(key):
         job = read_job(cache, key, meta["id"])
+        if job and a.restart and not a.go_on:
+            job = None          # the user stopped that run; if it was still going, the ledger takes only the first to apply
         if job and not a.go_on:
-            out.update(busy=True, started_at=job.get("started_at"))
+            free = max(job.get("touched", 0), job.get("started", 0) + job.get("estimate_s", 0)) + JOB_GRACE_S
+            out.update(busy=True, started_at=job.get("started_at"), free_in_min=max(1, int((free - time.time()) // 60) + 1))
             return out
         if not job:
             _remove(_job_path(cache, key, meta["id"]))     # the mark of a run that stopped
@@ -213,23 +225,30 @@ def prepare(a):
     return out
 
 
-def split_parts(text, size=PART_CHARS):
-    """The digest in parts of at most `size` characters, broken before an entry where possible, else at a line."""
-    parts, cur = [], ""
+def _bytes(text):
+    return len(text.encode("utf-8"))
+
+
+def split_parts(text, size=PART_BYTES):
+    """The digest in parts of at most `size` UTF-8 bytes, broken before an entry where possible, else at a line."""
+    parts, cur, cur_b = [], "", 0
     pieces = re.split(r"(?m)^(?=\[(?:prompt|reply|recap|compact) \S+ [0-9a-f-]{36}\]$)", text)
     for piece in pieces:
-        while len(piece) > size:          # one entry longer than a part: break it at lines, or hard if one line is
+        while _bytes(piece) > size:       # one entry longer than a part: break it at lines, or hard if one line is
             if cur:
                 parts.append(cur)
-                cur = ""
-            cut = piece.rfind("\n", 0, size)
-            cut = cut + 1 if cut > size // 2 else size
+                cur, cur_b = "", 0
+            fit = len(piece.encode("utf-8")[:size].decode("utf-8", "ignore"))    # characters that fit in `size` bytes
+            cut = piece.rfind("\n", 0, fit)
+            cut = cut + 1 if cut > fit // 2 else fit
             parts.append(piece[:cut])
             piece = piece[cut:]
-        if len(cur) + len(piece) > size and cur:
+        b = _bytes(piece)
+        if cur_b + b > size and cur:
             parts.append(cur)
-            cur = ""
+            cur, cur_b = "", 0
         cur += piece
+        cur_b += b
     if cur or not parts:
         parts.append(cur)
     return parts
@@ -277,14 +296,13 @@ def apply(a):
     with open(dig, encoding="utf-8") as f:
         text = f.read()
     cache = cache_dir(a.cache)
-    probs, summary = ledger.apply(data, text, key, model=a.model, meta=session_meta(meta, entries))
-    job = touch_job(cache, key, meta["id"])
+    job = touch_job(cache, key, meta["id"]) or {}
+    probs, summary = ledger.apply(data, text, key, model=a.model, meta=session_meta(meta, entries), pass_number=job.get("pass", 1))
     if probs:
         return {"ok": False, "problems": probs}
     _remove(dig, ext)
     left = len(transcript.entries_after(path, entries, data["through"]))
     # go on only for entries the run found and could not fit; what the user wrote since waits for the next run
-    job = job or {}
     return {"ok": True, **summary, "entries_left": left,
             "go_on": bool(left) and job.get("more", True) and job.get("pass", 1) < MAX_PASSES}
 
@@ -304,9 +322,32 @@ def do_build(a):
             _remove(_job_path(cache, key, sid), *work_paths(key, sid))
         res = build.write_page(folder, out, current, pending=live_jobs(cache, key) or None, focus=sid)
     if a.open:
-        build.open_page(res)
+        open_once(cache, key, a.current, res)
     print(json.dumps(res, ensure_ascii=False))
     return None
+
+
+OPEN_KEEP_S = 3 * 3600    # a conversation that has not updated its page for this long gets it opened again (resumed later)
+
+
+def open_once(cache, key, current, res):
+    """Ask the browser to show the page once per conversation. Later runs and corrections in the same conversation do
+    not open another tab: the page already open reads its stamp and reloads itself (build.stamp_path). A conversation
+    resumed after a pause of three hours or more gets the page opened again, since its tab is likely gone."""
+    path = os.path.join(cache, "opened", key + ".json")
+    seen = _load_json(path)
+    seen = seen if isinstance(seen, dict) else {}
+    now = time.time()
+    if current and now - seen.get(current, 0) < OPEN_KEEP_S:
+        res.update(browser_asked=False, open_page_updates=True)
+    else:
+        build.open_page(res)
+    if current and (res.get("browser_asked") or res.get("open_page_updates")):
+        seen[current] = now
+        keep = dict(sorted(seen.items(), key=lambda kv: kv[1])[-50:])
+        ledger.private_dir(os.path.dirname(path))
+        ledger.write_private(path, json.dumps(keep))
+    return res
 
 
 _POOLS = {"close": ("open",), "reopen": ("closed", "unsure"), "hide": ("open", "nodes"), "set": ("open", "nodes")}
@@ -318,14 +359,14 @@ def _resolve_target(key, action, target):
               "unsure": [o for o in state["open"] if o["state"] in ("confirm", "stale")]}
     if target in {x["id"] for g in groups.values() for x in g}:
         return target
-    words = target.lower()
-    hits = [x["id"] for g in _POOLS[action] for x in groups[g] if words in x["label"].lower()]
+    pool = [x for g in _POOLS[action] for x in groups[g]]
+    hits = list({x["id"]: x for x in matching(target, pool, lambda x: x["label"])}.values())
     if len(hits) != 1:
         kinds = " or ".join({"open": "open items", "closed": "closed items", "nodes": "nodes", "unsure": "items to confirm"}[g]
                             for g in _POOLS[action])
-        raise Problem("%s of the %s matches %r%s" % ("none" if not hits else "more than one", kinds, target,
-                                                     "" if not hits else ": " + ", ".join(hits[:5])))
-    return hits[0]
+        raise Problem("%s of the %s matches %r%s" % ("none" if not hits else "more than one", kinds, target, "" if not hits else
+                      "; use more of the words: " + ", ".join("\u201c%s\u201d" % x["label"] for x in hits[:5])))
+    return hits[0]["id"]
 
 
 def edit(a):
@@ -342,6 +383,8 @@ def edit(a):
             if not re.fullmatch(r"-?\d+", fields[k]):
                 raise Problem("%s must be a whole number, not %r" % (k, fields[k]))
             fields[k] = int(fields[k])
+    if fields.get("blocked_by"):        # the item that has to happen first, by id or by words from its label
+        fields["blocked_by"] = _resolve_target(key, "close", fields["blocked_by"])
     return ledger.edit(key, a.action, _resolve_target(key, a.action, " ".join(a.target)), fields)
 
 
@@ -357,8 +400,13 @@ def list_sessions(a):
     return sorted(rows, key=lambda r: r["last_at"], reverse=True)
 
 
+class _Parser(argparse.ArgumentParser):
+    def error(self, message):       # a wrong argument also answers {"ok": false}, which the skill reads, not a usage text
+        raise Problem(message)
+
+
 def main(argv=None):
-    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap = _Parser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     cmds = {}
     for name in ("prepare", "show", "apply", "build", "edit", "list"):
@@ -369,6 +417,8 @@ def main(argv=None):
         cmds[name] = p
     cmds["prepare"].add_argument("--max-chars", type=int, default=int(os.environ.get("TREESIGHT_PASS_CHARS") or transcript.PASS_CHARS))
     cmds["prepare"].add_argument("--continue", dest="go_on", action="store_true", help="the next pass of the run that is going on")
+    cmds["prepare"].add_argument("--restart", action="store_true", help="start although a run of this session seems to be going on "
+                                 "(one the user stopped); a run that is in fact still going cannot record the same entries twice")
     cmds["show"].add_argument("what", choices=["guide", "digest"])
     cmds["show"].add_argument("--part", type=int, default=1)
     cmds["apply"].add_argument("--model")
@@ -377,9 +427,9 @@ def main(argv=None):
     cmds["edit"].add_argument("action", choices=["close", "reopen", "hide", "set"])
     cmds["edit"].add_argument("target", nargs="+", help="an id, or words from the item's label")
     cmds["edit"].add_argument("--field", dest="fields", action="append", default=[], help="FIELD=VALUE, for set; repeat")
-    a = ap.parse_args(argv)
     t0 = time.time()
     try:
+        a = ap.parse_args(argv)
         res = {"prepare": prepare, "show": show, "apply": apply, "build": do_build, "edit": edit, "list": list_sessions}[a.cmd](a)
     except (Problem, ValueError, OSError) as e:     # the skill reads {"ok": false} rather than a traceback
         print(json.dumps({"ok": False, "error": str(e)}, ensure_ascii=False))

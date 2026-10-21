@@ -4,7 +4,8 @@ open items from the ledger, drawn by templates/page.html. Needs no model and mak
 
 The data goes into a non-executing JSON block with <, > and & escaped, so a transcript that contains
 </script> cannot end it early, and the page carries a Content Security Policy that allows only its own
-script (by hash) and no network access. Text from transcripts is scrubbed again here: on the user's own
+script (by hash) and no network access; a page built for the user's own machine also lets that script load the
+one-line stamp next to it (see render). Text from transcripts is scrubbed again here: on the user's own
 machine secrets, IPv4 addresses and emails are masked; with --public the build also fails if any remain.
 
 Sessions come from the transcripts on disk and from the ledger: a session whose transcript Claude Code has
@@ -21,6 +22,7 @@ import glob
 import hashlib
 import json
 import os
+import pathlib
 import re
 import subprocess
 import sys
@@ -33,7 +35,7 @@ import transcript  # noqa: E402
 from schema import Validator  # noqa: E402
 
 TEMPLATE = os.path.normpath(os.path.join(HERE, "..", "templates", "page.html"))
-REFRESH_S = 20
+STAMP_S = (2, 5)    # how often an open page reads its stamp: every 2 s while a run is going on, else every 5 s
 
 
 def _scrub_all(x):
@@ -58,8 +60,7 @@ def sessions_in(folder):
         meta, entries = transcript.read_session(path)
         if not meta["id"] or not meta["prompts"]["total"]:
             continue
-        first = next((e["text"] for e in entries if e["k"] == "P"), "")
-        meta["line"] = meta["summary"] or transcript._short_paste(first, 120)
+        meta["line"] = transcript.session_line(meta, entries)
         out.append(meta)
     return out
 
@@ -87,8 +88,7 @@ def page_data(folder, current=None, now=None, pending=None, focus=None):
             continue
         if sid in files:     # on disk but without a prompt now, such as a session where /treesight was the only one
             meta, entries = transcript.read_session(files[sid])
-            first = next((e["text"] for e in entries if e["k"] == "P"), "")
-            meta["line"] = meta["summary"] or transcript._short_paste(first, 120)
+            meta["line"] = transcript.session_line(meta, entries)
             metas.append(meta)
         else:
             metas.append(_kept_meta(sid, led, state))
@@ -109,6 +109,9 @@ def page_data(folder, current=None, now=None, pending=None, focus=None):
             doc["nodes"] = led["nodes"]
             lr = led["last_run"]
             doc["last_run"] = {k: lr[k] for k in ("at", "nodes", "open", "closed", "flagged")}
+            notes = transcript.scrub((lr.get("notes") or "").strip())     # scrubbed before it is cut, like the summary
+            if notes:       # line breaks kept: the page shows the notes as written
+                doc["last_run"]["notes"] = notes if len(notes) <= 2000 else notes[:1999] + "\u2026"
         doc["open"] = [{k: v2 for k, v2 in o.items() if k != "session"} for o in state["open"] if o.get("session") == m["id"]]
         doc = _scrub_all(doc)
         errs = v.validate(doc, "session.schema.json")
@@ -140,14 +143,26 @@ def render(data, template=TEMPLATE):
     if len(script) != 1:
         raise ValueError("the template must have exactly one executable <script> block")
     digest = base64.b64encode(hashlib.sha256(script[0].encode("utf-8")).digest()).decode()
-    html = html.replace("__SCRIPT_HASH__", "sha256-" + digest, 1)
-    if data.get("pending"):   # reload until the finished page, which has no refresh, replaces this one
-        html = html.replace('<meta name="referrer"', '<meta http-equiv="refresh" content="%d">\n<meta name="referrer"' % REFRESH_S, 1)
+    # a page on the user's machine also loads its stamp (see write_page): 'strict-dynamic' lets the hashed script insert
+    # it and nothing else ('self' would match every local file in Chrome and Safari, and none in Firefox); published
+    # pages load nothing but their own script
+    html = html.replace("'__SCRIPT_HASH__'", "'sha256-%s'%s" % (digest, " 'strict-dynamic'" if data.get("live") else ""), 1)
     return html
 
 
+def stamp_path(page):
+    """The stamp next to a page: one line of script that names the page's build, so an open page sees a newer one."""
+    return re.sub(r"\.html$", "", page) + ".stamp.js"
+
+
+def stamp_text(data):
+    return "window.__treesight&&__treesight(%s);\n" % json.dumps(
+        {"v": data["version"], "focus": data.get("focus"), "pending": bool(data.get("pending"))}, separators=(",", ":"))
+
+
 _IP = re.compile(r"(?<![\d.])\d{1,3}(?:\.\d{1,3}){3}(?![\d.]*\d)")
-_MAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[A-Za-z]{2,}")
+# starting only where a run of address characters starts: the same matches, in linear time on a long run without @
+_MAIL = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[A-Za-z]{2,}")
 
 
 def assert_public(html):
@@ -162,6 +177,9 @@ def write_page(folder, out=None, current=None, now=None, pending=None, focus=Non
     """Build the page and write it; returns what the build prints. A caller that builds while other runs may append
     to the ledger holds the project lock around this (treesight.py does), so an older state cannot replace a newer page."""
     data = page_data(folder, current, now, pending, focus)
+    if not public:      # it keeps itself current: it reads its stamp and reloads when the stamp names a newer build
+        data["live"] = True
+        data["version"] = hashlib.sha256(json.dumps(data, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()[:16]
     html = render(data)
     if public:
         assert_public(html)
@@ -172,8 +190,10 @@ def write_page(folder, out=None, current=None, now=None, pending=None, focus=Non
             f.write(html)
     else:
         ledger.write_private(out, html)     # in one step: an open page reloading never reads half a file
+        ledger.write_private(stamp_path(out), stamp_text(data))     # after the page, so a page it wakes finds the new build
     gen = sum(1 for s in data["sessions"] if s["generated"])
-    return {"page": out, "sessions": len(data["sessions"]), "generated": gen, "open": sum(len(s["open"]) for s in data["sessions"])}
+    return {"page": out, "url": pathlib.Path(out).as_uri(), "sessions": len(data["sessions"]), "generated": gen,
+            "open": sum(len(s["open"]) for s in data["sessions"])}
 
 
 _DEFAULT_BROWSER_JS = ('ObjC.import("AppKit"); $.NSWorkspace.sharedWorkspace'
@@ -217,7 +237,7 @@ def main(argv=None):
     ap.add_argument("--public", action="store_true", help="fail if any IPv4 address or email remains")
     ap.add_argument("--open", action="store_true", help="open the page in the default browser")
     ap.add_argument("--pending", help="JSON list of {session, title, estimate_s, started_at}: sessions being extracted now; "
-                                      "the page says so and reloads every 20 s")
+                                      "the page says so")
     ap.add_argument("--focus", help="the session this build is about; the page opens on it")
     a = ap.parse_args(argv)
     folder = os.path.expanduser(a.project)

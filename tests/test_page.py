@@ -1,8 +1,10 @@
 """The page build: escaping, the CSP hash, the public-page guard, colours in step with dev/palettes.json, and the sample projects.
 Run: python3 -m unittest discover -s tests"""
 import base64
+import contextlib
 import glob
 import hashlib
+import io
 import json
 import os
 import re
@@ -49,11 +51,18 @@ class Render(unittest.TestCase):
         self.assertIn("script-src '%s'" % want, csp)
         self.assertNotIn("__", csp)
 
-    def test_pending_page_reloads_and_finished_page_does_not(self):
-        pending = build.render(dict(self.base, pending=[{"session": "x", "title": "t", "estimate_s": 150}, {"session": "y", "title": "u", "estimate_s": 90}]))
-        self.assertIn('<meta http-equiv="refresh" content="20">', pending)
+    def test_a_local_page_may_load_its_stamp_and_a_published_one_loads_nothing(self):
+        """A page on the user's machine keeps itself current by loading the stamp next to it, so its policy lets its own
+        script insert another; a published page allows only its own script. Neither reloads on a timer."""
+        csp = lambda html: re.search(r'http-equiv="Content-Security-Policy" content="([^"]+)"', html).group(1)
+        pending = build.render(dict(self.base, live=True, version="0123", pending=[{"session": "x", "title": "t", "estimate_s": 150},
+                                                                                 {"session": "y", "title": "u", "estimate_s": 90}]))
+        self.assertIn("'strict-dynamic'", csp(pending))         # only what the hashed script itself inserts
+        self.assertNotIn("'self'", csp(pending))
         self.assertEqual([p["estimate_s"] for p in data_block(pending)["pending"]], [150, 90])
-        self.assertNotIn('http-equiv="refresh"', build.render(self.base))
+        self.assertNotIn("'strict-dynamic'", csp(build.render(self.base)))
+        for html in (pending, build.render(self.base)):
+            self.assertNotIn('http-equiv="refresh"', html)
 
     def test_public_guard(self):
         build.assert_public("version 2.1.288 and x.x.x.x are fine")
@@ -151,11 +160,82 @@ class Render(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(json.loads(r.stdout), ["1 day", "2 days"])
 
-    def test_the_page_states_the_scripts_numbers(self):
-        """The page says how often it reloads and when a run seems to have stopped; those numbers live in the scripts."""
+    def test_a_due_date_still_ahead_is_shown(self):
+        """Items with a due date still ahead had no section and no date of their own: they were listed under
+        "No time set", so a due date set with `set` showed nothing until it had passed."""
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node not installed")
         with open(build.TEMPLATE, encoding="utf-8") as f:
             html = f.read()
-        self.assertEqual((html.count("every %d s" % build.REFRESH_S), html.count("每 %d 秒" % build.REFRESH_S)), (2, 2))
+        code = html[html.index("/* ---------- time"):html.index("/* ---------- data")]
+        words = re.findall(r"due:(\(d,n\)=>[^,]*?'[^']*'\+d\+'[^']*'\+n\+'[^']*'[^,]*?(?:\([^)]*\))?[^,]*?),confirm", html)
+        self.assertEqual(len(words), 2)
+        items = [{"id": "a", "label": "later", "due": "2026-11-05"}, {"id": "b", "label": "sooner", "due": "2026-10-25", "when": "after the trip"},
+                 {"id": "c", "label": "past", "due": "2026-10-01"}, {"id": "d", "label": "trip", "when": "after the trip"},
+                 {"id": "e", "label": "none"}, {"id": "f", "label": "today", "due": "2026-10-21"}]
+        script = ("const D={today:'2026-10-21T09:00:00Z'};const W={bBoth:'both',bOverdue:'overdue',bStale:'stale',bConfirm:'confirm',"
+                  "bDue:'due',bNoTime:'none'};%s;const zh=%s,en=%s;"
+                  "console.log(JSON.stringify([sections(%s).map(b=>[b[0],b[1].map(x=>x.id)]),[zh('11-05',15),zh('10-21',0),en('11-05',15),en('10-22',1)]]))"
+                  % (code, words[0], words[1], json.dumps(items)))
+        r = subprocess.run([node, "-e", script], capture_output=True, text=True, env=dict(os.environ, TZ="UTC"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        got, texts = json.loads(r.stdout)
+        self.assertEqual(got, [["overdue", ["c"]], ["due", ["f", "b", "a"]], ["after the trip", ["d"]], ["none", ["e"]]])
+        self.assertEqual(texts, ["截止 11-05 · 还有 15 天", "今天截止", "Due 11-05 · in 15 days", "Due 10-22 · in 1 day"])
+
+    def test_long_words_wrap_everywhere_text_is_shown(self):
+        """Labels, open items, hover cards and expanded nodes (line, twigs, story and source) wrap long file names."""
+        with open(build.TEMPLATE, encoding="utf-8") as f:
+            css = f.read().split("</style>")[0]
+        wrapped = set()
+        for sel, body in re.findall(r"([^{}]+)\{([^}]*)\}", css):
+            if "overflow-wrap:anywhere" in body:
+                wrapped |= {x.strip() for x in sel.split(",")}
+        self.assertLessEqual({".where b", ".node .lb", ".oi", ".card", ".more"}, wrapped)
+
+    def test_chinese_sentences_and_day_counts(self):
+        """Full stops at the end of Chinese sentences, and 已过 for the days an item has waited or been put off."""
+        with open(build.TEMPLATE, encoding="utf-8") as f:
+            html = f.read()
+        zh = html[html.index("const W=ZH?{"):html.index("}:{", html.index("const W=ZH?{"))]
+        for key in ("runHint", "gone", "pendingLate"):
+            self.assertRegex(zh, r"%s:[^\n]*?。'" % key, key)
+        self.assertIn("已过 '+n+' 天", zh)
+        self.assertNotIn("已等", zh)
+
+    def test_every_view_runs_without_script_errors(self):
+        """Every view and every click handler of a real page, in a real browser: the tests above check pieces of the
+        script, this catches what only shows when it runs (a name moved out of a function's scope did once)."""
+        sys.path.insert(0, os.path.join(ROOT, "dev"))
+        import check_page
+        if not check_page.browser():
+            self.skipTest("no headless Chromium")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            code = check_page.main()
+        if code == 2 and not os.environ.get("CI"):        # on CI a browser was found, so an unreadable console is a failure
+            self.skipTest("the browser's console cannot be read")
+        self.assertEqual(code, 0, out.getvalue())
+
+    def test_an_open_page_follows_corrections_and_runs(self):
+        """No new tab after the first: the open page reloads itself from its stamp (dev/check_live.mjs drives it)."""
+        sys.path.insert(0, os.path.join(ROOT, "dev"))
+        import check_page
+        node, ch = shutil.which("node"), check_page.browser()
+        if not node or not ch:
+            self.skipTest("needs node and a headless Chromium")
+        major = int(subprocess.run([node, "--version"], capture_output=True, text=True).stdout.strip().lstrip("v").split(".")[0])
+        if major < 22:
+            self.skipTest("needs Node 22 or later, for its WebSocket")
+        r = subprocess.run([node, os.path.join(ROOT, "dev", "check_live.mjs"), ch], capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+    def test_the_page_states_the_scripts_numbers(self):
+        """How often the page reads its stamp, and when a run seems to have stopped: those numbers live in the scripts."""
+        with open(build.TEMPLATE, encoding="utf-8") as f:
+            html = f.read()
+        self.assertIn("STAMP=[%d,%d]" % build.STAMP_S, html)
         self.assertIn("+%d)*1000" % treesight.JOB_GRACE_S, html)
 
     def test_both_languages_have_the_same_words(self):
