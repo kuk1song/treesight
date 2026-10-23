@@ -35,16 +35,17 @@ try {
   // with a mouse the card that shows a node's sentence on hover is hidden once the node is open; the node shows it itself
   await send('Emulation.setEmulatedMedia', {features: [{name: 'hover', value: 'hover'}, {name: 'pointer', value: 'fine'}]});
   await send('Page.navigate', {url: page + '#s=953c0ab1'}); await sleep(1000);
-  const node = await ev(`(()=>{const b=[...document.querySelectorAll('.node')].find(n=>n.closest('.slot').querySelector('.qm'));if(!b)return null;b.click();
+  const node = await ev(`(()=>{const b=[...document.querySelectorAll('.node')].find(n=>{const s=n.closest('.slot');return s.querySelector('.lt')&&s.querySelector('.qm')});if(!b)return null;b.click();
     const s=b.closest('.slot'),lt=s.querySelector('.lt'),m=s.querySelector('.qm'),seen=lt.offsetHeight>0&&lt.textContent.length>0;m.click();
     const q=s.querySelector('.qs:not([hidden]) .qq');return {hover:matchMedia('(hover:hover)').matches,seen,quote:!!(q&&q.textContent)}})()`);
   if (!node || !node.hover || !node.seen || !node.quote) fail.push('an open node shows its sentence and, on request, its quote: ' + JSON.stringify(node));
   // a session without a tree: two links into Claude Code, and after a click the same command to copy
   await ev(`location.hash='p'`); await sleep(800);
   const nt = await ev(`(()=>{const b=[...document.querySelectorAll('.node.pn')].find(n=>!n.getAttribute('href'));if(!b)return null;b.click();
-    const s=b.closest('.slot'),a=s.querySelector('a.act'),after=s.querySelector('.after'),before=after.hidden;a.addEventListener('click',e=>e.preventDefault());a.click();
-    return {before,shown:!after.hidden,copy:!!after.querySelector('.cpy'),href:a.getAttribute('href')}})()`);
-  if (!nt || !nt.before || !nt.shown || !nt.copy || !/^claude-cli:\/\/open\?cwd=/.test(nt.href)) fail.push('a session without a tree links into Claude Code: ' + JSON.stringify(nt));
+    const s=b.closest('.slot'),a=s.querySelector('a.act'),after=s.querySelector('.after'),before=!after.childElementCount;a.addEventListener('click',e=>e.preventDefault());a.click();
+    const drawn=document.querySelector('a.node.pn .card');
+    return {before,shown:after.offsetHeight>0,copy:!!after.querySelector('.cpy'),href:a.getAttribute('href'),ai:!!(drawn&&drawn.querySelector('.ai'))}})()`);
+  if (!nt || !nt.before || !nt.shown || !nt.copy || !nt.ai || !/^claude-cli:\/\/open\?cwd=/.test(nt.href)) fail.push('a session without a tree links into Claude Code, and a drawn one\'s summary is marked AI: ' + JSON.stringify(nt));
   await send('Page.navigate', {url: page + '#p'}); await sleep(1000);
   const first = (await state()).v;
   ts('edit', 'hide', 'Windows', 'support'); ts('build');

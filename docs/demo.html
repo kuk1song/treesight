@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ztuQMY+KauBNXXB3RzlCz6j1/o7rPZhMHZmnJ42bJxA='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-QED4ixaBJmGB/gx4PH4/Y77GljaYyKzXMBFZdj1JJwo='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>treesight</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%23131417'/%3E%3Cg transform='translate%284.4 3.6%29 scale%28.78%29'%3E%3Cpath d='M20 37V16.5' stroke='%23E9E8E3' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M20 29C14 29 10.5 26 8 21M20 21C26 21 29.5 18 32 13' fill='none' stroke='%23E9E8E3' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='21' r='4.6' fill='%23C8FF00'/%3E%3Ccircle cx='32' cy='13' r='4.6' fill='%23C8FF00'/%3E%3Ccircle cx='20' cy='7.5' r='4.8' fill='none' stroke='%23C8FF00' stroke-width='3.2'/%3E%3C/g%3E%3C/svg%3E">
@@ -38,12 +38,12 @@ main{max-width:940px;margin:0 auto;padding:0 20px 60px}
 /* an expanded node or session: one panel beside the trunk, its text flush left on both sides (a ragged left edge is hard to read) */
 .xp{display:grid;gap:6px;max-width:420px;text-align:left;background:var(--panel);border-radius:12px;padding:10px 13px;font-size:13.5px}.row.l .xp{margin-left:auto}
 .ai{font-size:10.5px;line-height:1.3;border:1px solid var(--line2);border-radius:4px;padding:0 4px;cursor:help}
-.sum .ai{margin-right:6px;vertical-align:1px}.sum.none{color:var(--mut);font-size:12.5px}
+.sum .ai,.card .ai{margin-right:6px;vertical-align:1px}.sum.none{color:var(--mut);font-size:12.5px}
 /* shown only after one of the links was clicked: where it opened nothing, the same command to copy */
-.after{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px;color:var(--mut)}.after[hidden]{display:none}
+.after{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--mut)}.after:empty{margin-top:0}
 .cpy{all:unset;cursor:pointer;font-size:12px;color:var(--ink);background:var(--fill);border-radius:6px;padding:1px 9px}.cpy:hover{background:var(--line2)}
 .after code{font-family:var(--mono);font-size:12px;overflow-wrap:anywhere;user-select:all;color:var(--ink)}
-.acts{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:4px}
+.acts{display:flex;flex-wrap:wrap;align-items:center;gap:0 8px;margin-top:4px}
 .act{font-size:13px;text-decoration:none;color:var(--ink);border:1px solid var(--line2);border-radius:8px;padding:3px 12px}.act:hover{border-color:var(--mut)}
 .act.pri{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}.act.pri:hover{opacity:.9}
 svg.sh{flex:none;display:block;overflow:visible}
@@ -185,7 +185,7 @@ const W=ZH?{
   stuck:(q,d)=>'卡了'+(q==='at_least'?'至少 ':'约 ')+d,min:n=>n+' 分钟',hr:n=>n+' 小时',day:n=>n+' 天',storyHint:'点开看经过',rows:['卡在','应对','结果'],temp:'临时',
   unknownT:'时刻不详',approx:t=>'约 '+t,before:t=>t+' 前',shelved:'决定不做',merged:n=>'这里合了 '+n+' 件相关的事',overturned:x=>'↺ 推翻了「'+x+'」',overturnedBy:x=>'后来被「'+x+'」推翻',
   you:'你',recapBy:'自动回顾',compactBy:'压缩摘要',quote:'原话',wrote:(w,t)=>w+' '+t+' 写道：',start:d=>'起点 '+d,projStart:d=>'项目起点 '+d,showAll:n=>'显示全部 '+n+' 个',keyOnly:'只看重点',prompts:n=>n+' 次提问',nodes:n=>n+' 个节点',sessions:n=>n+' 个会话',
-  current:'当前',currentSession:'当前会话',notYetTip:'尚未生成树 · 点开看摘要',copied:'已复制',
+  current:'当前',currentSession:'当前会话',notYetTip:'尚未生成树 · 点开看摘要',copied:'已复制',selected:'已选中，可以直接复制',copyDraw:'复制生成树的命令',
   ai:'AI',aiTip:'AI 写的，可能不准',noSummary:'还没有摘要：下次生成树时会顺带写。',nodesOpen:(n,o)=>n+' 个节点 · '+o+' 件待完成',
   draw:'生成树',openS:'打开会话',noOpen:'没打开？',copyCmd:'复制命令',hiddenN:n=>'另有 '+n+' 个 claude -p 会话没有列出',unsure:'这次拿不准的地方',span:(a,b)=>a===b?a:a+' 至 '+b,
   sinceLast:(n,o,c,f)=>'上次生成：新增 '+n+' 个节点、'+o+' 件待完成'+(c?'，关掉 '+c+' 件':'')+(f?'，'+f+' 件待你确认':''),
@@ -203,7 +203,7 @@ const W=ZH?{
   stuck:(q,d)=>'Stuck '+(q==='at_least'?'at least ':'about ')+d,min:n=>n+' min',hr:n=>n+' h',day:n=>n+' day'+(n===1?'':'s'),storyHint:'click for the story',rows:['Stuck','Response','Result'],temp:'Temporary',
   unknownT:'time unknown',approx:t=>'about '+t,before:t=>'before '+t,shelved:'Decided not to',merged:n=>n+' related events merged here',overturned:x=>'↺ Overturned “'+x+'”',overturnedBy:x=>'Later overturned by “'+x+'”',
   you:'You',recapBy:'Recap',compactBy:'Compaction summary',quote:'quote',wrote:(w,t)=>w+' wrote, '+t+':',start:d=>'Started '+d,projStart:d=>'Project started '+d,showAll:n=>'Show all '+n,keyOnly:'Key nodes only',prompts:n=>n+' prompt'+(n===1?'':'s'),nodes:n=>n+' node'+(n===1?'':'s'),sessions:n=>n+' session'+(n===1?'':'s'),
-  current:'Current',currentSession:'Current session',notYetTip:'No tree yet · click for the summary',copied:'Copied',
+  current:'Current',currentSession:'Current session',notYetTip:'No tree yet · click for the summary',copied:'Copied',selected:'Selected; copy it',copyDraw:'Copy the command that draws it',
   ai:'AI',aiTip:'Written by AI; it may be wrong',noSummary:'No summary yet: the next run that draws a tree writes one.',nodesOpen:(n,o)=>n+' node'+(n===1?'':'s')+' · '+o+' still open',
   draw:'Draw the tree',openS:'Open the session',noOpen:'Nothing opened?',copyCmd:'Copy the command',hiddenN:n=>n+' claude -p session'+(n===1?'':'s')+' not listed',unsure:'What this run was unsure about',span:(a,b)=>a===b?a:a+' to '+b,
   sinceLast:(n,o,c,f)=>'Last run: '+n+' new node'+(n===1?'':'s')+', '+o+' open item'+(o===1?'':'s')+(c?', '+c+' closed':'')+(f?', '+f+' to confirm':''),
@@ -277,7 +277,7 @@ function citations(ev,twigs,host){const box=document.createDocumentFragment(),n=
   const own=quoteMark(host,ev.filter(e=>!(e.twig!=null&&e.twig<n)));if(own)host.after(own);
   if(n){const ul=$('ul','twl');twigs.forEach((x,j)=>{const li=$('li');li.append($('span',null,x));const qs=quoteMark(li,ev.filter(e=>e.twig===j));if(qs)li.append(qs);ul.append(li)});box.append(ul)}
   return box}
-function card(line,extra,up){const c=$('span','card'+(up?' up':''));c.append(document.createTextNode(line||''));(extra||[]).forEach(x=>x&&c.append($('em',null,x)));return c}
+function card(line,extra,up,ai){const c=$('span','card'+(up?' up':''));if(ai&&line){const a=$('span','ai',W.ai);a.title=W.aiTip;c.append(a)}c.append(document.createTextNode(line||''));(extra||[]).forEach(x=>x&&c.append($('em',null,x)));return c}
 /* story: duration level from minutes (under 1 h, 1 h to 1 day, over 1 day) */
 const lvl=m=>m<60?'h':m<1440?'m':'d';
 const dur=m=>m<60?W.min(m):m<1440?W.hr(Math.round(m/6)/10):W.day(Math.round(m/144)/10);
@@ -302,7 +302,7 @@ function nodeRow(n,i,o={}){
   if(n.overturns&&by[n.overturns])extra.push(W.overturned(by[n.overturns].label));
   if(n.supBy)extra.push(W.overturnedBy(n.supBy.label));
   if(o.hint)extra.push(o.hint);
-  b.append(t,$('span','date',o.date||fdate(n.at)));b.append(o.tip!=null?card(o.tip):card(n.line,extra,!!n.overturns));
+  b.append(t,$('span','date',o.date||fdate(n.at)));b.append(o.tip!=null?card(o.tip):card(n.line,extra,!!n.overturns,o.ai));
   if(n.supBy&&nodeEls.vis&&nodeEls.vis.has(n.supBy.id))b.classList.add('sup');
   slot.append(b);
   /* expanded: the sentence (the hover card is hidden on an open node), what the card adds, the twigs and their sources */
@@ -310,7 +310,8 @@ function nodeRow(n,i,o={}){
   if(o.more)o.more.forEach(x=>more.append(x));else{const xp=$('div','xp');
   /* the sentence, or a story's duration line, carries the quote mark of what the node itself says */
   const ln=$('div','ln');let lt;
-  if(n.story){ln.append(storyEl(n.story));lt=ln.querySelector('.dur')}else{lt=$('span','lt',n.line||'');ln.append(lt);extra.forEach(x=>ln.append($('em',null,x)))}xp.append(ln);
+  if(n.story){ln.append(storyEl(n.story));lt=ln.querySelector('.dur')}else{lt=$('span','lt',n.line||'');ln.append(lt)}
+  extra.slice(n.story?1:0).forEach(x=>ln.append($('em',null,x)));xp.append(ln);
   xp.append(citations(n.evidence||[],n.twigs,lt));more.append(xp)}
   slot.append(more);
   if(o.href!=null){b.href='#'+o.href;b.onclick=()=>{fromP=true}}else b.onclick=()=>{if(openSlot&&openSlot!==slot){openSlot.classList.remove('open');openSlot.querySelector('.node').classList.remove('open')}
@@ -434,7 +435,7 @@ function projectView(){
   const rows=$('div','rows');
   list.forEach((s,i)=>{const z=Math.round(10+Math.sqrt(s.prompts.substantive)*1.5),cur=s===CURS||s.id===D.current;
     const o={date:fdate(s.last_at)+' · '+W.prompts(s.prompts.substantive),shapeEl:shape(cur?'sesscur':s.generated?'sess':'sessring',z),cls:'pn',sr:cur?W.currentSession:''};
-    if(s.generated)Object.assign(o,{href:s===HOME?'':'s='+s.id.slice(0,8),hint:[cur?W.currentSession:'',W.nodesOpen(s.nodes.length,s.open.length),s.gone?W.gone:''].filter(Boolean).join(' · ')});
+    if(s.generated)Object.assign(o,{ai:true,href:s===HOME?'':'s='+s.id.slice(0,8),hint:[cur?W.currentSession:'',W.nodesOpen(s.nodes.length,s.open.length),s.gone?W.gone:''].filter(Boolean).join(' · ')});
     else Object.assign(o,{tip:(cur?W.currentSession+' · ':'')+W.notYetTip,more:[notYet(s)]});
     rows.append(nodeRow({id:'p'+i,label:s.title,at:s.last_at,line:s.summary||''},i,o))});
   tr.append(rows,rootEl(D.project.first_at?W.projStart(fdate(D.project.first_at)):''));m.append(tr);fixTrunk(tr)}
@@ -444,19 +445,20 @@ function fixTrunk(tr){requestAnimationFrame(()=>{const c=tr.querySelector('.crow
    registers it on the first interactive prompt, and a setting turns it off), so a click also offers that command to copy. */
 const shq=s=>/^[\w@%+=:,.\/-]+$/.test(s)?s:"'"+s.replace(/'/g,"'\\''")+"'";
 const deep=q=>'claude-cli://open?cwd='+encodeURIComponent(D.project.path)+'&q='+encodeURIComponent(q);
-/* the folder as one types it: ~/... under a home folder when it needs no quoting */
-const typed=p=>{const m=p.match(/^\/(?:Users|home)\/[^/]+\/(.+)$/);return m&&/^[\w@%+=:,.\/-]+$/.test(m[1])?'~/'+m[1]:shq(p)};
-/* copies the command; where the clipboard is not allowed, shows it selected instead */
+/* copies the command; where the clipboard is not allowed, shows it beside the button, selected, and the button keeps focus */
 function copyBtn(label,cmd){const b=$('button','cpy',label);b.title=cmd;
-  b.onclick=e=>{e.stopPropagation();const show=()=>{const c=$('code',null,cmd);b.replaceWith(c);const g=document.createRange();g.selectNodeContents(c);const w=getSelection();w.removeAllRanges();w.addRange(g)};
+  b.onclick=e=>{e.stopPropagation();const show=()=>{let c=b.nextElementSibling;if(!c||c.tagName!=='CODE'){c=$('code',null,cmd);b.after(c)}
+      const g=document.createRange();g.selectNodeContents(c);const w=getSelection();w.removeAllRanges();w.addRange(g);b.textContent=W.selected};
     try{navigator.clipboard.writeText(cmd).then(()=>{b.textContent=W.copied;setTimeout(()=>{b.textContent=label},1500)},show)}catch(x){show()}};return b}
 function notYet(s){const box=$('div','xp'),sm=$('div','sum');
   if(s.summary){const a=$('span','ai',W.ai);a.title=W.aiTip;sm.append(a,s.summary)}else{sm.classList.add('none');sm.textContent=W.noSummary}
-  const acts=$('div','acts'),after=$('div','after');after.hidden=true;after.setAttribute('role','status');
-  [[W.draw,'act pri','/treesight:treesight '+s.id.slice(0,8),'/treesight:treesight '+s.id.slice(0,8)],
-   [W.openS,'act','/resume '+s.id,'cd '+typed(D.project.path)+' && claude -r '+s.id]].forEach(([label,cls,q,cmd])=>{
-    const a=$('a',cls,label);a.href=deep(q);a.addEventListener('click',e=>{e.stopPropagation();after.textContent='';after.append(W.noOpen,copyBtn(W.copyCmd,cmd));after.hidden=false});acts.append(a)});
-  box.append(sm,acts,after);return box}
+  /* --no-open: the page is open already, so the run it starts updates it instead of asking for another tab */
+  const draw='/treesight:treesight '+s.id.slice(0,8)+' --no-open',acts=$('div','acts');box.append(sm,acts);
+  if(D.project.masked){acts.append(copyBtn(W.copyDraw,draw));return box}   /* a folder name that was masked cannot be opened */
+  const after=$('div','after');after.setAttribute('role','status');   /* in the page from the start, so what it says is announced */
+  [[W.draw,'act pri',draw,draw],[W.openS,'act','/resume '+s.id,'cd '+shq(D.project.path)+' && claude -r '+s.id]].forEach(([label,cls,q,cmd])=>{
+    const a=$('a',cls,label);a.href=deep(q);a.addEventListener('click',e=>{e.stopPropagation();after.textContent='';after.append(W.noOpen,copyBtn(W.copyCmd,cmd))});acts.append(a)});
+  acts.append(after);return box}
 (function(){
   document.title='treesight · '+D.project.name;
   const back=document.getElementById('back');back.textContent=W.back;back.setAttribute('aria-label',W.backAria);

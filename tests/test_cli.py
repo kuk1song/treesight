@@ -87,9 +87,11 @@ class Cli(unittest.TestCase):
         code, res = run("apply", *self.common)
         self.assertNotEqual(code, 0)
         digest = out["extract"].replace(".extract.json", ".digest.txt")
-        self.assertTrue(os.path.exists(digest) and os.path.exists(out["extract"]))
+        others = [out["extract"].replace(".extract.json", x) for x in (".others.txt", ".others.json")]
+        self.assertTrue(all(os.path.exists(p) for p in [digest, out["extract"]] + others))
         code, _ = run("build", "--done", "--session", S1, *self.common)
         self.assertEqual(code, 0)
+        self.assertFalse(any(os.path.exists(p) for p in others))
         self.assertFalse(os.path.exists(digest) or os.path.exists(out["extract"]))
 
     def test_errors_come_back_as_json(self):
@@ -181,6 +183,7 @@ class Cli(unittest.TestCase):
     def test_a_run_in_two_passes_is_one_run_on_the_page(self):
         """What both passes were unsure about reaches the page, and apply's counts are the whole run's, as the page's."""
         code, out = run("prepare", "--max-chars", "3000", *self.common)
+        self.assertEqual(out["others"], 2)
         for n in (1, 2):
             dig = out["extract"].replace(".extract.json", ".digest.txt")
             with open(out["extract"], "w", encoding="utf-8") as f:
@@ -190,7 +193,12 @@ class Cli(unittest.TestCase):
             if n == 1:
                 self.assertTrue(res["go_on"], res)
                 code, out = run("prepare", "--continue", "--max-chars", "3000", *self.common)
-                self.assertEqual(out["pass_number"], 2)
+                self.assertEqual((out["pass_number"], out["others"]), (2, 0))
+                with open(out["extract"], "w", encoding="utf-8") as f:
+                    json.dump(dict(empty_extract(out["extract"].replace(".extract.json", ".digest.txt")),
+                                   others=[{"session": "0a182a7b", "gist": "x"}]), f)
+                code, refused = run("apply", *self.common)
+                self.assertIn("is not one of the sessions show others listed", " ".join(refused["problems"]))
         run("build", "--done", "--session", S1, *self.common)
         code, b = run("build", *self.common)
         html, data = page_data(b["page"])
@@ -227,6 +235,73 @@ class Cli(unittest.TestCase):
         self.assertEqual(again["others"], 0)
         code, res = run("show", "others", "--session", S2, *self.common)
         self.assertEqual((code, res["ok"]), (1, False))
+
+    def test_the_excerpts_are_read_in_parts_and_apply_needs_no_mark(self):
+        """Excerpts of other sessions come in parts like the digest (a long Bash result is saved to a file instead of
+        shown), and apply takes the summaries even when the run's mark has expired meanwhile."""
+        with mock.patch.object(treesight, "PART_BYTES", 1000):      # each excerpt fits, both do not
+            code, out = run("prepare", *self.common)
+            self.assertEqual(out["others_parts"], 2)
+            code, one = run("show", "others", "--part", "1", *self.common)
+            code, two = run("show", "others", "--part", "2", *self.common)
+        self.assertTrue(one.startswith("[session fd14e71a]") and one.endswith("[end of part 1 of 2; read part 2 next]"), one)
+        self.assertTrue(two.startswith("[session 0a182a7b]") and two.endswith("that was the last part]"), two)
+        os.remove(treesight._job_path(self.cache, PROJECT, S1))         # the mark expired
+        with open(os.path.join(ROOT, "fixtures", "extract", "tidepool-1.json"), encoding="utf-8") as f:
+            ext = dict(json.load(f), others=[{"session": "fd14e71a", "gist": "You pinned CI to 3.12."}])
+        with open(out["extract"], "w", encoding="utf-8") as f:
+            json.dump(ext, f)
+        code, res = run("apply", *self.common)
+        self.assertTrue(res["ok"], res)
+        self.assertEqual(ledger.load(PROJECT)["sessions"]["fd14e71a-3afc-5d70-9e9a-cd1e6396b471"]["gist"]["text"], "You pinned CI to 3.12.")
+
+    def test_a_run_started_from_the_page_does_not_open_it_again(self):
+        """The page's own links add --no-open: the page is open, so the new conversation's builds update it."""
+        asked = []
+        real, build.open_page = build.open_page, lambda res: asked.append(res["page"]) or res.update(browser_asked=True) or res
+        try:
+            code, out = run("prepare", "--session", "0a182a7b --no-open", "--current", S2, "--cache", self.cache)
+            self.assertEqual(out["session"], S2)
+            code, b = run("build", "--open", "--session", S2, "--current", S2, "--cache", self.cache)
+        finally:
+            build.open_page = real
+        self.assertEqual((asked, b["browser_asked"], b["open_page_updates"]), ([], False, True))
+
+    def test_a_folder_whose_name_is_masked_gets_no_links(self):
+        """A part of the project's folder name that looks like an address is masked on the page, its name included,
+        and the page is told so: a link or command with the masked folder would point nowhere."""
+        projects = os.path.join(self.tmp, "projects")
+        folder = os.path.join(projects, PROJECT)
+        shutil.copytree(os.path.join(ROOT, "fixtures", "projects", PROJECT), folder)
+        for name in os.listdir(folder):
+            with open(os.path.join(folder, name), encoding="utf-8") as f:
+                text = f.read()
+            with open(os.path.join(folder, name), "w", encoding="utf-8") as f:
+                f.write(text.replace('"cwd": "/home/dev/tidepool"', '"cwd": "/home/dev/vm-192.0.2.7"'))
+        os.environ["TREESIGHT_PROJECTS"] = projects
+        code, b = run("build", *self.common)
+        html, data = page_data(b["page"])
+        self.assertEqual({k: data["project"][k] for k in ("path", "name", "masked")}, {"path": "/home/dev/vm-x.x.x.x", "name": "vm-x.x.x.x", "masked": True})
+        self.assertIn("if(D.project.masked){acts.append(copyBtn(W.copyDraw,draw));return box}", html)
+
+    def test_running_treesight_does_not_make_a_session_look_changed(self):
+        """A session's /treesight command and its notice come after what the session said: its summary is not
+        rewritten on every run just because of them."""
+        folder = os.path.join(self.tmp, "proj")
+        shutil.copytree(os.path.join(ROOT, "fixtures", "projects", PROJECT), folder)
+        fd = "fd14e71a-3afc-5d70-9e9a-cd1e6396b471"
+        path = os.path.join(folder, fd + ".jsonl")
+        meta, entries = treesight.transcript.read_session(path)
+        upto = treesight.said_last(meta, entries)
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps({"type": "user", "uuid": "aaaaaaaa-0000-4000-8000-000000000001", "sessionId": fd, "cwd": "/home/dev/tidepool",
+                                "timestamp": "2026-10-09T09:00:00.000Z", "origin": {"kind": "human"},
+                                "message": {"role": "user", "content": "/treesight:treesight"}}) + "\n")
+        self.assertEqual(treesight.said_last(*treesight.transcript.read_session(path)), upto)
+        need = lambda gist: [m["id"][:8] for m, _ in treesight.to_summarize(folder, {"sessions": {fd: {"runs": 0, "gist": gist}}}, S1)]
+        self.assertNotIn("fd14e71a", need({"upto": upto}))
+        self.assertIn("fd14e71a", need({"upto": "2026-01-01T00:00:00Z"}))
+        self.assertIn("fd14e71a", need({"upto": None}))       # a summary without a time is redone, not a crash
 
     def test_which_sessions_need_a_summary(self):
         """A session without a tree whose summary is missing or older than its last message, or a drawn session with
@@ -267,6 +342,14 @@ class Cli(unittest.TestCase):
         self.assertNotIn(quiet, [s["id"] for s in data["sessions"]])
         self.assertEqual(len(data["sessions"]), 3)
         self.assertNotIn(quiet[:8], [m["id"][:8] for m, _ in treesight.to_summarize(folder, {"sessions": {}}, S1)])
+        code, out = run("prepare", "--session", quiet[:8], *self.common)       # once drawn, it is listed like any other
+        with open(out["extract"], "w", encoding="utf-8") as f:
+            json.dump(empty_extract(out["extract"].replace(".extract.json", ".digest.txt")), f)
+        self.assertTrue(run("apply", "--session", quiet[:8], *self.common)[1]["ok"])
+        code, b = run("build", *self.common)
+        html, data = page_data(b["page"])
+        self.assertIn(quiet, [s["id"] for s in data["sessions"]])
+        self.assertNotIn("hidden", data)
 
     def test_the_browser_is_asked_once_per_conversation(self):
         """Later runs and corrections in the same conversation update the page that is already open (it reads its

@@ -77,7 +77,7 @@ Give a `done` node a `story` when it was blocked for a while before it worked ou
 - A node's `msg` and `at` are the entry where its outcome shows (usually the reply that reports it; the prompt only when the user decided there), and one of its quotes, from that entry, states the outcome. An open item's `msg` and `raised_at` are the entry where it was raised. Each has one to three `evidence` items.
 - `quote` must be copied character for character from one entry's text in the digest, at most 400 characters. You may cut it short at either end; do not change, translate, fix or join anything inside it. The ledger rejects a quote it cannot find in that entry.
 - `kind` is the entry's kind (`prompt`, `reply`, `recap` or `compact`); `msg` and `at` are that entry's message id and time.
-- On a node, an evidence item may add `twig`: the twig it shows, counting from 0 for the first. The page puts who said it and when after that twig, and the quote opens from there. One quote can both state the outcome and show a twig.
+- On a node, an evidence item may add `twig`: the twig it shows, counting from 0 for the first. The page puts a small quote mark after that twig, which opens the quote. One quote can both state the outcome and show a twig.
 - Never copy secrets. The digest has already replaced them with `[secret]`, `[email]` and `x.x.x.x`; keep those markers as they are.
 
 ## Output

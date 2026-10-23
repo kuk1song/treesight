@@ -105,7 +105,7 @@ def page_data(folder, current=None, now=None, pending=None, focus=None):
             doc["gone"] = True
         gist = (led or {}).get("gist")
         if gist:            # the one sentence a run wrote about it (scrubbed first: a mask can be longer than what it hides)
-            doc["summary"] = _clip(transcript.scrub(gist["text"]), 300)
+            doc["summary"] = _clip(transcript.scrub(gist["text"]), 600)
         if led and led["runs"]:
             doc["through"] = led["through"]
             doc["nodes"] = led["nodes"]
@@ -122,8 +122,11 @@ def page_data(folder, current=None, now=None, pending=None, focus=None):
         sessions.append(doc)
     cwd = next((m["cwd"] for m in metas if m.get("cwd")), None) or key
     fixed, now = now is not None, now or datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    shown = transcript.scrub(cwd)
     data = {"schema": "treesight/page@1", "asof": now, "current": current,
-            "project": {"path": transcript.scrub(cwd), "name": os.path.basename(cwd.rstrip("/")) or cwd}, "sessions": sessions}
+            "project": {"path": shown, "name": os.path.basename(shown.rstrip("/")) or shown}, "sessions": sessions}
+    if shown != cwd:    # part of the folder's name looked like an address or a secret: the page cannot link to it
+        data["project"]["masked"] = True
     if fixed:       # a made-up sample: day counts run to its own date, not to whenever someone opens it
         data["today"] = now
     if sessions:     # the earliest start of any session (the page lists them by last activity)

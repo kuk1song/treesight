@@ -290,9 +290,10 @@ def view(events, edits=()):
                              "_closes": lr["_closes"] if lr else [], "notes": notes or None}
             s["meta"] = e.get("session_meta") or s["meta"]
             if e.get("gist"):       # the run's own one-sentence summary, from reading the whole session
-                s["gist"] = {"text": e["gist"], "upto": (e.get("session_meta") or {}).get("last_at"), "at": e["at"]}
-        elif ev == "gist":          # a summary another session's run wrote from a short excerpt of this one
-            s["gist"] = {"text": e["gist"], "upto": e.get("upto"), "at": e["at"]}
+                s["gist"] = {"text": e["gist"], "upto": (e.get("session_meta") or {}).get("last_at"), "at": e["at"], "own": True}
+        elif ev == "gist":          # a summary another session's run wrote from a short excerpt of this one, which never
+            if not (s["gist"] or {}).get("own"):        # replaces one from the session's own run (two runs at once)
+                s["gist"] = {"text": e["gist"], "upto": e.get("upto"), "at": e["at"]}
         elif this_run and ev in ("node", "open"):
             s["last_run"]["nodes" if ev == "node" else "open"] += 1
         if ev == "node":

@@ -204,7 +204,8 @@ def _clip_one(text, n):
 def overview(meta, entries, prompt_chars=200, reply_chars=400, recap_chars=300):
     """A short excerpt of a session, for a one-sentence summary of a session that has no tree yet: its title, its
     first two and last two prompts that are not just a nudge or pasted output (pasted content shortened), the start of
-    its last reply and its last recap. About 1.5 KB at most; scrubbed like a digest."""
+    its last reply and its last recap. About 1,500 characters at most (up to 4.5 KB of UTF-8 in Chinese); scrubbed
+    like a digest."""
     prompts = [e for e in entries if e["k"] == "P" and is_substantive(e["text"])]
     # a prompt that starts with Claude Code's reply marker is output pasted from another session (as in session_line)
     prompts = [e for e in prompts if not e["text"].lstrip().startswith("\u23fa")] or prompts

@@ -14,7 +14,7 @@
     "open": {"type": "array", "items": {"$ref": "#/$defs/open"}},
     "close": {"type": "array", "items": {"$ref": "#/$defs/close"}},
     "settled": {"description": "Open items of this output that a later record in the digest's header already settled: sessions drawn before this one although they come after it could not close them.", "type": "array", "items": {"$ref": "#/$defs/settled"}},
-    "gist": {"description": "One sentence on what the session worked on and where it ended, in the language of its prompts: its summary on the project page.", "type": "string", "minLength": 1, "x-maxUnits": 50},
+    "gist": {"description": "One sentence on what the session worked on and where it ended, in the language of its prompts: its summary on the project page.", "type": "string", "minLength": 1, "maxLength": 400, "x-maxUnits": 50},
     "others": {"description": "One-sentence summaries of other sessions of the project, each written from the short excerpt `show others` printed; only the sessions it listed may be named.", "type": "array", "items": {"$ref": "#/$defs/other"}},
     "notes": {"description": "Anything the model was unsure about, for the user.", "type": "string", "maxLength": 2000}
   },
@@ -25,7 +25,7 @@
       "additionalProperties": false,
       "properties": {
         "session": {"description": "The first 8 characters of the session id, as show others printed it.", "type": "string", "pattern": "^[0-9a-f]{8}$"},
-        "gist": {"type": "string", "minLength": 1, "x-maxUnits": 50}
+        "gist": {"type": "string", "minLength": 1, "maxLength": 400, "x-maxUnits": 50}
       }
     },
     "node": {
