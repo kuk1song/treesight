@@ -1,0 +1,17 @@
+{
+ "description": "The one-sentence summaries the first run of each sample writes for the project's other sessions (its `others`), from what `show others` would print; dev/make_sample.py adds them to that run's extraction.",
+ "samples": {
+  "recipe-box": {
+   "0c0f810a": "You moved the photos to the storage bucket and shipped 1.2 with photo upload; the announcement and Alex's Android test are still to come.",
+   "12517ac7": "The login test failed when it ran across a second boundary; freezing the clock in the test made 20 runs in a row pass."
+  },
+  "recipe-box-zh": {
+   "e3b89c9b": "你把照片移到存储桶并发布了 1.2，带照片上传；发布公告和阿杰的安卓测试还没完成。",
+   "e704c371": "登录测试跨过一秒边界时会把令牌当成过期；在测试里固定时钟后，连续 20 次都通过。"
+  },
+  "tidepool": {
+   "0a182a7b": "You kept the calendar feed private and released tidepool 0.3.0 through trusted publishing; Maya's station list and a blog post are still open.",
+   "fd14e71a": "You pinned the Python version the CI uses to 3.12, and CI is green."
+  }
+ }
+}

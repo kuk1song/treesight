@@ -149,6 +149,43 @@ class Render(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(json.loads(r.stdout), ["在等 Alex", "在等 Émile", "在等老周", "在等 3 号"])
 
+    def test_links_open_claude_code_with_the_command_typed_in(self):
+        """A session without a tree links to claude-cli://open with the project folder and the command, both encoded
+        (https://code.claude.com/docs/en/deep-links); the command to copy names the whole folder, quoted for the shell
+        (a ~/ shortcut guessed from /Users/<name>/ would point into another user's folder, such as /Users/Shared)."""
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node not installed")
+        with open(build.TEMPLATE, encoding="utf-8") as f:
+            html = f.read()
+        self.assertNotIn("const typed=", html)
+        defs = "\n".join(re.search(r"^const %s=.*;$" % name, html, re.M).group(0) for name in ("shq", "deep"))
+        script = ("const D={project:{path:'/Users/me/recipe-box'}};%s\nconsole.log(JSON.stringify([deep('/resume abc'),"
+                  "deep('/treesight:treesight 0a182a7b --no-open'),shq('/Users/Shared/work/app'),shq('/home/dev/tide pool'),"
+                  "shq(\"it's\"),shq('a$b`c')]))" % defs)
+        r = subprocess.run([node, "-e", script], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(json.loads(r.stdout), [
+            "claude-cli://open?cwd=%2FUsers%2Fme%2Frecipe-box&q=%2Fresume%20abc",
+            "claude-cli://open?cwd=%2FUsers%2Fme%2Frecipe-box&q=%2Ftreesight%3Atreesight%200a182a7b%20--no-open",
+            "/Users/Shared/work/app", "'/home/dev/tide pool'", "'it'\\''s'", "'a$b`c'"])
+
+    def test_growth_also_while_drawing_and_once_seen(self):
+        """The tree grows on a page opened while a run is drawing (it stood still there since 0.1.0, from when such a
+        page reloaded every 20 s), and a tab opened in the background grows when it is first shown, not out of sight."""
+        with open(build.TEMPLATE, encoding="utf-8") as f:
+            html = f.read()
+        self.assertNotIn("D.pending", html.split("const RM=", 1)[1].split(";", 1)[0])
+        self.assertIn("whenSeen(()=>run(first?1000:600))", html)
+
+    def test_an_open_node_keeps_its_sentence(self):
+        """A node's card shows its sentence on hover and is hidden once the node is open, so the open node must show the
+        sentence itself: #17 hid it there whenever a mouse was in use. dev/check_live.mjs checks this with a mouse."""
+        with open(build.TEMPLATE, encoding="utf-8") as f:
+            css = f.read().split("</style>", 1)[0]
+        self.assertIn(".node.open>.card{display:none}", css)
+        self.assertNotRegex(css, r"\.(?:ln|lt|dup)\b[^{}]*\{[^}]*display:none")       # a rule that hides the sentence
+
     def test_english_counts_one_day(self):
         node = shutil.which("node")
         if not node:
@@ -199,7 +236,7 @@ class Render(unittest.TestCase):
         with open(build.TEMPLATE, encoding="utf-8") as f:
             html = f.read()
         zh = html[html.index("const W=ZH?{"):html.index("}:{", html.index("const W=ZH?{"))]
-        for key in ("runHint", "gone", "pendingLate"):
+        for key in ("noSummary", "gone", "pendingLate"):
             self.assertRegex(zh, r"%s:[^\n]*?。'" % key, key)
         self.assertIn("已过 '+n+' 天", zh)
         self.assertNotIn("已等", zh)

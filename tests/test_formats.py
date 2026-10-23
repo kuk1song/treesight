@@ -242,6 +242,58 @@ class Transcript(unittest.TestCase):
         finally:
             os.unlink(path)
 
+    def test_sessions_run_with_claude_p_are_not_interactive(self):
+        """claude -p and the Agent SDK record an sdk-... entrypoint on each prompt; such a session (a script, a test) is
+        left off the page. A session without the field, or with any prompt typed in a terminal, counts as interactive."""
+        for points, want in ((["sdk-cli"], False), (["sdk-ts", "sdk-py"], False), (["sdk-cli", "cli"], True), ([None], True)):
+            path, _ = write_transcript([("Prompt number %d here" % i, ["ok"]) for i in range(len(points))])
+            try:
+                with open(path, encoding="utf-8") as f:
+                    recs = [json.loads(line) for line in f]
+                left = list(points)
+                for r in recs:
+                    if r["type"] == "user" and left:
+                        point = left.pop(0)
+                        if point:
+                            r["entrypoint"] = point
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write("".join(json.dumps(r) + "\n" for r in recs))
+                self.assertEqual(transcript.read_session(path)[0]["interactive"], want, points)
+            finally:
+                os.unlink(path)
+
+    def test_the_excerpt_a_summary_is_written_from(self):
+        """What a run reads of another session to summarize it: the title, the first two and last two prompts that are
+        neither a nudge nor pasted output, the start of the last reply and the last recap without Claude Code's settings
+        hint, scrubbed like a digest and about 1.5 KB at most."""
+        key = "sk-" + "ant-" + "api03-" + "abcdefghij" * 3
+        path, _ = write_transcript([("\u23fa Pasted: another session's summary of other work.", ["Noted."]),
+                                    ("Add photo upload to recipes, the key is " + key, ["Done."]), ("继续", ["ok"]),
+                                    ("Second real prompt here", ["ok"]), ("Middle prompt left out", ["ok"]),
+                                    ("Fourth real prompt here", ["ok"]), ("Last real prompt: ship it", ["Shipped with " + key + ". " + "y" * 1000])])
+        try:
+            with open(path, "a", encoding="utf-8") as f:
+                f.write(json.dumps({"type": "custom-title", "customTitle": "Photos, key " + key, "sessionId": "11111111-2222-4333-8444-555555555555"}) + "\n")
+                f.write(json.dumps({"type": "system", "subtype": "away_summary", "uuid": "ffffffff-0000-4000-8000-000000000000",
+                                    "sessionId": "11111111-2222-4333-8444-555555555555", "timestamp": "2026-09-14T10:00:00.000Z",
+                                    "content": "You shipped photo upload with " + key + ". (disable recaps in /config)"}) + "\n")
+            meta, entries = transcript.read_session(path)
+            text = transcript.overview(meta, entries)
+        finally:
+            os.unlink(path)
+        self.assertNotIn("sk-" + "ant-", text)                 # title, prompts, reply and recap are all scrubbed
+        self.assertIn("title: Photos, key [secret]", text)
+        self.assertIn("last reply 2026-09-14: Shipped with [secret].", text)
+        self.assertNotIn("Pasted: another session", text)
+        self.assertIn("Add photo upload to recipes, the key is [secret]", text)
+        self.assertNotIn("Middle prompt left out", text)
+        for kept in ("Second real prompt here", "Fourth real prompt here", "Last real prompt: ship it"):
+            self.assertIn(kept, text)
+        self.assertIn("last recap 2026-09-14: You shipped photo upload with [secret].", text)
+        self.assertNotIn("disable recaps", text)
+        self.assertIn("\u2026", text)                       # the long last reply is cut
+        self.assertLess(len(text), 1700)
+
     def test_compaction_keeps_pending_tasks(self):
         long = "x " * 3000
         text = ("This session is being continued from a previous conversation that ran out of context.\n\nSummary:\n"

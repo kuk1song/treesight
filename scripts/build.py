@@ -53,15 +53,15 @@ def _clip(text, n):
     return text if len(text) <= n else text[: n - 1] + "\u2026"
 
 
-def sessions_in(folder):
-    """Metadata of every session transcript directly in the folder that has at least one prompt."""
+def sessions_in(folder, entries=False):
+    """Metadata of every session transcript directly in the folder that has at least one prompt; with entries=True,
+    (metadata, entries) pairs."""
     out = []
     for path in sorted(glob.glob(os.path.join(folder, "*.jsonl"))):
-        meta, entries = transcript.read_session(path)
+        meta, ents = transcript.read_session(path)
         if not meta["id"] or not meta["prompts"]["total"]:
             continue
-        meta["line"] = transcript.session_line(meta, entries)
-        out.append(meta)
+        out.append((meta, ents) if entries else meta)
     return out
 
 
@@ -74,22 +74,23 @@ def _kept_meta(sid, led, state):
     return {"id": sid, "title": m.get("title"), "custom_title": bool(m.get("custom_title")),
             "first_at": m.get("first_at") or ats[0], "last_at": m.get("last_at") or ats[-1],
             "prompts": m.get("prompts") or {"total": 0, "substantive": 0}, "compactions": m.get("compactions") or 0,
-            "line": m.get("summary"), "cwd": m.get("cwd"), "gone": True}
+            "cwd": m.get("cwd"), "gone": True}
 
 
 def page_data(folder, current=None, now=None, pending=None, focus=None):
     key = ledger.project_key(folder)
     state = ledger.load(key)
     metas = sessions_in(folder)
-    shown = {m["id"] for m in metas}
+    # sessions run with claude -p or the Agent SDK (scripts, tests) are not listed unless they were drawn
+    quiet = [m for m in metas if not m["interactive"] and not (state["sessions"].get(m["id"]) or {}).get("runs")]
+    metas = [m for m in metas if m not in quiet]
+    shown = {m["id"] for m in metas} | {m["id"] for m in quiet}
     files = {os.path.basename(p)[:-len(".jsonl")]: p for p in glob.glob(os.path.join(folder, "*.jsonl"))}
     for sid, led in state["sessions"].items():
         if sid in shown or not led["runs"]:
             continue
         if sid in files:     # on disk but without a prompt now, such as a session where /treesight was the only one
-            meta, entries = transcript.read_session(files[sid])
-            meta["line"] = transcript.session_line(meta, entries)
-            metas.append(meta)
+            metas.append(transcript.read_session(files[sid])[0])
         else:
             metas.append(_kept_meta(sid, led, state))
     v = Validator()
@@ -102,8 +103,9 @@ def page_data(folder, current=None, now=None, pending=None, focus=None):
                "nodes": [], "open": []}
         if m.get("gone"):
             doc["gone"] = True
-        if m["line"]:
-            doc["summary"] = _clip(transcript.scrub(m["line"]), 600)   # scrubbed first: a mask can be longer than what it hides
+        gist = (led or {}).get("gist")
+        if gist:            # the one sentence a run wrote about it (scrubbed first: a mask can be longer than what it hides)
+            doc["summary"] = _clip(transcript.scrub(gist["text"]), 600)
         if led and led["runs"]:
             doc["through"] = led["through"]
             doc["nodes"] = led["nodes"]
@@ -120,12 +122,17 @@ def page_data(folder, current=None, now=None, pending=None, focus=None):
         sessions.append(doc)
     cwd = next((m["cwd"] for m in metas if m.get("cwd")), None) or key
     fixed, now = now is not None, now or datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    shown = transcript.scrub(cwd)
     data = {"schema": "treesight/page@1", "asof": now, "current": current,
-            "project": {"path": transcript.scrub(cwd), "name": os.path.basename(cwd.rstrip("/")) or cwd}, "sessions": sessions}
+            "project": {"path": shown, "name": os.path.basename(shown.rstrip("/")) or shown}, "sessions": sessions}
+    if shown != cwd:    # part of the folder's name looked like an address or a secret: the page cannot link to it
+        data["project"]["masked"] = True
     if fixed:       # a made-up sample: day counts run to its own date, not to whenever someone opens it
         data["today"] = now
     if sessions:     # the earliest start of any session (the page lists them by last activity)
         data["project"]["first_at"] = min((s["first_at"] for s in sessions), key=transcript.instant)
+    if quiet:
+        data["hidden"] = len(quiet)
     if focus:
         data["focus"] = focus      # the session this build is about: the page opens on it
     if pending:

@@ -18,6 +18,7 @@
     "label": {"description": "At most 8 units, a noun or verb phrase, no closing punctuation.", "type": "string", "minLength": 1, "maxLength": 48, "x-maxUnits": 8},
     "line": {"description": "One sentence, at most 40 units.", "type": "string", "minLength": 1, "maxLength": 200, "x-maxUnits": 40},
     "short": {"type": "string", "minLength": 1, "maxLength": 60, "x-maxUnits": 10},
+    "twig": {"description": "At most 16 units, a phrase that makes sense on its own.", "type": "string", "minLength": 1, "maxLength": 100, "x-maxUnits": 16},
     "evidence": {
       "description": "A verbatim quote from the transcript that supports the claim, with the message it comes from.",
       "type": "object",
@@ -28,7 +29,7 @@
         "kind": {"enum": ["prompt", "reply", "recap", "compact"]},
         "msg": {"$ref": "#/$defs/uuid"},
         "at": {"$ref": "#/$defs/datetime"},
-        "twig": {"description": "Nodes only: the index of the twig this quote shows, so the page puts the quote's speaker and time after that twig.", "type": "integer", "minimum": 0, "maximum": 2}
+        "twig": {"description": "Nodes only: the index of the twig this quote shows, so the page puts the quote's mark after that twig.", "type": "integer", "minimum": 0, "maximum": 2}
       }
     },
     "evidenceList": {"type": "array", "minItems": 1, "maxItems": 3, "items": {"$ref": "#/$defs/evidence"}},
@@ -75,7 +76,7 @@
         "at": {"$ref": "#/$defs/datetime"},
         "msg": {"description": "The message this node corresponds to, kept for a future fork-from-here.", "$ref": "#/$defs/uuid"},
         "score": {"description": "How much the user will want to recall this a month later, 5 highest.", "type": "integer", "minimum": 1, "maximum": 5},
-        "twigs": {"type": "array", "maxItems": 3, "items": {"$ref": "#/$defs/short"}},
+        "twigs": {"type": "array", "maxItems": 3, "items": {"$ref": "#/$defs/twig"}},
         "merged": {"description": "How many related events of the same kind this node stands for.", "type": "integer", "minimum": 2},
         "shelved": {"description": "A decision not to do something, or to stop it.", "type": "boolean"},
         "story": {"$ref": "#/$defs/story"},

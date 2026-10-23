@@ -293,5 +293,6 @@
   }
  ],
  "close": [],
+ "gist": "You added ICS export to tidepool and moved it to the NOAA API; publishing 0.3.0, Maya's answer on the feed and Windows support are still open.",
  "notes": "o4 (publish 0.3.0) also waits on o1 (Maya's public or private answer), but blocked_by holds one item, so it points to o3 (PyPI token). The NOAA decision (10:31) is folded into n3 rather than kept as its own node. The sample-file workaround is mentioned only when it was removed at 15:31, so its start time is unknown. The leap-year parser tests from the compaction are the assistant's own next step and were left out. The 2026-09-20 PyCon deadline is before today's date (2026-10-16); o5 was not marked expired because the digest does not show what happened."
 }

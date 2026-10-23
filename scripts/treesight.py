@@ -2,7 +2,8 @@
 """treesight command line: the steps the skill runs, one subcommand each.
 
   prepare  find the session, write the digest of its next pass after what the ledger already holds, print JSON
-  show     print the extraction guide (instructions and schemas) or one part of the digest, for the model to read
+  show     print the extraction guide (instructions and schemas), one part of the digest, or the excerpts of other
+           sessions to summarize, for the model to read
   apply    check the extraction the model wrote and append it to the ledger
   build    build the project page (and ask the browser to open it, once per conversation)
   edit     the user's own change to an item or node: close, reopen, hide, set
@@ -37,6 +38,8 @@ GUIDE = [os.path.join(HERE, "..", "skills", "treesight", "extract.md"),
 PART_BYTES = 24000     # one part of `show`, in UTF-8 bytes: Claude Code shows a Bash result inline only up to about
                        # 30,000 bytes (2026-10-21: 25,000 bytes of Chinese shown inline, 33,000 saved to a file instead)
 MAX_PASSES = 2         # passes in one run, so the model's context stays bounded; the next run goes on
+OTHERS_MAX = 30        # other sessions one run summarizes at most (the most recent first); the next run does the rest
+OTHER_S = 6            # seconds per other session in the estimate (one 2026-10-23 run: about 86 s more with 14, twig rule included)
 JOB_GRACE_S = 20 * 60  # a run counts as stopped once it is this far past its estimate and has not touched its mark for as long
 
 
@@ -105,6 +108,42 @@ def work_paths(key, sid):
         root = os.path.join(ledger.private_dir(os.path.join(os.path.expanduser("~"), ".cache", "treesight")), "work")
     d = ledger.private_dir(os.path.join(ledger.private_dir(root), key))
     return os.path.join(d, sid[:8] + ".digest.txt"), os.path.join(d, sid[:8] + ".extract.json")
+
+
+def others_paths(key, sid):
+    """Next to the digest: the excerpts of the other sessions this run summarizes, which the model reads, and which
+    sessions those are, which apply reads (not from the run's mark, which can expire before the run applies)."""
+    base = work_paths(key, sid)[0][:-len(".digest.txt")]
+    return base + ".others.txt", base + ".others.json"
+
+
+def said_last(meta, entries):
+    """When a session last said something of its own: its last entry, not a later /treesight command or notice, so
+    the conversation that runs treesight does not look changed every time."""
+    return max((e["at"] for e in entries), key=transcript.instant, default=meta["last_at"])
+
+
+def to_summarize(folder, state, sid, sessions=None):
+    """Other sessions of the project that need a one-sentence summary, the most recent first: an interactive session
+    without a tree whose summary is missing or older than its last entry, or a drawn session that has none (a drawn
+    session's own run writes it from the whole session, so an excerpt only fills a gap). sessions: what
+    build.sessions_in(folder, entries=True) gives, when the caller has read it already."""
+    out = []
+    for meta, entries in sessions if sessions is not None else build.sessions_in(folder, entries=True):
+        led = state["sessions"].get(meta["id"]) or {}
+        gist = led.get("gist")
+        if meta["id"] == sid or not meta["interactive"] and not led.get("runs"):
+            continue
+        if not gist:
+            stale = True
+        elif led.get("runs"):
+            stale = False
+        else:
+            stale = not gist.get("upto") or transcript.instant(gist["upto"]) < transcript.instant(said_last(meta, entries))
+        if stale:
+            out.append((meta, entries))
+    out.sort(key=lambda x: transcript.instant(said_last(*x)), reverse=True)
+    return out[:OTHERS_MAX]
 
 
 def _remove(*paths):
@@ -182,12 +221,19 @@ def estimate_s(digest_chars):
 
 
 def prepare(a):
-    if re.search(r"(?:^|\s)--restart$", a.session.strip()):      # the flag left among the session words
-        a.session, a.restart = a.session.strip()[:-len("--restart")].strip(), True
+    words = a.session.split()       # flags left among the session words
+    if "--restart" in words:
+        a.restart = True
+    no_open = "--no-open" in words  # the page's own links add it: the page is open, so this conversation must not open it again
+    a.session = " ".join(w for w in words if w not in ("--restart", "--no-open"))
     path = find_session(a.session, a.current)
     key = ledger.project_key(path)
     meta, entries = transcript.read_session(path)
     cache = cache_dir(a.cache)
+    if no_open:
+        mark_opened(cache, key, a.current)
+    # read before taking the project lock, which other runs' builds wait for: a first pass may summarize other sessions
+    sessions = None if a.go_on else build.sessions_in(os.path.dirname(path), entries=True)
     out = {"session": meta["id"], "title": transcript.scrub(meta["title"] or ""), "transcript": path, "project": key}
     with ledger.project_lock(key):
         job = read_job(cache, key, meta["id"])
@@ -203,7 +249,8 @@ def prepare(a):
         state = ledger.load(key)
         led = state["sessions"].get(meta["id"]) or {}
         dig, ext = work_paths(key, meta["id"])
-        _remove(dig, ext)    # an extraction left from an earlier try must not be applied by mistake
+        oth, oth_ids = others_paths(key, meta["id"])
+        _remove(dig, ext, oth, oth_ids)    # an extraction left from an earlier try must not be applied by mistake
         text, info = transcript.digest_pass(path, after=led.get("through"), known=ledger.known_for(state, meta["id"]),
                                             max_chars=a.max_chars, loaded=(meta, entries))
         out.update(runs_before=led.get("runs", 0), new_entries=info["new_entries"], nothing_new=not info["new_entries"])
@@ -213,13 +260,21 @@ def prepare(a):
             return out
         ledger.write_private(dig, text)
         passes = 1 + (job or {}).get("pass", 0) if a.go_on else 1
+        # the first pass also summarizes the project's other sessions that need it, each from a short excerpt
+        others = to_summarize(os.path.dirname(path), state, meta["id"], sessions) if passes == 1 else []
+        oth_text = "\n\n".join("[session %s]\n%s" % (m["id"][:8], transcript.overview(m, e)) for m, e in others) + "\n"
+        if others:
+            ledger.write_private(oth, oth_text)
+            ledger.write_private(oth_ids, json.dumps({m["id"][:8]: {"id": m["id"], "upto": said_last(m, e)} for m, e in others}))
         this_run = info["pass_chars"][:MAX_PASSES - passes + 1]
-        job = job or {"started_at": _now_iso(), "started": time.time(), "estimate_s": sum(estimate_s(c) for c in this_run)}
+        job = job or {"started_at": _now_iso(), "started": time.time(),
+                      "estimate_s": sum(estimate_s(c) for c in this_run) + OTHER_S * len(others)}
         write_job(cache, key, meta["id"], {"session": meta["id"], "title": out["title"] or meta["id"][:8], "pass": passes,
                                             "started_at": job["started_at"], "started": job["started"],
                                             "estimate_s": job["estimate_s"],    # the whole run's, from its first pass
                                             "more": info["remaining"] > 0})     # entries this run found but left for a later pass
-    out.update(digest_chars=len(text), parts=len(split_parts(text)), extract=ext, pass_number=passes,
+    out.update(digest_chars=len(text), parts=len(split_parts(text)), extract=ext, pass_number=passes, others=len(others),
+               others_parts=len(split_parts(oth_text, head=OTHER_HEAD)) if others else 0,
                entries_in_this_pass=info["entries"], entries_after_this_pass=info["remaining"],
                estimate_s=estimate_s(len(text)), estimate_run_s=sum(estimate_s(c) for c in this_run))
     return out
@@ -229,10 +284,16 @@ def _bytes(text):
     return len(text.encode("utf-8"))
 
 
-def split_parts(text, size=PART_BYTES):
-    """The digest in parts of at most `size` UTF-8 bytes, broken before an entry where possible, else at a line."""
+ENTRY_HEAD = r"(?m)^(?=\[(?:prompt|reply|recap|compact) \S+ [0-9a-f-]{36}\]$)"
+OTHER_HEAD = r"(?m)^(?=\[session [0-9a-f]{8}\]$)"
+
+
+def split_parts(text, size=None, head=ENTRY_HEAD):
+    """The digest (or the excerpts of other sessions, head=OTHER_HEAD) in parts of at most `size` UTF-8 bytes, broken
+    before an entry where possible, else at a line."""
+    size = size or PART_BYTES
     parts, cur, cur_b = [], "", 0
-    pieces = re.split(r"(?m)^(?=\[(?:prompt|reply|recap|compact) \S+ [0-9a-f-]{36}\]$)", text)
+    pieces = re.split(head, text)
     for piece in pieces:
         while _bytes(piece) > size:       # one entry longer than a part: break it at lines, or hard if one line is
             if cur:
@@ -266,11 +327,16 @@ def show(a):
     path = find_session(a.session, a.current)
     key = ledger.project_key(path)
     sid = transcript.read_session(path)[0]["id"]
-    dig, _ = work_paths(key, sid)
-    if not os.path.exists(dig):
-        raise Problem("no digest for session %s; run prepare first" % sid[:8])
-    with open(dig, encoding="utf-8") as f:
-        parts = split_parts(f.read())
+    if a.what == "others":
+        src, head = others_paths(key, sid)[0], OTHER_HEAD
+        if not os.path.exists(src):
+            raise Problem("no other sessions to summarize for session %s" % sid[:8])
+    else:
+        src, head = work_paths(key, sid)[0], ENTRY_HEAD
+        if not os.path.exists(src):
+            raise Problem("no digest for session %s; run prepare first" % sid[:8])
+    with open(src, encoding="utf-8") as f:
+        parts = split_parts(f.read(), head=head)
     if not 1 <= a.part <= len(parts):
         raise Problem("there is no part %d; the digest has %d part(s)" % (a.part, len(parts)))
     touch_job(cache_dir(a.cache), key, sid)
@@ -297,10 +363,12 @@ def apply(a):
         text = f.read()
     cache = cache_dir(a.cache)
     job = touch_job(cache, key, meta["id"]) or {}
-    probs, summary = ledger.apply(data, text, key, model=a.model, meta=session_meta(meta, entries), pass_number=job.get("pass", 1))
+    oth, oth_ids = others_paths(key, meta["id"])
+    probs, summary = ledger.apply(data, text, key, model=a.model, meta=session_meta(meta, entries), pass_number=job.get("pass", 1),
+                                  others=_load_json(oth_ids) or {})
     if probs:
         return {"ok": False, "problems": probs}
-    _remove(dig, ext)
+    _remove(dig, ext, oth, oth_ids)
     left = len(transcript.entries_after(path, entries, data["through"]))
     # go on only for entries the run found and could not fit; what the user wrote since waits for the next run
     return {"ok": True, **summary, "entries_left": left,
@@ -319,7 +387,7 @@ def do_build(a):
     # run's progress page and another's result) must not let the one that read the older state write last.
     with ledger.project_lock(key):
         if sid and a.done:                          # this run is over, finished or not: its mark and work files go
-            _remove(_job_path(cache, key, sid), *work_paths(key, sid))
+            _remove(_job_path(cache, key, sid), *work_paths(key, sid), *others_paths(key, sid))
         res = build.write_page(folder, out, current, pending=live_jobs(cache, key) or None, focus=sid)
     if a.open:
         open_once(cache, key, a.current, res)
@@ -334,20 +402,28 @@ def open_once(cache, key, current, res):
     """Ask the browser to show the page once per conversation. Later runs and corrections in the same conversation do
     not open another tab: the page already open reads its stamp and reloads itself (build.stamp_path). A conversation
     resumed after a pause of three hours or more gets the page opened again, since its tab is likely gone."""
-    path = os.path.join(cache, "opened", key + ".json")
-    seen = _load_json(path)
+    seen = _load_json(os.path.join(cache, "opened", key + ".json"))
     seen = seen if isinstance(seen, dict) else {}
-    now = time.time()
-    if current and now - seen.get(current, 0) < OPEN_KEEP_S:
+    if current and time.time() - seen.get(current, 0) < OPEN_KEEP_S:
         res.update(browser_asked=False, open_page_updates=True)
     else:
         build.open_page(res)
     if current and (res.get("browser_asked") or res.get("open_page_updates")):
-        seen[current] = now
-        keep = dict(sorted(seen.items(), key=lambda kv: kv[1])[-50:])
-        ledger.private_dir(os.path.dirname(path))
-        ledger.write_private(path, json.dumps(keep))
+        mark_opened(cache, key, current)
     return res
+
+
+def mark_opened(cache, key, current):
+    """Note that this conversation's page is open (it was asked for, or a run started from the page's own link)."""
+    if not current:
+        return
+    path = os.path.join(cache, "opened", key + ".json")
+    seen = _load_json(path)
+    seen = seen if isinstance(seen, dict) else {}
+    seen[current] = time.time()
+    keep = dict(sorted(seen.items(), key=lambda kv: kv[1])[-50:])
+    ledger.private_dir(os.path.dirname(path))
+    ledger.write_private(path, json.dumps(keep))
 
 
 _POOLS = {"close": ("open",), "reopen": ("closed", "unsure"), "hide": ("open", "nodes"), "set": ("open", "nodes")}
@@ -419,7 +495,7 @@ def main(argv=None):
     cmds["prepare"].add_argument("--continue", dest="go_on", action="store_true", help="the next pass of the run that is going on")
     cmds["prepare"].add_argument("--restart", action="store_true", help="start although a run of this session seems to be going on "
                                  "(one the user stopped); a run that is in fact still going cannot record the same entries twice")
-    cmds["show"].add_argument("what", choices=["guide", "digest"])
+    cmds["show"].add_argument("what", choices=["guide", "digest", "others"])
     cmds["show"].add_argument("--part", type=int, default=1)
     cmds["apply"].add_argument("--model")
     cmds["build"].add_argument("--open", action="store_true")

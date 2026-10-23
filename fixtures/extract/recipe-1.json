@@ -247,5 +247,6 @@
    ]
   }
  ],
- "close": []
+ "close": [],
+ "gist": "You added photo upload to recipe-box and got phone photos uploading and showing the right way up; deleting a recipe's photo and the release are still open."
 }

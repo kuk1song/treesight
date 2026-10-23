@@ -59,19 +59,25 @@ Give a `done` node a `story` when it was blocked for a while before it worked ou
 ## Wording
 
 - Write labels, lines, twigs and story text in the language most of the user's prompts are in. Keep code, paths, commands, version numbers and error text as written.
-- Units: one CJK character, or one word or number, counts as one unit.
+- Units: one CJK character, or one word or number, counts as one unit. Punctuation does not count; a path, version or name joined by dots, slashes or hyphens counts as one.
 - `label`: at most 8 units, a noun or verb phrase that states the outcome, no closing punctuation.
-- `line`: one sentence, at most 40 units, saying what happened and why it matters.
-- `twigs`: up to three details, at most 10 units each.
+- `line`: one sentence, at most 40 units, saying what happened and why it matters, so that someone who has forgotten the session understands it.
+- `twigs`: up to three details the line does not already say, at most 16 units each. Each is a plain phrase that makes sense on its own a month later: name the thing rather than "it", keep the verb, and say what a term the session coined means.
 - Write about the user as "you" in the user's language, never by name.
 - Keep how sure the session was. When the text hedges ("I think", "maybe", "probably", "not sure"), the label, line or twigs say so too ("you think the vendor already replied"), never as a plain fact.
+
+## Summaries
+
+- `gist`: one sentence, at most 50 units, on what this session worked on and where it ended: its outcome, or what it was waiting on at the end. It is the session's summary on the project page. In a later pass or run, cover the whole session as far as you have read, using the header's nodes and items for what came before.
+- `others`: only when you ran `T show others`. For each session it printed, one entry with `session` (its 8-character id, as printed) and `gist`, by the same rules, written from that excerpt alone. An excerpt has the title, up to four prompts, the start of the last reply and the last recap, each with its date: where they disagree, the later one is the session's end. A first prompt is often an earlier reply the user pasted back in, so do not credit its work to this session. When an excerpt is too thin for an outcome, say what the session was about, and do not invent one.
+- Same wording rules as above: the language most of that session's prompts are in, "you" for the user, code, names and numbers as written, no advice and no "this session".
 
 ## Evidence
 
 - A node's `msg` and `at` are the entry where its outcome shows (usually the reply that reports it; the prompt only when the user decided there), and one of its quotes, from that entry, states the outcome. An open item's `msg` and `raised_at` are the entry where it was raised. Each has one to three `evidence` items.
 - `quote` must be copied character for character from one entry's text in the digest, at most 400 characters. You may cut it short at either end; do not change, translate, fix or join anything inside it. The ledger rejects a quote it cannot find in that entry.
 - `kind` is the entry's kind (`prompt`, `reply`, `recap` or `compact`); `msg` and `at` are that entry's message id and time.
-- On a node, an evidence item may add `twig`: the twig it shows, counting from 0 for the first. The page puts who said it and when after that twig, and the quote opens from there. One quote can both state the outcome and show a twig.
+- On a node, an evidence item may add `twig`: the twig it shows, counting from 0 for the first. The page puts a small quote mark after that twig, which opens the quote. One quote can both state the outcome and show a twig.
 - Never copy secrets. The digest has already replaced them with `[secret]`, `[email]` and `x.x.x.x`; keep those markers as they are.
 
 ## Output

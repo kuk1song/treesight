@@ -188,6 +188,42 @@ def session_line(meta, entries):
     return _short_paste(scrub_prompt(first), 120)
 
 
+_RECAP_HINT = re.compile(r"\s*\(disable recaps in /config\)\s*$")
+
+
+def recap_text(text):
+    """A recap without the settings hint Claude Code appends to some of them."""
+    return _RECAP_HINT.sub("", text or "").strip()
+
+
+def _clip_one(text, n):
+    text = re.sub(r"\s+", " ", text).strip()
+    return text if len(text) <= n else text[:n - 1].rstrip() + "\u2026"
+
+
+def overview(meta, entries, prompt_chars=200, reply_chars=400, recap_chars=300):
+    """A short excerpt of a session, for a one-sentence summary of a session that has no tree yet: its title, its
+    first two and last two prompts that are not just a nudge or pasted output (pasted content shortened), the start of
+    its last reply and its last recap. About 1,500 characters at most (up to 4.5 KB of UTF-8 in Chinese); scrubbed
+    like a digest."""
+    prompts = [e for e in entries if e["k"] == "P" and is_substantive(e["text"])]
+    # a prompt that starts with Claude Code's reply marker is output pasted from another session (as in session_line)
+    prompts = [e for e in prompts if not e["text"].lstrip().startswith("\u23fa")] or prompts
+    picked = prompts if len(prompts) <= 4 else prompts[:2] + prompts[-2:]
+    lines = ["title: " + scrub(meta.get("title") or "(none)"),
+             "time: %s to %s, %d prompts" % ((meta.get("first_at") or "")[:10], (meta.get("last_at") or "")[:10], meta["prompts"]["substantive"])]
+    for e in picked:
+        text = _short_paste(scrub_prompt(e["text"]), 120)
+        lines.append("prompt %s: %s" % (e["at"][:10], _clip_one(text, prompt_chars)))
+    replies = [e for e in entries if e["k"] == "R" and e.get("last")]
+    if replies:
+        lines.append("last reply %s: %s" % (replies[-1]["at"][:10], _clip_one(scrub(replies[-1]["text"]), reply_chars)))
+    recaps = [e for e in entries if e["k"] == "S"]
+    if recaps:
+        lines.append("last recap %s: %s" % (recaps[-1]["at"][:10], _clip_one(scrub(recap_text(recaps[-1]["text"])), recap_chars)))
+    return "\n".join(lines)
+
+
 # compaction summaries: drop the sections that repeat the prompts or dump code; when the rest is still too long,
 # shorten sections in reverse order of how much they say about what is open, so Pending Tasks is the last to be cut
 _DROP_SECTIONS = ("Files and Code Sections", "All user messages")
@@ -221,7 +257,8 @@ def read_session(path):
     Entry kinds: P prompt, R assistant text (last=True on the last one of a turn), S automatic recap, C compaction summary.
     Each entry also has pos, the number of its record in the file."""
     meta = {"id": None, "title": None, "custom_title": False, "cwd": None, "first_at": None, "last_at": None,
-            "prompts": {"total": 0, "substantive": 0}, "compactions": 0, "summary": None}
+            "prompts": {"total": 0, "substantive": 0}, "compactions": 0, "summary": None, "interactive": True}
+    starts = set()   # how each prompt was sent: "cli" in a terminal, "sdk-..." from claude -p or the Agent SDK
     ai_title = custom = None
     entries, turn = [], []
     own = False   # inside a turn that treesight started
@@ -263,6 +300,7 @@ def read_session(path):
             text = _text_blocks(rec["message"]["content"])
             meta["prompts"]["total"] += 1
             meta["prompts"]["substantive"] += is_substantive(text)
+            starts.add(str(rec.get("entrypoint") or ""))
             entries.append({"k": "P", "msg": msg, "at": at, "text": text, "pos": pos})
         elif is_own_trace(rec):
             flush()
@@ -276,6 +314,9 @@ def read_session(path):
     flush()
     meta["title"] = custom or ai_title
     meta["custom_title"] = bool(custom)
+    # only sessions whose every prompt says it came from claude -p or the SDK count as not interactive; a format
+    # without the field (or a mix) counts as interactive, so a session is never hidden by mistake
+    meta["interactive"] = not (starts and all(s.startswith("sdk") for s in starts))
     return meta, entries
 
 
