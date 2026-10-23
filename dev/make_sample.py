@@ -44,14 +44,22 @@ def build_sample(name, out):
     folder = os.path.join(ROOT, "fixtures", "projects", project)
     ledger._now = lambda: now          # the runs' own time, so the page is the same every time it is built
     key = ledger.project_key(folder)
-    for prefix, extract in steps:
+    with open(os.path.join(ROOT, "fixtures", "extract", "others.json"), encoding="utf-8") as f:
+        others = json.load(f)["samples"].get(name, {})
+    for i, (prefix, extract) in enumerate(steps):
         path = glob.glob(os.path.join(folder, prefix + "-*.jsonl"))[0]
         with open(os.path.join(ROOT, "fixtures", "extract", extract), encoding="utf-8") as f:
             ext = json.load(f)
+        listed = {}
+        if i == 0 and others:      # the first run also summarizes the other sessions, as `show others` would list them
+            for sid8, gist in others.items():
+                meta = transcript.read_session(glob.glob(os.path.join(folder, sid8 + "-*.jsonl"))[0])[0]
+                listed[sid8] = {"id": meta["id"], "upto": meta["last_at"]}
+            ext["others"] = [{"session": s, "gist": g} for s, g in others.items()]
         state = ledger.load(key)
         after = (state["sessions"].get(ext["session"]) or {}).get("through")
         digest = transcript.digest(path, after=after, known=ledger.known_for(state, ext["session"]))
-        probs, _ = ledger.apply(ext, digest, key, model="fixture")
+        probs, _ = ledger.apply(ext, digest, key, model="fixture", others=listed)
         if probs:
             raise SystemExit("%s: %s" % (extract, probs))
     with open(os.path.join(ROOT, "fixtures", "extract", steps[-1][1]), encoding="utf-8") as f:

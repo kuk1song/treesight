@@ -126,10 +126,10 @@ try {
     const fade = async (to, ms) => { const k = Math.round(ms / DT), o0 = cop; for (let i = 1; i <= k; i++) { cop = o0 + (to - o0) * i / k; await f() } };
     // 1: the tree grows: its first 0.3 s at normal speed, the rest slowed, about 2 s in all
     await hold(300); await hold(2400, 1000 / 2400); await hold(900);
-    // 2: open the node that got stuck, then the quote behind it (who said it and when, after the twig it shows)
+    // 2: open the node that got stuck, then the quote behind one of its twigs (the small mark after it)
     step = 2; let r = await at(`[...document.querySelectorAll('.node')].find(b=>b.textContent.includes(${JSON.stringify(L.node)}))`);
     await fade(1, 200); await move(r.x + r.w * .6, r.y + 12, 800); await hold(200); await click(); await hold(1900);
-    await scroll(SCROLL, 600); r = await at(`document.querySelector('.slot.open .cite')`);
+    await scroll(SCROLL, 600); r = await at(`document.querySelector('.slot.open .twl .qm')`);
     await move(r.x + r.w / 2, r.y + r.h / 2, 700); await hold(150); await click(); await hold(2300);
     // 3: back to the whole project, then its open items
     step = 3; await scroll(-SCROLL, 500); r = await at(`document.getElementById('back')`);

@@ -71,11 +71,19 @@ def before(at, raised):
     return instant(at) < start
 
 
-def check(ext, digest_text, known=None):
-    """Return a list of problems; empty means the output can be appended."""
+def check(ext, digest_text, known=None, others=None):
+    """Return a list of problems; empty means the output can be appended. others maps the 8-character ids of the
+    sessions this run was asked to summarize (see treesight.py prepare) to their full id."""
     probs = Validator().validate(ext, "extract.schema.json")
     if probs:
         return probs
+    seen_others = set()
+    for i, o in enumerate(ext.get("others", [])):
+        if o["session"] not in (others or {}):
+            probs.append("others[%d]: %s is not one of the sessions show others listed" % (i, o["session"]))
+        elif o["session"] in seen_others:
+            probs.append("others[%d]: %s is summarized twice" % (i, o["session"]))
+        seen_others.add(o["session"])
     session, entries = parse_digest(digest_text)
     known = known or {"nodes": [], "open": []}
     if ext["session"] != session:
@@ -268,7 +276,7 @@ def view(events, edits=()):
     order, closes = [], []
     for e in events:
         sid = e.get("session")
-        s = sessions.setdefault(sid, {"through": None, "runs": 0, "nodes": [], "last_run": None, "meta": None}) if sid else None
+        s = sessions.setdefault(sid, {"through": None, "runs": 0, "nodes": [], "last_run": None, "meta": None, "gist": None}) if sid else None
         ev = e.get("ev")
         this_run = s is not None and s["last_run"] and e.get("run") in s["last_run"]["ids"]
         if ev == "run":
@@ -281,6 +289,10 @@ def view(events, edits=()):
                              "nodes": lr["nodes"] if lr else 0, "open": lr["open"] if lr else 0, "closed": 0, "flagged": 0,
                              "_closes": lr["_closes"] if lr else [], "notes": notes or None}
             s["meta"] = e.get("session_meta") or s["meta"]
+            if e.get("gist"):       # the run's own one-sentence summary, from reading the whole session
+                s["gist"] = {"text": e["gist"], "upto": (e.get("session_meta") or {}).get("last_at"), "at": e["at"]}
+        elif ev == "gist":          # a summary another session's run wrote from a short excerpt of this one
+            s["gist"] = {"text": e["gist"], "upto": e.get("upto"), "at": e["at"]}
         elif this_run and ev in ("node", "open"):
             s["last_run"]["nodes" if ev == "node" else "open"] += 1
         if ev == "node":
@@ -389,22 +401,23 @@ def _own_first(x):
     return sorted(x["evidence"], key=lambda e: e["msg"] != x["msg"])
 
 
-def apply(ext, digest_text, key, model=None, meta=None, pass_number=1):
+def apply(ext, digest_text, key, model=None, meta=None, pass_number=1, others=None):
     """Check an extraction output and append it. Returns (problems, summary); nothing is written when there are problems.
 
     meta is the session's metadata as its transcript has it now (see SESSION_META); it is stored with the run.
     pass_number above 1 marks a later pass of the run before it, so the two count as one run (see view).
+    others maps the 8-character ids of the other sessions this run may summarize to {"id", "upto"}.
     The whole read, check and append happens under the project lock."""
     with project_lock(key):
-        return _apply(ext, digest_text, key, model, meta, pass_number)
+        return _apply(ext, digest_text, key, model, meta, pass_number, others or {})
 
 
-def _apply(ext, digest_text, key, model, meta, pass_number):
+def _apply(ext, digest_text, key, model, meta, pass_number, others):
     d = project_dir(key)
     events, edits = _read(os.path.join(d, "ledger.jsonl")), _read(os.path.join(d, "edits.jsonl"))
     state = view(events, edits)
     known = known_for(state, ext["session"]) if isinstance(ext, dict) and "session" in ext else None
-    probs = check(ext, digest_text, known)
+    probs = check(ext, digest_text, known, others)
     prev = (state["sessions"].get(ext.get("session")) or {}).get("through") if isinstance(ext, dict) else None
     if not probs and prev and prev in parse_digest(digest_text)[1]:
         probs.append("the digest repeats entries the ledger already read; build it with --after %s" % prev)
@@ -430,6 +443,8 @@ def _apply(ext, digest_text, key, model, meta, pass_number):
         run_ev["pass"] = pass_number
     if meta:
         run_ev["session_meta"] = {k: meta[k] for k in SESSION_META if k in meta}
+    if ext.get("gist"):
+        run_ev["gist"] = ext["gist"]
     out = [run_ev]
     for n in ext["nodes"]:
         node = {k: v for k, v in n.items() if k != "ref"}
@@ -450,6 +465,9 @@ def _apply(ext, digest_text, key, model, meta, pass_number):
         r = later[s["by"]]
         out.append(dict(base, ev="close", close={"id": ids[s["ref"]], "status": s["status"], "sure": s["sure"],
                                                  "quote": r["quote"], "msg": r["msg"], "at": r["at"], "via": s["by"]}))
+    for o in ext.get("others", []):
+        other = others[o["session"]]
+        out.append(dict(base, ev="gist", session=other["id"], gist=o["gist"], upto=other["upto"]))
     _append(os.path.join(d, "ledger.jsonl"), out)
     after = view(events + out, edits)
     lr = after["sessions"][sid]["last_run"]
@@ -457,7 +475,7 @@ def _apply(ext, digest_text, key, model, meta, pass_number):
     # settled count what this pass proposed
     return [], {"run": run, "nodes": lr["nodes"], "open": lr["open"], "close": len(ext["close"]),
                 "settled": len(ext.get("settled", [])), "closed": lr["closed"], "to_confirm": lr["flagged"],
-                "open_in_project": len(after["open"]), "ids": ids}
+                "open_in_project": len(after["open"]), "summaries": len(ext.get("others", [])) + bool(ext.get("gist")), "ids": ids}
 
 
 _SET_FIELDS = ("label", "line", "kind", "due", "when", "who", "rank", "score", "blocked_by")

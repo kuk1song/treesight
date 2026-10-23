@@ -12,6 +12,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
@@ -29,7 +30,10 @@ def run(*args):
     with contextlib.redirect_stdout(out):
         code = treesight.main(list(args))
     text = out.getvalue().strip()
-    return code, (json.loads(text) if text.startswith(("{", "[")) else text)
+    try:
+        return code, json.loads(text)
+    except ValueError:      # what `show` prints for the model to read
+        return code, text
 
 
 def page_data(path):
@@ -193,6 +197,76 @@ class Cli(unittest.TestCase):
         lr = next(s for s in data["sessions"] if s["id"] == S1)["last_run"]
         self.assertEqual(lr["notes"], "pass 1 was unsure\n\npass 2 was unsure")
         self.assertEqual(ledger.load(PROJECT)["sessions"][S1]["runs"], 2)
+
+    def test_a_run_also_summarizes_the_other_sessions(self):
+        """The first pass of a run lists the project's other sessions that need a summary; the model writes one sentence
+        each from `show others`, apply records them with the run's own, and the page shows them. A later run of another
+        session finds nothing left to summarize."""
+        code, out = run("prepare", *self.common)
+        self.assertEqual(out["others"], 2)
+        code, text = run("show", "others", *self.common)
+        self.assertEqual(code, 0)
+        self.assertIn("[session 0a182a7b]\ntitle: release 0.3.0", text)
+        self.assertIn("[session fd14e71a]", text)
+        self.assertNotIn("[session 953c0ab1]", text)
+        with open(os.path.join(ROOT, "fixtures", "extract", "tidepool-1.json"), encoding="utf-8") as f:
+            ext = json.load(f)
+        ext["others"] = [{"session": "0a182a7b", "gist": "You released 0.3.0."}, {"session": "fd14e71a", "gist": "You pinned CI to 3.12."}]
+        with open(out["extract"], "w", encoding="utf-8") as f:
+            json.dump(ext, f)
+        code, res = run("apply", *self.common)
+        self.assertTrue(res["ok"], res)
+        self.assertEqual(res["summaries"], 3)
+        self.assertFalse(os.path.exists(out["extract"].replace(".extract.json", ".others.txt")))
+        run("build", "--done", "--session", S1, *self.common)
+        code, b = run("build", *self.common)
+        html, data = page_data(b["page"])
+        self.assertEqual({s["id"][:8]: s.get("summary") for s in data["sessions"]},
+                         {"953c0ab1": ext["gist"], "0a182a7b": "You released 0.3.0.", "fd14e71a": "You pinned CI to 3.12."})
+        code, again = run("prepare", "--session", S2, *self.common)
+        self.assertEqual(again["others"], 0)
+        code, res = run("show", "others", "--session", S2, *self.common)
+        self.assertEqual((code, res["ok"]), (1, False))
+
+    def test_which_sessions_need_a_summary(self):
+        """A session without a tree whose summary is missing or older than its last message, or a drawn session with
+        none (its own run writes it from the whole session); never the session being drawn; the most recent first,
+        at most OTHERS_MAX."""
+        folder = os.path.join(ROOT, "fixtures", "projects", PROJECT)
+        fd = "fd14e71a-3afc-5d70-9e9a-cd1e6396b471"
+        last = {m["id"]: m["last_at"] for m in build.sessions_in(folder)}
+        need = lambda sessions: [m["id"][:8] for m, _ in treesight.to_summarize(folder, {"sessions": sessions}, S1)]
+        self.assertEqual(need({}), ["fd14e71a", "0a182a7b"])
+        self.assertEqual(need({fd: {"runs": 0, "gist": {"upto": last[fd]}}}), ["0a182a7b"])
+        self.assertEqual(need({fd: {"runs": 0, "gist": {"upto": "2026-01-01T00:00:00Z"}}}), ["fd14e71a", "0a182a7b"])
+        self.assertEqual(need({S2: {"runs": 1, "gist": {"upto": "2026-01-01T00:00:00Z"}}}), ["fd14e71a"])
+        self.assertEqual(need({S2: {"runs": 1, "gist": None}}), ["fd14e71a", "0a182a7b"])
+        with mock.patch.object(treesight, "OTHERS_MAX", 1):
+            self.assertEqual(need({}), ["fd14e71a"])
+
+    def test_sessions_run_with_claude_p_are_left_off_the_page(self):
+        """A session made by claude -p (a script, a test) is not listed, the page says how many were left out, and no run
+        is asked to summarize it."""
+        projects = os.path.join(self.tmp, "projects")
+        folder = os.path.join(projects, PROJECT)
+        shutil.copytree(os.path.join(ROOT, "fixtures", "projects", PROJECT), folder)
+        quiet = "5d0e1f2a-3b4c-4d5e-8f6a-7b8c9d0e1f2a"
+        with open(os.path.join(folder, "fd14e71a-3afc-5d70-9e9a-cd1e6396b471.jsonl"), encoding="utf-8") as f:
+            recs = [json.loads(line) for line in f if line.strip()]
+        with open(os.path.join(folder, quiet + ".jsonl"), "w", encoding="utf-8") as f:
+            for r in recs:
+                if "sessionId" in r:
+                    r["sessionId"] = quiet
+                if r.get("type") == "user":
+                    r["entrypoint"] = "sdk-cli"
+                f.write(json.dumps(r) + "\n")
+        os.environ["TREESIGHT_PROJECTS"] = projects
+        code, b = run("build", *self.common)
+        html, data = page_data(b["page"])
+        self.assertEqual(data["hidden"], 1)
+        self.assertNotIn(quiet, [s["id"] for s in data["sessions"]])
+        self.assertEqual(len(data["sessions"]), 3)
+        self.assertNotIn(quiet[:8], [m["id"][:8] for m, _ in treesight.to_summarize(folder, {"sessions": {}}, S1)])
 
     def test_the_browser_is_asked_once_per_conversation(self):
         """Later runs and corrections in the same conversation update the page that is already open (it reads its

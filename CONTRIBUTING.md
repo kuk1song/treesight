@@ -8,7 +8,7 @@ treesight reads people's own Claude Code sessions, so nothing from a real sessio
 
 ## Checks
 
-Python 3.9 or later and the standard library only. Six tests of the page's script need `node`, one cross-check needs the `jsonschema` package, and two drive the page in a headless Chromium (`dev/check_page.py` loads every view, `dev/check_live.mjs` checks that an open page updates itself; Playwright's chrome-headless-shell, or `google-chrome` on Linux, and Node 22 or later for the second); they are skipped when those are missing.
+Python 3.9 or later and the standard library only. Seven tests of the page's script need `node`, one cross-check needs the `jsonschema` package, and two drive the page in a headless Chromium (`dev/check_page.py` loads every view, `dev/check_live.mjs` checks that an open page updates itself and that nodes, links and growth work with a mouse; Playwright's chrome-headless-shell, or `google-chrome` on Linux, and Node 22 or later for the second); they are skipped when those are missing.
 
 ```bash
 python3 -m unittest discover -s tests     # tests
@@ -16,7 +16,7 @@ python3 dev/make_sample.py                # rebuild docs/demo.html (the recipe-b
 node dev/record_demo.mjs en|zh            # record a README video (needs Node 22 or later, ffmpeg and chrome-headless-shell)
 python3 dev/palcheck.py                   # colour contrast of the page
 python3 dev/check_page.py                 # every view of the page in a headless browser, no script errors
-node dev/check_live.mjs <chromium>        # an open page follows a correction and a run without a new tab (Node 22 or later)
+node dev/check_live.mjs <chromium>        # an open page follows a correction and a run without a new tab; nodes, links, growth (Node 22 or later)
 python3 dev/check_release.py              # plugin.json's version has its CHANGELOG section
 claude plugin validate --strict .         # in a clean checkout
 ```

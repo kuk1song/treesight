@@ -120,5 +120,6 @@
    "msg": "95abe5a1-5ea3-5073-be30-e1a3baf9b7d5",
    "at": "2026-09-23T10:05:47.000Z"
   }
- ]
+ ],
+ "gist": "You moved the photos to the storage bucket and shipped 1.2 with photo upload; the announcement and Alex's Android test are still to come."
 }

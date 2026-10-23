@@ -207,5 +207,6 @@
    "at": "2026-09-23T16:20:11.000Z"
   }
  ],
+ "gist": "You kept the calendar feed private and released tidepool 0.3.0 through trusted publishing; Maya's station list and a blog post are still open.",
  "notes": "953c0ab1-o3 (PyPI token) is proposed as expired, not done: the token never came, but the admin granted access another way (trusted publishing), so done could also fit. 953c0ab1-o2 (wait on Maya for stations) is proposed as done but unsure, since you only think Maya sent the list; the remaining step is tracked as new todo o1. The blog post was planned for 'this weekend' (the weekend after 2026-09-23), which reads as a plan rather than a deadline, so no due date was set. 'Maybe next year' for the PyCon talk was too tentative to open as a wait item. The switch from token to trusted publishing is folded into n2 rather than kept as its own node."
 }

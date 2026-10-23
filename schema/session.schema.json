@@ -20,7 +20,7 @@
       "properties": {"total": {"type": "integer", "minimum": 0}, "substantive": {"type": "integer", "minimum": 0}}
     },
     "compactions": {"type": "integer", "minimum": 0},
-    "summary": {"description": "One line for the project view, without a model: the latest automatic recap, else the first prompt that is not output pasted from another session.", "type": "string", "maxLength": 600},
+    "summary": {"description": "One sentence for the project view, written by a treesight run: from the whole session when it was drawn, else from a short excerpt of it (the latest summary in the ledger).", "type": "string", "maxLength": 600},
     "generated": {"description": "Whether the tree has been extracted at least once.", "type": "boolean"},
     "gone": {"description": "True when Claude Code has deleted the session's transcript; the session is drawn from what the ledger kept.", "type": "boolean"},
     "through": {"description": "The last message the ledger has extracted.", "$ref": "common.schema.json#/$defs/uuid"},

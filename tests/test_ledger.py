@@ -412,6 +412,35 @@ class Ledger(unittest.TestCase):
         self.assertEqual(len(ids), len(set(ids)))
         self.assertEqual(sum(1 for e in events if e.get("ev") == "run"), 1)
 
+    def test_summaries_are_kept_and_the_latest_wins(self):
+        """A run's own one-sentence summary rides on its run event; the summaries it writes of other sessions from short
+        excerpts are events of their own, and a later run of such a session, which reads all of it, replaces them."""
+        others = {"0a182a7b": {"id": S2, "upto": "2026-09-23T10:00:00.000Z"}}
+        ext = dict(copy.deepcopy(EXTRACT1), gist="You added ICS export.", others=[{"session": "0a182a7b", "gist": "You released 0.3.0."}])
+        probs, summary = ledger.apply(ext, self.d1, PROJECT, others=others)
+        self.assertEqual(probs, [])
+        self.assertEqual(summary["summaries"], 2)
+        st = ledger.load(PROJECT)["sessions"]
+        self.assertEqual(st[EXTRACT1["session"]]["gist"]["text"], "You added ICS export.")
+        self.assertEqual((st[S2]["gist"]["text"], st[S2]["gist"]["upto"], st[S2]["runs"]), ("You released 0.3.0.", "2026-09-23T10:00:00.000Z", 0))
+        state = ledger.load(PROJECT)
+        d2 = transcript.digest(T2, known=ledger.known_for(state, S2))
+        e2 = dict(extract2(d2, self.labels(state)), gist="You kept the feed private and released 0.3.0.")
+        probs, _ = ledger.apply(e2, d2, PROJECT)
+        self.assertEqual(probs, [])
+        self.assertEqual(ledger.load(PROJECT)["sessions"][S2]["gist"]["text"], "You kept the feed private and released 0.3.0.")
+
+    def test_summaries_only_of_the_sessions_listed(self):
+        """A run may summarize only the sessions `show others` listed for it, each once, in at most 50 units; nothing is
+        written otherwise."""
+        listed = {"0a182a7b": {"id": S2, "upto": "2026-09-23T10:00:00.000Z"}}
+        for others, given, want in (([{"session": "0a182a7b", "gist": "x"}], {}, "is not one of the sessions show others listed"),
+                                    ([{"session": "0a182a7b", "gist": "a"}, {"session": "0a182a7b", "gist": "b"}], listed, "summarized twice"),
+                                    ([{"session": "0a182a7b", "gist": " ".join(["word"] * 51)}], listed, "51 units")):
+            probs, _ = ledger.apply(dict(copy.deepcopy(EXTRACT1), others=others), self.d1, PROJECT, others=given)
+            self.assertTrue(any(want in p for p in probs), probs)
+        self.assertFalse(os.path.exists(os.path.join(self.home, "projects", PROJECT, "ledger.jsonl")))
+
     def test_ledger_only_grows(self):
         self.first()
         path = os.path.join(ledger.project_dir(PROJECT), "ledger.jsonl")
