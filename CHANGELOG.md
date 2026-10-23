@@ -21,7 +21,7 @@
 - `dev/check_page.py` loads every view of the page in a headless browser and fails on any script error, and `dev/check_live.mjs` checks that an open page follows a correction and a run without a new tab, that with a mouse an open node shows its sentence and its quote, that a session's links offer the command after a click, and that a page opened while a run is drawing grows; the tests run both when a browser is found.
 - The ledger can now hold a `twig` on a node's quote and twigs of up to 16 units, which 0.1.3 and earlier refuse when they draw the page, and summaries, which they ignore: after updating, do not go back to an earlier version.
 - Wrong arguments to the command line answer `{"ok": false, …}` like other errors. Hover cards and expanded nodes wrap long file names too.
-- Documents: a run with nothing new takes a few short model requests (about 20 s), not one; CONTRIBUTING counts the tests that need node and lists every step of the release workflow. Both README videos are re-recorded: a node's quotes follow its twigs.
+- Documents: a run with nothing new takes a few short model requests (about 20 s), not one; CONTRIBUTING counts the tests that need node and lists every step of the release workflow. Both README videos are re-recorded: an open node shows its twigs and opens a quote from its mark.
 
 ## 0.1.3 (2026-10-20)
 
