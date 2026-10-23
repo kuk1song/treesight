@@ -37,8 +37,12 @@ try {
   await send('Page.navigate', {url: page + '#s=953c0ab1'}); await sleep(1000);
   const node = await ev(`(()=>{const b=[...document.querySelectorAll('.node')].find(n=>{const s=n.closest('.slot');return s.querySelector('.lt')&&s.querySelector('.qm')});if(!b)return null;b.click();
     const s=b.closest('.slot'),lt=s.querySelector('.lt'),m=s.querySelector('.qm'),seen=lt.offsetHeight>0&&lt.textContent.length>0;m.click();
-    const q=s.querySelector('.qs:not([hidden]) .qq');return {hover:matchMedia('(hover:hover)').matches,seen,quote:!!(q&&q.textContent)}})()`);
-  if (!node || !node.hover || !node.seen || !node.quote) fail.push('an open node shows its sentence and, on request, its quote: ' + JSON.stringify(node));
+    /* Google Chrome on Linux CI ignores the emulated hover, so the rules that apply only with a mouse are also read directly */
+    const rules=[...document.styleSheets].flatMap(x=>{try{return [...x.cssRules]}catch(_){return []}});
+    const hidden=rules.filter(r=>r.media&&/hover\s*:\s*hover/.test(r.media.mediaText)).flatMap(r=>[...r.cssRules])
+      .some(x=>{try{return x.style&&x.style.display==='none'&&!!lt.closest(x.selectorText)}catch(_){return false}});
+    const q=s.querySelector('.qs:not([hidden]) .qq');return {hover:matchMedia('(hover:hover)').matches,seen,hidden,quote:!!(q&&q.textContent)}})()`);
+  if (!node || !node.seen || node.hidden || !node.quote) fail.push('an open node shows its sentence (also with a mouse) and, on request, its quote: ' + JSON.stringify(node));
   // a session without a tree: two links into Claude Code, and after a click the same command to copy
   await ev(`location.hash='p'`); await sleep(800);
   const nt = await ev(`(()=>{const b=[...document.querySelectorAll('.node.pn')].find(n=>!n.getAttribute('href'));if(!b)return null;b.click();
