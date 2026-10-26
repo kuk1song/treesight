@@ -14,7 +14,7 @@ Do you find it hard, after a while, to recall how a session went and its details
 
 treesight reads the whole session and draws it as a tree: what got done, what was found, where it got stuck, and what is still open. It runs as a plugin inside your AI: no server, no account, no extra API key, and the page makes no network requests.
 
-https://github.com/user-attachments/assets/40deb574-150c-4078-8bdb-75ebbc3606b9
+https://github.com/user-attachments/assets/f90b9b89-7cdc-421e-b8e6-5109e2a3104b
 
 ## Install
 
