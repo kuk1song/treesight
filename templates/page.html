@@ -31,10 +31,7 @@ main{max-width:940px;margin:0 auto;padding:0 20px 60px}
 .where{text-align:center;margin:6px 0 0;display:grid;justify-items:center;gap:4px}
 .where b{font-size:15px;font-weight:600;overflow-wrap:anywhere}.where small{font-family:var(--mono);font-size:11.5px;color:var(--mut)}
 .where .since{font-family:var(--f);font-size:12px;color:var(--mut)}
-.unsure{all:unset;cursor:pointer;color:var(--mut);text-decoration:underline dotted;text-underline-offset:3px}.unsure:hover{color:var(--ink)}
-.notes{max-width:560px;margin:6px auto 0;text-align:left;font-size:12.5px;color:var(--ink);background:var(--panel);border-radius:10px;padding:8px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
-.notes[hidden]{display:none}
-.unsure:focus-visible,.oit:focus-visible,.pz:focus-visible,.act:focus-visible,.cpy:focus-visible,.qm:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.oit:focus-visible,.pz:focus-visible,.act:focus-visible,.cpy:focus-visible,.qm:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 /* an expanded node or session: one panel beside the trunk, its text flush left on both sides (a ragged left edge is hard to read) */
 .xp{display:grid;gap:6px;max-width:420px;text-align:left;background:var(--panel);border-radius:12px;padding:10px 13px;font-size:13.5px}.row.l .xp{margin-left:auto}
 .ai{font-size:10.5px;line-height:1.3;border:1px solid var(--line2);border-radius:4px;padding:0 4px;cursor:help}
@@ -57,8 +54,8 @@ svg.sh{flex:none;display:block;overflow:visible}
 .lgd{display:inline-flex;gap:16px}.lgd span{display:inline-flex;align-items:center;gap:5px}
 .rows{position:relative;display:grid;gap:20px;margin-top:8px}
 .row{display:grid;grid-template-columns:1fr 64px 1fr;align-items:start}
-.arm{grid-column:2;height:26px;position:relative}
-.arm svg{position:absolute;top:0;width:50%;height:26px}.arm path{stroke:var(--trunk)}
+.arm{grid-column:2;height:26px;position:relative;top:calc(var(--tc) - 9px)}
+.arm svg{position:absolute;top:0;width:calc(50% + 7px);height:26px}.arm path{stroke:var(--trunk)}
 .row.l .arm svg{right:50%}.row.r .arm svg{left:50%}
 .row .slot{grid-row:1;min-width:0}
 .row.l .slot{grid-column:1;text-align:right}.row.r .slot{grid-column:3;text-align:left}
@@ -69,7 +66,11 @@ a.node{color:inherit;text-decoration:none}
 .node .hring{fill:none;stroke:var(--ink);stroke-width:1.2;stroke-dasharray:47;stroke-dashoffset:47;transition:stroke-dashoffset .35s cubic-bezier(.2,.7,.2,1)}
 .node:hover .hring,.node:focus-visible .hring{stroke-dashoffset:0}
 @media (prefers-reduced-motion:reduce){.node .hring{transition:none}}
-.node .t{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15.5px}
+/* the dot sits on the title's first line, and the branch ends at the dot's centre: --tc is that centre, from the top of
+   the row (the node's 4 px padding plus half a line of its title) */
+:root{--tc:16.4px}
+.node .t{display:flex;align-items:flex-start;gap:8px;font-weight:600;font-size:15.5px}
+.dw{flex:none;display:flex;align-items:center;justify-content:center;height:1.6em}
 .node .lb,.oi{min-width:0;overflow-wrap:anywhere}   /* a long file name or path breaks instead of running off a narrow screen */
 .row.l .node .t{flex-direction:row-reverse}
 .node .date{font-family:var(--mono);font-size:11px;color:var(--mut)}
@@ -77,7 +78,7 @@ a.node{color:inherit;text-decoration:none}
 .node .chev{color:var(--mut);font-weight:400;margin-left:6px}.node:hover .chev{color:var(--ink)}
 .node.sup .t .lb{color:var(--mut);text-decoration:line-through}
 .node.hl{outline:1.5px dashed var(--overturn)}
-.ov{color:var(--overturn);font-size:13px}
+.ov{color:var(--overturn);font-size:13px;line-height:1.9}
 .arm .scar{position:absolute;top:8px;width:11px;height:11px;border-radius:50%;border:2.4px solid var(--scar-m);background:var(--bg)}
 .row.l .arm .scar{right:calc(50% + 9px)}.row.r .arm .scar{left:calc(50% + 9px)}
 .scar.h,.ring.h{border-color:var(--scar-h)!important}.scar.d,.ring.d{border-color:var(--scar-d)!important}
@@ -142,18 +143,35 @@ a.node{color:inherit;text-decoration:none}
 .oi .card{top:calc(100% + 4px);left:0}
 .oi:hover>.card,.oi:has(.oit:focus-visible)>.card{opacity:1}
 .oi.hl{background:var(--fill);box-shadow:inset 0 0 0 1px var(--mut)}
-.pending{max-width:940px;margin:0 auto 6px;padding:8px 14px;border-radius:10px;background:var(--panel);color:var(--ink);font-size:13px;text-align:center}
+/* while drawing: a pill as wide as its words, with a small tree that grows, rests and grows again, every part on one
+   4.2 s cycle so each round starts from nothing. It stops once the run seems to have stopped and under reduced motion;
+   a pause button shows on hover or keyboard focus (WCAG 2.2.2: motion that lasts over 5 s beside other content can be
+   paused), and always where there is no hover */
+.pending{position:relative;display:flex;align-items:center;gap:12px;width:fit-content;max-width:calc(100% - 32px);margin:0 auto 8px;padding:9px 18px 9px 14px;border-radius:999px;background:var(--panel);color:var(--ink);text-align:left;border:1px solid color-mix(in srgb,var(--done) 35%,transparent);box-shadow:0 0 22px -6px color-mix(in srgb,var(--done) 45%,transparent)}
 .pending[hidden]{display:none}
-/* while drawing: a light running round the line (stopped by a click, by reduced motion, and once the run seems to have stopped) */
-@property --ts-a{syntax:'<angle>';inherits:false;initial-value:0deg}
-.pending{position:relative;cursor:pointer}
-.pending.beam::before{content:"";position:absolute;inset:-1px;border-radius:11px;padding:1.5px;pointer-events:none;background:conic-gradient(from var(--ts-a),transparent 0 72%,color-mix(in srgb,var(--done) 30%,transparent) 84%,var(--done) 92%,transparent 100%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:ts-spin 3.2s linear infinite}
-.pending.paused::before{animation-play-state:paused}
-.pz{all:unset;cursor:pointer;margin-left:10px;padding:0 6px;border-radius:5px;color:var(--mut);font-size:11px}.pz:hover{color:var(--ink)}.pz[hidden]{display:none}.paused .pz{color:var(--ink)}
-@keyframes ts-spin{to{--ts-a:360deg}}
-@media (prefers-reduced-motion:reduce){.pending.beam::before{animation:none}}
+.pending .hd{display:block;font-size:14px;font-weight:600}.pending .dt{display:block;font-size:12px;color:var(--mut);overflow-wrap:anywhere}
+.pending.late{border-color:var(--line2);box-shadow:none}
+.gt{flex:none;width:30px;height:30px;overflow:visible}.gt path{fill:none;stroke:var(--ink);stroke-width:2;stroke-linecap:round;stroke-dasharray:1 2}
+.gt circle{fill:var(--done);transform-box:fill-box;transform-origin:center}
+.late .gt path{stroke:var(--mut)}.late .gt circle{fill:var(--mut)}
+.grow .gt *{animation-duration:4.2s;animation-iteration-count:infinite;animation-timing-function:linear}
+.grow .k0{animation-name:gt0}.grow .k1{animation-name:gt1}.grow .k2{animation-name:gt2}.grow .k3{animation-name:gt3}
+.grow .f1{animation-name:gtp1}.grow .f2{animation-name:gtp2}.grow .f3{animation-name:gtp3}.grow .f4{animation-name:gtp4}
+@keyframes gt0{0%{opacity:0;stroke-dashoffset:1}.1%{opacity:1;stroke-dashoffset:1}13%{stroke-dashoffset:0}88%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:0}}
+@keyframes gt1{0%,10%{opacity:0;stroke-dashoffset:1}10.1%{opacity:1;stroke-dashoffset:1}21%{stroke-dashoffset:0}88%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:0}}
+@keyframes gt2{0%,15%{opacity:0;stroke-dashoffset:1}15.1%{opacity:1;stroke-dashoffset:1}26%{stroke-dashoffset:0}88%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:0}}
+@keyframes gt3{0%,20%{opacity:0;stroke-dashoffset:1}20.1%{opacity:1;stroke-dashoffset:1}30%{stroke-dashoffset:0}88%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:0}}
+@keyframes gtp1{0%,24%{transform:scale(0)}29%{transform:scale(1.2)}32%,88%{transform:scale(1);opacity:1}100%{transform:scale(1);opacity:0}}
+@keyframes gtp2{0%,28%{transform:scale(0)}33%{transform:scale(1.2)}36%,88%{transform:scale(1);opacity:1}100%{transform:scale(1);opacity:0}}
+@keyframes gtp3{0%,32%{transform:scale(0)}37%{transform:scale(1.2)}40%,88%{transform:scale(1);opacity:1}100%{transform:scale(1);opacity:0}}
+@keyframes gtp4{0%,36%{transform:scale(0)}41%{transform:scale(1.2)}44%,88%{transform:scale(1);opacity:1}100%{transform:scale(1);opacity:0}}
+.paused .gt *{animation-play-state:paused}
+.pz{all:unset;cursor:pointer;margin-left:2px;padding:0 6px;border-radius:5px;color:var(--mut);font-size:11px;opacity:0;transition:opacity .15s}.pz:hover,.paused .pz{color:var(--ink)}.pz[hidden]{display:none}
+.pending:hover .pz,.pz:focus-visible,.paused .pz{opacity:1}
+@media (hover:none){.pz{opacity:1}}
+@media (prefers-reduced-motion:reduce){.grow .gt *{animation:none}}
 footer{max-width:940px;margin:0 auto;padding:0 20px 30px;text-align:center;font-size:11.5px;color:var(--faint)}
-@media (max-width:640px){.row{grid-template-columns:1fr 30px 1fr}.node .t{font-size:14px}
+@media (max-width:640px){:root{--tc:15.2px}.row{grid-template-columns:1fr 30px 1fr}.node .t{font-size:14px}
   .card,.card.up,.row.l .card,.row.r .card{position:fixed;left:16px;right:16px;top:auto;bottom:16px;width:auto;margin:0}}
 </style></head>
 <body>
@@ -185,30 +203,30 @@ const W=ZH?{
   stuck:(q,d)=>'卡了'+(q==='at_least'?'至少 ':'约 ')+d,min:n=>n+' 分钟',hr:n=>n+' 小时',day:n=>n+' 天',storyHint:'点开看经过',rows:['卡在','应对','结果'],temp:'临时',
   unknownT:'时刻不详',approx:t=>'约 '+t,before:t=>t+' 前',shelved:'决定不做',merged:n=>'这里合了 '+n+' 件相关的事',overturned:x=>'↺ 推翻了「'+x+'」',overturnedBy:x=>'后来被「'+x+'」推翻',
   you:'你',recapBy:'自动回顾',compactBy:'压缩摘要',quote:'原话',wrote:(w,t)=>w+' '+t+' 写道：',start:d=>'起点 '+d,projStart:d=>'项目起点 '+d,showAll:n=>'显示全部 '+n+' 个',keyOnly:'只看重点',prompts:n=>n+' 次提问',nodes:n=>n+' 个节点',sessions:n=>n+' 个会话',
-  current:'当前',currentSession:'当前会话',notYetTip:'尚未生成树 · 点开看摘要',copied:'已复制',selected:'已选中，可以直接复制',copyDraw:'复制生成树的命令',
-  ai:'AI',aiTip:'AI 写的，可能不准',noSummary:'还没有摘要：下次生成树时会顺带写。',nodesOpen:(n,o)=>n+' 个节点 · '+o+' 件待完成',
-  draw:'生成树',openS:'打开会话',noOpen:'没打开？',copyCmd:'复制命令',hiddenN:n=>'另有 '+n+' 个 claude -p 会话没有列出',unsure:'这次拿不准的地方',span:(a,b)=>a===b?a:a+' 至 '+b,
+  current:'当前',currentSession:'当前会话',tipSum:'尚未生成树 · 点开看会话概况',tipGen:'尚未生成树 · 会话概况正在生成',tipNone:'尚未生成树',genSum:'会话概况正在生成，好了页面会自动更新。',copied:'已复制',selected:'已选中，可以直接复制',copyDraw:'复制生成树的命令',
+  ai:'AI',aiTip:'AI 写的，可能不准',noSummary:'还没有会话概况，下次生成树时会顺带生成。',nodesOpen:(n,o)=>n+' 个节点 · '+o+' 件待完成',
+  draw:'生成树',openS:'打开会话',noOpen:'没打开？',copyCmd:'复制命令',hiddenN:n=>'另有 '+n+' 个 claude -p 会话没有列出',span:(a,b)=>a===b?a:a+' 至 '+b,
   sinceLast:(n,o,c,f)=>'上次生成：新增 '+n+' 个节点、'+o+' 件待完成'+(c?'，关掉 '+c+' 件':'')+(f?'，'+f+' 件待你确认':''),
-  pending:(t,m)=>'正在生成会话「'+t+'」的树 · 约 '+m+' 分钟 · 好了会自动更新',
-  pendingMany:(ts,m)=>'正在生成 '+ts.length+' 个会话的树：'+ts.map(t=>'「'+t+'」').join('')+' · 约 '+m+' 分钟 · 好了会自动更新',pause:'点一下暂停或继续动画',
+  pHead:'正在生成树',pDetail:(t,m)=>'会话「'+t+'」 · 约 '+m+' 分钟 · 好了会自动更新',pLateHead:'可能已经中断',
+  pDetailMany:(ts,m)=>ts.length+' 个会话：'+ts.map(t=>'「'+t+'」').join('')+' · 约 '+m+' 分钟 · 好了会自动更新',pause:'点一下暂停或继续动画',
   pendingLate:'生成比预计晚了很多，可能已经中断。可以回 Claude Code 再运行一次 /treesight:treesight；如果它其实还在跑，会告诉你正在生成。',
   gone:'原会话记录已被 Claude Code 清理，这里是账本里保存的内容。'}:{
   done:'Done',found:'Found',scar:'Scar: got stuck along the way',session:'Session',back:'Whole project',backAria:'Back to the whole project',open:'Still open',close:'Close',
   thisSession:'This session',wholeProject:n=>'Whole project · '+n+' session'+(n===1?'':'s')+' with a tree',today:d=>'Today '+d,
   foot:d=>'Dark theme only · Local times · Data as of '+d,count:n=>n+' still open',overdueN:n=>' · '+n+' overdue',staleN:n=>' · '+n+' no longer possible',show:' ›',hide:' ‹',
-  none:'Nothing left open',lgTree:'With a tree',lgNoTree:'Not drawn yet',
-  bOverdue:'Overdue',bStale:'No longer possible',bBoth:'Overdue or no longer possible',bConfirm:'To confirm',bDue:'With a due date',bNoTime:'No time set',byRaised:'Below: in the order raised',stale:'No longer possible · close it?',lateDays:n=>n+' day'+(n===1?'':'s')+' overdue',
-  firstYou:x=>'First you: “'+x+'”',waitingOn:x=>'Waiting on '+x,putOff:'Put off',since:(d,n)=>' · since '+d+' · '+n+' day'+(n===1?'':'s'),raised:d=>'Raised '+d,due:(d,n)=>n===0?'Due today':'Due '+d+' · in '+n+' day'+(n===1?'':'s'),confirm:'Looks done · confirm?',
+  none:'Nothing left open',lgTree:'With a tree',lgNoTree:'No tree yet',
+  bOverdue:'Overdue',bStale:'No longer possible',bBoth:'Overdue or no longer possible',bConfirm:'To confirm',bDue:'With a due date',bNoTime:'No time set',byRaised:'Below, in the order raised',stale:'No longer possible · close it?',lateDays:n=>n+' day'+(n===1?'':'s')+' overdue',
+  firstYou:x=>'Needs your “'+x+'” first',waitingOn:x=>'Waiting on '+x,putOff:'Put off',since:(d,n)=>' · since '+d+' · '+n+' day'+(n===1?'':'s'),raised:d=>'Raised '+d,due:(d,n)=>n===0?'Due today':'Due '+d+' · in '+n+' day'+(n===1?'':'s'),confirm:'Looks done · confirm?',
   from:x=>'From “'+x+'”',lgTodo:'To do (you)',lgWait:'Waiting (on others, or put off)',
   stuck:(q,d)=>'Stuck '+(q==='at_least'?'at least ':'about ')+d,min:n=>n+' min',hr:n=>n+' h',day:n=>n+' day'+(n===1?'':'s'),storyHint:'click for the story',rows:['Stuck','Response','Result'],temp:'Temporary',
   unknownT:'time unknown',approx:t=>'about '+t,before:t=>'before '+t,shelved:'Decided not to',merged:n=>n+' related events merged here',overturned:x=>'↺ Overturned “'+x+'”',overturnedBy:x=>'Later overturned by “'+x+'”',
-  you:'You',recapBy:'Recap',compactBy:'Compaction summary',quote:'quote',wrote:(w,t)=>w+' wrote, '+t+':',start:d=>'Started '+d,projStart:d=>'Project started '+d,showAll:n=>'Show all '+n,keyOnly:'Key nodes only',prompts:n=>n+' prompt'+(n===1?'':'s'),nodes:n=>n+' node'+(n===1?'':'s'),sessions:n=>n+' session'+(n===1?'':'s'),
-  current:'Current',currentSession:'Current session',notYetTip:'No tree yet · click for the summary',copied:'Copied',selected:'Selected; copy it',copyDraw:'Copy the command that draws it',
-  ai:'AI',aiTip:'Written by AI; it may be wrong',noSummary:'No summary yet: the next run that draws a tree writes one.',nodesOpen:(n,o)=>n+' node'+(n===1?'':'s')+' · '+o+' still open',
-  draw:'Draw the tree',openS:'Open the session',noOpen:'Nothing opened?',copyCmd:'Copy the command',hiddenN:n=>n+' claude -p session'+(n===1?'':'s')+' not listed',unsure:'What this run was unsure about',span:(a,b)=>a===b?a:a+' to '+b,
+  you:'You',recapBy:'Recap',compactBy:'Compaction summary',quote:'quote',wrote:(w,t)=>w+' on '+t.replace(/ (\d\d:\d\d)$/,' at $1')+':',start:d=>'Started '+d,projStart:d=>'Project started '+d,showAll:n=>'Show all '+n,keyOnly:'Key nodes only',prompts:n=>n+' prompt'+(n===1?'':'s'),nodes:n=>n+' node'+(n===1?'':'s'),sessions:n=>n+' session'+(n===1?'':'s'),
+  current:'Current',currentSession:'Current session',tipSum:'No tree yet · click for the session overview',tipGen:'No tree yet · overview being generated',tipNone:'No tree yet',genSum:'Generating the session overview; the page updates itself when it is ready.',copied:'Copied',selected:'Selected; copy it',copyDraw:'Copy the command that draws it',
+  ai:'AI',aiTip:'Written by AI; it may be wrong',noSummary:'No session overview yet: the next run that draws a tree generates one.',nodesOpen:(n,o)=>n+' node'+(n===1?'':'s')+' · '+o+' still open',
+  draw:'Draw the tree',openS:'Open the session',noOpen:'Nothing opened?',copyCmd:'Copy the command',hiddenN:n=>n+' claude -p session'+(n===1?'':'s')+' not listed',span:(a,b)=>a===b?a:a+' to '+b,
   sinceLast:(n,o,c,f)=>'Last run: '+n+' new node'+(n===1?'':'s')+', '+o+' open item'+(o===1?'':'s')+(c?', '+c+' closed':'')+(f?', '+f+' to confirm':''),
-  pending:(t,m)=>'Drawing the tree of session “'+t+'” · about '+m+' min · updates itself when done',
-  pendingMany:(ts,m)=>'Drawing the trees of '+ts.length+' sessions: '+ts.map(t=>'“'+t+'”').join(', ')+' · about '+m+' min · updates itself when done',pause:'Click to pause or resume the animation',
+  pHead:'Drawing a tree',pDetail:(t,m)=>'Session “'+t+'” · about '+m+' min · updates itself when done',pLateHead:'May have stopped',
+  pDetailMany:(ts,m)=>ts.length+' sessions: '+ts.map(t=>'“'+t+'”').join(', ')+' · about '+m+' min · updates itself when done',pause:'Click to pause or resume the animation',
   pendingLate:'This is taking much longer than expected and may have stopped. Run /treesight:treesight again in Claude Code; if it is still running, it will say so.',
   gone:'Claude Code has deleted this session’s transcript; this is what the ledger kept.'};
 /* ---------- time: stored as ISO with year, shown in local time ---------- */
@@ -291,7 +309,7 @@ function storyEl(st){
 function nodeRow(n,i,o={}){
   const left=i%2===0,row=$('div','row '+(left?'l':'r'));
   const slot=$('div','slot'),b=o.href!=null?$('a','node'):$('button','node'),t=$('span','t');if(o.cls)b.classList.add(o.cls);
-  t.append(o.shapeEl||shape(n.kind));
+  const dw=$('span','dw');dw.append(o.shapeEl||shape(n.kind));t.append(dw);
   const lb=$('span','lb');lb.append($('span','sr',(W[n.kind]||W.session)+(ZH?'：':': ')),document.createTextNode(n.label));if(o.sr)lb.append($('span','sr',ZH?'（'+o.sr+'）':' ('+o.sr+')'));if(o.href!=null)lb.append($('span','chev','›'));t.append(lb);
   const by=o.byId||{};
   if(n.overturns&&nodeEls.vis&&nodeEls.vis.has(n.overturns))t.append($('span','ov','↺'));
@@ -402,13 +420,10 @@ function run(total,prev){if(RM)return;
 addEventListener('pointerdown',()=>{if(growing.length)settle()},true);
 addEventListener('keydown',()=>{if(growing.length)settle()},true);
 /* ---------- views ---------- */
-/* what the last run changed, when that is not simply everything shown (a first run's counts are the totals above), and
-   what it was unsure about, on request */
+/* what the last run changed, when that is not simply everything shown (a first run's counts are the totals above);
+   what it was unsure about stays in the ledger (not shown since 2026-10-26: noise next to the tree) */
 function sinceLine(s){const c=s.last_run;if(!c)return null;const fresh=c.nodes>=s.nodes.length&&!c.closed&&!c.flagged;
-  const l=fresh?null:$('span','since',W.sinceLast(c.nodes,c.open,c.closed,c.flagged||0));if(!c.notes)return l;
-  /* what the run was unsure about: on the page, on request, rather than in the report in the conversation */
-  const box=$('div','since'),b=$('button','unsure',W.unsure+' ▸'),n=$('div','notes',c.notes);n.hidden=true;b.setAttribute('aria-expanded','false');
-  b.onclick=()=>{n.hidden=!n.hidden;b.setAttribute('aria-expanded',String(!n.hidden));b.textContent=W.unsure+(n.hidden?' ▸':' ▾')};if(l)box.append(l,' · ');box.append(b,n);return box}
+  return fresh?null:$('span','since',W.sinceLast(c.nodes,c.open,c.closed,c.flagged||0))}
 function sessionView(s){
   if(CUR&&s!==CUR)showAll=false;CUR=s;closeDrawer();document.getElementById('back').hidden=false;
   const m=document.getElementById('web');m.textContent='';openSlot=null;nodeEls={};
@@ -436,10 +451,18 @@ function projectView(){
   list.forEach((s,i)=>{const z=Math.round(10+Math.sqrt(s.prompts.substantive)*1.5),cur=s===CURS||s.id===D.current;
     const o={date:fdate(s.last_at)+' · '+W.prompts(s.prompts.substantive),shapeEl:shape(cur?'sesscur':s.generated?'sess':'sessring',z),cls:'pn',sr:cur?W.currentSession:''};
     if(s.generated)Object.assign(o,{ai:true,href:s===HOME?'':'s='+s.id.slice(0,8),hint:[cur?W.currentSession:'',W.nodesOpen(s.nodes.length,s.open.length),s.gone?W.gone:''].filter(Boolean).join(' · ')});
-    else Object.assign(o,{tip:(cur?W.currentSession+' · ':'')+W.notYetTip,more:[notYet(s)]});
+    else Object.assign(o,{tip:(cur?W.currentSession+' · ':'')+(s.summary?W.tipSum:s.summarizing?W.tipGen:W.tipNone),more:[notYet(s)]});
     rows.append(nodeRow({id:'p'+i,label:s.title,at:s.last_at,line:s.summary||''},i,o))});
   tr.append(rows,rootEl(D.project.first_at?W.projStart(fdate(D.project.first_at)):''));m.append(tr);fixTrunk(tr)}
 function fixTrunk(tr){requestAnimationFrame(()=>{const c=tr.querySelector('.crown'),t=tr.querySelector('.trunk');if(t)t.style.top=c?(c.offsetTop+c.offsetHeight)+'px':'0px'})}
+/* the small tree in the line shown while a run draws: a trunk, three branches and four buds, spaced so that no two
+   parts that are not joined touch */
+function tree(){const s=document.createElementNS(NS,'svg');s.setAttribute('viewBox','0 0 32 32');s.setAttribute('class','gt');s.setAttribute('aria-hidden','true');
+  [['k0','M16 30V9.5'],['k1','M16 24C13 23 10.5 21 9 18'],['k2','M16 19.5C19 18.5 21.5 16.5 23 13.5'],['k3','M16 15.5C13.8 14.7 11.8 13.5 10.5 11.2']].forEach(([c,d])=>{
+    const e=document.createElementNS(NS,'path');e.setAttribute('class',c);e.setAttribute('d',d);e.setAttribute('pathLength','1');s.append(e)});
+  [['f1',9,18,2.1],['f2',23,13.5,2.1],['f3',10.5,11.2,1.9],['f4',16,7,2.3]].forEach(([c,x,y,r])=>{
+    const e=document.createElementNS(NS,'circle');e.setAttribute('class',c);e.setAttribute('cx',x);e.setAttribute('cy',y);e.setAttribute('r',r);s.append(e)});
+  return s}
 /* a session without a tree: its summary and two links that open Claude Code in a new terminal with the command typed in
    (claude-cli://, https://code.claude.com/docs/en/deep-links; nothing runs until Enter). A link can do nothing (Claude Code
    registers it on the first interactive prompt, and a setting turns it off), so a click also offers that command to copy. */
@@ -451,7 +474,7 @@ function copyBtn(label,cmd){const b=$('button','cpy',label);b.title=cmd;
       const g=document.createRange();g.selectNodeContents(c);const w=getSelection();w.removeAllRanges();w.addRange(g);b.textContent=W.selected};
     try{navigator.clipboard.writeText(cmd).then(()=>{b.textContent=W.copied;setTimeout(()=>{b.textContent=label},1500)},show)}catch(x){show()}};return b}
 function notYet(s){const box=$('div','xp'),sm=$('div','sum');
-  if(s.summary){const a=$('span','ai',W.ai);a.title=W.aiTip;sm.append(a,s.summary)}else{sm.classList.add('none');sm.textContent=W.noSummary}
+  if(s.summary){const a=$('span','ai',W.ai);a.title=W.aiTip;sm.append(a,s.summary)}else{sm.classList.add('none');sm.textContent=s.summarizing?W.genSum:W.noSummary}
   /* --no-open: the page is open already, so the run it starts updates it instead of asking for another tab */
   const draw='/treesight:treesight '+s.id.slice(0,8)+' --no-open',acts=$('div','acts');box.append(sm,acts);
   if(D.project.masked){acts.append(copyBtn(W.copyDraw,draw));return box}   /* a folder name that was masked cannot be opened */
@@ -467,13 +490,14 @@ function notYet(s){const box=$('div','xp'),sm=$('div','sum');
   document.getElementById('foot').textContent=W.foot(ymd(parse(D.asof)))+(D.hidden?' · '+W.hiddenN(D.hidden):'');
   if(D.pending){const p=document.getElementById('pending'),P=D.pending,m=Math.max(1,Math.ceil(Math.max(...P.map(x=>x.estimate_s||0))/60));
     /* a run 20 minutes past its estimate may have stopped; a new /treesight says "busy" only if it is still at work.
-       The light running round the line stops then too, so it never moves for a run that has stopped; a click pauses it. */
+       The tree stops growing then too, so it never moves for a run that has stopped. */
     const late=()=>P.every(x=>Date.now()>parse(x.started_at||D.asof).getTime()+((x.estimate_s||0)+1200)*1000);
-    const msg=$('span'),pz=$('button','pz','\u2016');pz.setAttribute('aria-label',W.pause);pz.title=W.pause;pz.setAttribute('aria-pressed','false');
+    const hd=$('span','hd'),dt=$('span','dt'),tx=$('span'),pz=$('button','pz','\u2016');tx.append(hd,dt);
+    pz.setAttribute('aria-label',W.pause);pz.title=W.pause;pz.setAttribute('aria-pressed','false');
     pz.onclick=e=>{e.stopPropagation();p.classList.toggle('paused');pz.setAttribute('aria-pressed',String(p.classList.contains('paused')))};
-    const show=()=>{const l=late(),t=l?W.pendingLate:P.length===1?W.pending(P[0].title,m):W.pendingMany(P.map(x=>x.title),m);
-      if(msg.textContent!==t)msg.textContent=t;p.classList.toggle('beam',!l);pz.hidden=l||RMQ};
-    p.append(msg,pz);show();p.hidden=false;p.onclick=()=>pz.click();setInterval(show,30000)}
+    const show=()=>{const l=late(),h=l?W.pLateHead:W.pHead,d=l?W.pendingLate:P.length===1?W.pDetail(P[0].title,m):W.pDetailMany(P.map(x=>x.title),m);
+      if(hd.textContent!==h)hd.textContent=h;if(dt.textContent!==d)dt.textContent=d;p.classList.toggle('grow',!l);p.classList.toggle('late',l);pz.hidden=l||RMQ};
+    p.append(tree(),tx,pz);show();p.hidden=false;setInterval(show,30000)}
   /* the page keeps itself current: every build rewrites the stamp next to it (a one-line script in the same folder), and
      the page reloads when the stamp names a newer build. A run for another session, or a run that just ended, opens as a
      fresh page would; any other change keeps the view and where it was scrolled to. It also checks while hidden (the
@@ -513,7 +537,7 @@ function notYet(s){const box=$('div','xp'),sm=$('div','sum');
   if(h.get('drawer')){const r=document.querySelector('.todo');if(r)r.click()}
   if(h.get('expand')){const n=nodeEls[h.get('expand')];if(n)n.click()}
   if(h.get('poke')){document.querySelectorAll('.act').forEach(a=>{a.addEventListener('click',e=>e.preventDefault(),{once:true});a.click()});
-    document.querySelectorAll('.qm,.oit,.unsure,.cpy,.pz').forEach(x=>x.click())}   /* dev/check_page.py: each of these handlers runs once */
+    document.querySelectorAll('.qm,.oit,.cpy,.pz').forEach(x=>x.click())}   /* dev/check_page.py: each of these handlers runs once */
 })();
 </script>
 </body></html>

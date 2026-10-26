@@ -58,7 +58,7 @@ Give a `done` node a `story` when it was blocked for a while before it worked ou
 
 ## Wording
 
-- Write labels, lines, twigs and story text in the language most of the user's prompts are in. Keep code, paths, commands, version numbers and error text as written.
+- Write labels, lines, twigs and story text in the language most of the user's prompts are in, with its own punctuation (in Chinese the full-width ，：；？！（）). Keep code, paths, commands, version numbers and error text as written.
 - Units: one CJK character, or one word or number, counts as one unit. Punctuation does not count; a path, version or name joined by dots, slashes or hyphens counts as one.
 - `label`: at most 8 units, a noun or verb phrase that states the outcome, no closing punctuation.
 - `line`: one sentence, at most 40 units, saying what happened and why it matters, so that someone who has forgotten the session understands it.
@@ -68,7 +68,7 @@ Give a `done` node a `story` when it was blocked for a while before it worked ou
 
 ## Summaries
 
-- `gist`: one sentence, at most 50 units, on what this session worked on and where it ended: its outcome, or what it was waiting on at the end. It is the session's summary on the project page. In a later pass or run, cover the whole session as far as you have read, using the header's nodes and items for what came before.
+- `gist`: one sentence, at most 50 units, on what this session worked on and where it ended: its outcome, or what it was waiting on at the end. It is the session's overview on the project page. In a later pass or run, cover the whole session as far as you have read, using the header's nodes and items for what came before.
 - `others`: only when you ran `T show others`. For each session it printed, one entry with `session` (its 8-character id, as printed) and `gist`, by the same rules, written from that excerpt alone. An excerpt has the title, up to four prompts, the start of the last reply and the last recap, each with its date: where they disagree, the later one is the session's end. A first prompt is often an earlier reply the user pasted back in, so do not credit its work to this session. When an excerpt is too thin for an outcome, say what the session was about, and do not invent one.
 - Same wording rules as above: the language most of that session's prompts are in, "you" for the user, code, names and numbers as written, no advice and no "this session".
 

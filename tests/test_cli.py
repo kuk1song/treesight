@@ -172,16 +172,18 @@ class Cli(unittest.TestCase):
         code, fresh = run("prepare", *self.common)
         self.assertEqual((fresh.get("busy"), fresh["pass_number"]), (None, 1))
 
-    def test_what_a_run_was_unsure_about_goes_to_the_page(self):
-        """The report in the conversation stays short; the run's notes are on the page, under the session's title."""
+    def test_what_a_run_was_unsure_about_stays_in_the_ledger(self):
+        """The run's notes are kept in the ledger for checking later, but neither the page nor its data carries them
+        (the author found the line under the title noise next to the tree, 2026-10-26)."""
         self.first_run()
+        self.assertTrue(ledger.load(PROJECT)["sessions"][S1]["last_run"]["notes"].startswith("o4 (publish 0.3.0)"))
         code, b = run("build", *self.common)
         html, data = page_data(b["page"])
-        notes = next(s for s in data["sessions"] if s["id"] == S1)["last_run"]["notes"]
-        self.assertTrue(notes.startswith("o4 (publish 0.3.0)"), notes)
+        self.assertNotIn("notes", next(s for s in data["sessions"] if s["id"] == S1)["last_run"])
+        self.assertNotIn("o4 (publish 0.3.0)", html)
 
     def test_a_run_in_two_passes_is_one_run_on_the_page(self):
-        """What both passes were unsure about reaches the page, and apply's counts are the whole run's, as the page's."""
+        """What both passes were unsure about is kept, and apply's counts are the whole run's, as the page's."""
         code, out = run("prepare", "--max-chars", "3000", *self.common)
         self.assertEqual(out["others"], 2)
         for n in (1, 2):
@@ -202,9 +204,83 @@ class Cli(unittest.TestCase):
         run("build", "--done", "--session", S1, *self.common)
         code, b = run("build", *self.common)
         html, data = page_data(b["page"])
-        lr = next(s for s in data["sessions"] if s["id"] == S1)["last_run"]
-        self.assertEqual(lr["notes"], "pass 1 was unsure\n\npass 2 was unsure")
-        self.assertEqual(ledger.load(PROJECT)["sessions"][S1]["runs"], 2)
+        self.assertIn("last_run", next(s for s in data["sessions"] if s["id"] == S1))
+        led = ledger.load(PROJECT)["sessions"][S1]
+        self.assertEqual((led["last_run"]["notes"], led["runs"]), ("pass 1 was unsure\n\npass 2 was unsure", 2))
+
+    def test_the_report_is_a_line_and_a_half_for_the_user(self):
+        """After a run that applied, build --done writes the whole report: the fixed line the hook looks for, then what
+        changed (only what is not zero) and the page's link, in the language of the session's prompts."""
+        code, out = run("prepare", *self.common)
+        shutil.copy(os.path.join(ROOT, "fixtures", "extract", "tidepool-1.json"), out["extract"])
+        code, res = run("apply", *self.common)
+        code, b = run("build", "--done", "--session", S1, *self.common)
+        head, blank, first, page = b["report"].split("\n")[:4]
+        self.assertEqual((head, blank), (treesight.REPORT_HEAD, ""))
+        self.assertTrue(first.startswith("🌳 treesight: the tree of \u201c%s\u201d is ready: %d new nodes, %d new open items" % (out["title"], res["nodes"], res["open"])), first)
+        self.assertEqual(page, "Page updated: " + b["url"])
+        self.assertNotIn(" 0 ", b["report"])
+
+    def test_report_wording(self):
+        job = lambda **said: {"title": "发布 0.3.0", "said": dict({"nodes": 0, "open": 0, "closed": 0, "to_confirm": 0, "entries_left": 0}, **said)}
+        zh = lambda **said: treesight.report(job(**said), "file:///p.html", "zh").split("\n")[2:]
+        en = lambda **said: treesight.report(job(**said), "file:///p.html", "en").split("\n")[2:]
+        self.assertEqual(zh(nodes=6, open=14), ["🌳 treesight：「发布 0.3.0」的树已生成，新增 6 个节点、14 件待完成。", "页面已更新：file:///p.html"])
+        self.assertEqual(zh(open=2, closed=1, to_confirm=2, entries_left=120)[0::2],
+                         ["🌳 treesight：「发布 0.3.0」的树已生成，新增 2 件待完成，关掉 1 件。", "有 2 件看起来做完了，等你在页面上确认。"])
+        self.assertEqual(zh(entries_left=120)[-1], "这个会话还有 120 条没读，再运行一次会接着读。")
+        self.assertEqual(zh()[0], "🌳 treesight：「发布 0.3.0」的树已生成，这次没有新内容。")
+        self.assertEqual(en(nodes=1, open=1, closed=2), ["🌳 treesight: the tree of \u201c发布 0.3.0\u201d is ready: 1 new node, 1 new open item, 2 closed.", "Page updated: file:///p.html"])
+        self.assertEqual(en(to_confirm=1, entries_left=1)[2:], ["1 looks done; confirm it on the page.", "1 entry of this session is not read yet; run treesight again to go on."])
+        self.assertEqual(en(to_confirm=3)[2], "3 look done; confirm them on the page.")
+        self.assertEqual(en()[0], "🌳 treesight: the tree of \u201c发布 0.3.0\u201d is ready: nothing new this time.")
+
+    def test_the_report_follows_the_language_of_the_prompts(self):
+        P = lambda *texts: [{"k": "P", "text": t} for t in texts] + [{"k": "R", "text": "A long English reply " * 50}]
+        self.assertEqual(treesight.report_lang(P("全面仔细遍历检查 README 和 docs/design.md", "继续")), "zh")
+        self.assertEqual(treesight.report_lang(P("Please fix the parser", "看一下")), "en")
+        self.assertEqual(treesight.report_lang(P("<pasted_content id=\"1\">" + "很长的中文日志" * 50 + "</pasted_content> what is this?")), "en")
+        self.assertEqual(treesight.report_lang(P("```\nconst a = 1; let b = 2; foo bar baz\n```\n为什么报错")), "zh")
+        self.assertEqual(treesight.report_lang([]), "en")
+
+    def test_a_run_that_did_not_apply_has_no_report(self):
+        """The skill then reports the problems itself; a report built from the ledger would describe an earlier run."""
+        run("prepare", *self.common)
+        code, b = run("build", "--done", "--session", S1, *self.common)
+        self.assertNotIn("report", b)
+
+    def test_the_overviews_a_run_is_writing_say_so(self):
+        """While a run is drawing, a session whose overview its first pass is writing is marked, so the page says the
+        overview is on its way instead of offering one that is not there yet."""
+        code, out = run("prepare", *self.common)
+        code, b = run("build", "--open", "--session", S1, *self.common)
+        html, data = page_data(b["page"])
+        writing = {s["id"][:8] for s in data["sessions"] if s.get("summarizing")}
+        with open(out["extract"].replace(".extract.json", ".others.json"), encoding="utf-8") as f:
+            self.assertEqual(writing, set(json.load(f)))
+        self.assertTrue(writing)
+        shutil.copy(os.path.join(ROOT, "fixtures", "extract", "tidepool-1.json"), out["extract"])
+        run("apply", *self.common)
+        code, b = run("build", "--done", "--session", S1, *self.common)
+        self.assertFalse([s for s in page_data(b["page"])[1]["sessions"] if s.get("summarizing")])
+
+    def test_the_white_dot_stays_with_the_conversation_the_user_came_from(self):
+        """A run started from the page's link runs in a new conversation that holds only the command: it is not listed,
+        so the page keeps marking the conversation that last ran treesight and is listed."""
+        projects = os.path.join(self.tmp, "projects")
+        folder = os.path.join(projects, PROJECT)
+        shutil.copytree(os.path.join(ROOT, "fixtures", "projects", PROJECT), folder)
+        X = "77777777-0000-4000-8000-000000000000"
+        with open(os.path.join(folder, X + ".jsonl"), "w", encoding="utf-8") as f:
+            f.write(json.dumps({"type": "user", "uuid": "aaaaaaaa-0000-4000-8000-000000000009", "sessionId": X, "cwd": "/home/dev/tidepool",
+                                "timestamp": "2026-10-10T09:00:00.000Z", "entrypoint": "cli", "origin": {"kind": "human"},
+                                "message": {"role": "user", "content": "/treesight:treesight 0a182a7b --no-open"}}) + "\n")
+        os.environ["TREESIGHT_PROJECTS"] = projects
+        current = lambda conv: page_data(run("build", "--current", conv, "--cache", self.cache)[1]["page"])[1]["current"]
+        self.assertEqual(current(S1), S1)
+        self.assertEqual(current(X), S1)        # the link's conversation: the one the user came from keeps the dot
+        self.assertEqual(current(S2), S2)       # a conversation of its own takes it
+        self.assertEqual(current(X), S2)
 
     def test_a_run_also_summarizes_the_other_sessions(self):
         """The first pass of a run lists the project's other sessions that need a summary; the model writes one sentence

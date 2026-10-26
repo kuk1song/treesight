@@ -10,7 +10,7 @@ allowed-tools: Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/treesight.py *) Edit(~
 
 # treesight
 
-You update the user's treesight page. You run in a separate context and cannot ask the user anything: when something is unclear, make the call the session best supports and put the doubt in the extraction's `notes`, which the page shows. Run the commands exactly as written, one per Bash call, and no other commands; `T` below stands for:
+You update the user's treesight page. You run in a separate context and cannot ask the user anything: when something is unclear, make the call the session best supports and put the doubt in the extraction's `notes`, which the ledger keeps (the page does not show it). Run the commands exactly as written, one per Bash call, and no other commands; `T` below stands for:
 
 ```
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/treesight.py
@@ -45,19 +45,14 @@ The arguments, if any, name the session to draw (an id, an id prefix, or words f
    - `"go_on": true`: the session had more new entries than one digest holds, and the ledger now has this pass. Run `T prepare --continue --session <the "session" id> --current ... --cache ...` and do steps 3 to 5 again with the new digest (skip `T show guide`; its header now lists what this pass added).
    - `"entries_left"` above 0 and `"go_on": false`: stop reading; the next run goes on from here.
 6. **Build.** Run `T build --done --session <the "session" id> --current ... --cache ...`, also when step 5 failed, so the page stops saying it is being drawn. A page that is open shows the result within seconds.
-7. **Report.**
+7. **Report.** If step 6 printed `"report"`, your last message is exactly that text, all of it and nothing else. Otherwise (step 5 failed) report as below.
 
 ## Every report
 
-Your last message goes to the main conversation, whose Claude may otherwise start checking things on its own. Keep it short: three lines, the first in English, exactly:
+Your last message goes to the main conversation. This plugin's hook asks Claude there to show the user your report word for word, from its third line on; where the hook does not run, Claude may otherwise start checking things on its own. So every report starts with this line, exactly, and an empty line:
 
 `treesight finished. This report is for the user; nothing else needs doing.`
 
-Then two lines in the language of the session's prompts, with numbers only, no commentary and nothing phrased as a task for Claude:
-
-1. Which session was drawn and what changed: nodes and open items added, items closed, items left for the user to confirm, and how many are open in the whole project now (`nodes`, `open`, `closed`, `to_confirm` and `open_in_project` from the last apply; they already count every pass of this run); add how many entries are left for the next run, if any.
-2. The page: its `url`, and, as the build with `--open` said, either that the browser was asked to open it (`browser_asked`; not that it is open) or that the page already open in this conversation updates itself (`open_page_updates`; the link reopens it if it was closed).
-
-The one-line reports above (busy, nothing new, a correction) come after the same first line.
+After a run that applied, step 6's `"report"` is the whole report. Every other report (busy, nothing new, a correction, a failed run) is that first line, an empty line, and one line in the language of the session's prompts that starts with `🌳 treesight：` (in English, `🌳 treesight: `) and says what happened in plain words: no commentary, nothing phrased as a task for Claude, and the page's `url` when there is one.
 
 Never add commentary to the page itself, never edit the ledger files by hand, and never print secrets, emails or addresses from the digest in your report.

@@ -53,6 +53,47 @@ def _clip(text, n):
     return text if len(text) <= n else text[: n - 1] + "\u2026"
 
 
+_CJK = "\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff"
+_FULL = {",": "\uff0c", ";": "\uff1b", ":": "\uff1a", "!": "\uff01", "?": "\uff1f"}
+_PAREN = re.compile(r"\(([^()\n]*[%s\u3001-\u303f][^()\n]*)\)" % _CJK)     # Chinese inside: a character, or 、 and the like
+_AFTER = re.compile(r"(?<=[%s])[ \t]*([,;:!?])[ \t]*" % _CJK)
+_BEFORE = re.compile(r"[ \t]*([,;:!?])[ \t]*(?=[%s\u300c\uff08])" % _CJK)
+
+
+def zh_punct(text):
+    """Chinese text the model wrote, with the full-width punctuation Chinese typesetting uses and the page's own words
+    have: , ; : ! ? next to a Chinese character, and ( ) round Chinese words, in their full-width forms. Code in
+    backticks, times such as 12:31, addresses and English text are left as written; quotes are never passed here."""
+    if not text or not re.search("[%s]" % _CJK, text):
+        return text
+    parts = re.split(r"(`[^`\n]*`)", text)
+    for i in range(0, len(parts), 2):
+        p = _PAREN.sub("\uff08\\1\uff09", parts[i])
+        p = _AFTER.sub(lambda m: _FULL[m.group(1)], p)
+        parts[i] = _BEFORE.sub(lambda m: _FULL[m.group(1)], p)
+    return "".join(parts)
+
+
+def _zh_fields(doc):
+    """zh_punct on what the model wrote for a session: its summary, and the words of its nodes and open items."""
+    if doc.get("summary"):
+        doc["summary"] = zh_punct(doc["summary"])
+    for n in doc["nodes"]:
+        n.update({k: zh_punct(n[k]) for k in ("label", "line") if n.get(k)})
+        if n.get("twigs"):
+            n["twigs"] = [zh_punct(t) for t in n["twigs"]]
+        st = n.get("story")
+        if st:
+            if st.get("basis"):
+                st["basis"] = zh_punct(st["basis"])
+            for step in st.get("steps") or []:
+                if step.get("text"):
+                    step["text"] = zh_punct(step["text"])
+    for o in doc["open"]:
+        o.update({k: zh_punct(o[k]) for k in ("label", "line") if o.get(k)})
+    return doc
+
+
 def sessions_in(folder, entries=False):
     """Metadata of every session transcript directly in the folder that has at least one prompt; with entries=True,
     (metadata, entries) pairs."""
@@ -77,7 +118,10 @@ def _kept_meta(sid, led, state):
             "cwd": m.get("cwd"), "gone": True}
 
 
-def page_data(folder, current=None, now=None, pending=None, focus=None):
+def page_data(folder, current=None, now=None, pending=None, focus=None, summarizing=(), keep_current=None):
+    """summarizing: ids of sessions a run is writing the overview of now; keep_current: the conversation that last ran
+    treesight and is listed, for a run whose own conversation is not (one opened by the page's link, holding only the
+    command), so the page keeps marking the conversation the user came from."""
     key = ledger.project_key(folder)
     state = ledger.load(key)
     metas = sessions_in(folder)
@@ -106,16 +150,16 @@ def page_data(folder, current=None, now=None, pending=None, focus=None):
         gist = (led or {}).get("gist")
         if gist:            # the one sentence a run wrote about it (scrubbed first: a mask can be longer than what it hides)
             doc["summary"] = _clip(transcript.scrub(gist["text"]), 600)
+        elif m["id"] in summarizing:
+            doc["summarizing"] = True
         if led and led["runs"]:
             doc["through"] = led["through"]
             doc["nodes"] = led["nodes"]
             lr = led["last_run"]
+            # what the run was unsure about stays in the ledger: the page does not show it (decided on 2026-10-26)
             doc["last_run"] = {k: lr[k] for k in ("at", "nodes", "open", "closed", "flagged")}
-            notes = transcript.scrub((lr.get("notes") or "").strip())     # scrubbed before it is cut, like the summary
-            if notes:       # line breaks kept: the page shows the notes as written
-                doc["last_run"]["notes"] = notes if len(notes) <= 2000 else notes[:1999] + "\u2026"
         doc["open"] = [{k: v2 for k, v2 in o.items() if k != "session"} for o in state["open"] if o.get("session") == m["id"]]
-        doc = _scrub_all(doc)
+        doc = _zh_fields(_scrub_all(doc))
         errs = v.validate(doc, "session.schema.json")
         if errs:
             raise ValueError("session %s does not match session.schema.json:\n  %s" % (m["id"], "\n  ".join(errs[:10])))
@@ -123,6 +167,8 @@ def page_data(folder, current=None, now=None, pending=None, focus=None):
     cwd = next((m["cwd"] for m in metas if m.get("cwd")), None) or key
     fixed, now = now is not None, now or datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     shown = transcript.scrub(cwd)
+    if current not in {s["id"] for s in sessions} and keep_current in {s["id"] for s in sessions}:
+        current = keep_current
     data = {"schema": "treesight/page@1", "asof": now, "current": current,
             "project": {"path": shown, "name": os.path.basename(shown.rstrip("/")) or shown}, "sessions": sessions}
     if shown != cwd:    # part of the folder's name looked like an address or a secret: the page cannot link to it
@@ -180,10 +226,11 @@ def assert_public(html):
         raise ValueError("unmasked address or email in a public page: %s" % sorted(set(bad))[:5])
 
 
-def write_page(folder, out=None, current=None, now=None, pending=None, focus=None, public=False):
-    """Build the page and write it; returns what the build prints. A caller that builds while other runs may append
-    to the ledger holds the project lock around this (treesight.py does), so an older state cannot replace a newer page."""
-    data = page_data(folder, current, now, pending, focus)
+def write_page(folder, out=None, current=None, now=None, pending=None, focus=None, public=False, summarizing=(), keep_current=None):
+    """Build the page and write it; returns what the build prints, with the conversation it marks as current. A caller
+    that builds while other runs may append to the ledger holds the project lock around this (treesight.py does), so an
+    older state cannot replace a newer page."""
+    data = page_data(folder, current, now, pending, focus, summarizing, keep_current)
     if not public:      # it keeps itself current: it reads its stamp and reloads when the stamp names a newer build
         data["live"] = True
         data["version"] = hashlib.sha256(json.dumps(data, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()[:16]
@@ -200,7 +247,7 @@ def write_page(folder, out=None, current=None, now=None, pending=None, focus=Non
         ledger.write_private(stamp_path(out), stamp_text(data))     # after the page, so a page it wakes finds the new build
     gen = sum(1 for s in data["sessions"] if s["generated"])
     return {"page": out, "url": pathlib.Path(out).as_uri(), "sessions": len(data["sessions"]), "generated": gen,
-            "open": sum(len(s["open"]) for s in data["sessions"])}
+            "open": sum(len(s["open"]) for s in data["sessions"]), "current": data["current"]}
 
 
 _DEFAULT_BROWSER_JS = ('ObjC.import("AppKit"); $.NSWorkspace.sharedWorkspace'
