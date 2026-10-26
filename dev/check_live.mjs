@@ -1,6 +1,8 @@
 // An open page follows what happens without a new tab: a correction reloads it in place, a run that starts or ends
 // shows that session. Also, with a mouse, an open node shows its sentence and a quote on request; a session without a
-// tree offers its command to copy once its link is clicked; and a page opened while a run is drawing grows its tree.
+// tree offers its command to copy once its link is clicked; every branch ends at its node's dot; and a page opened
+// while a run is drawing grows its tree, shows the line with the small tree (paused only by its button) and says which
+// session overviews are being generated.
 // Builds the made-up tidepool project in a temporary folder and drives a headless Chromium.
 // usage: node dev/check_live.mjs <chromium>     (Node 22 or later; dev/check_page.py finds a browser)
 import {spawn, execFileSync} from 'node:child_process';
@@ -43,6 +45,13 @@ try {
       .some(x=>{try{return x.style&&x.style.display==='none'&&!!lt.closest(x.selectorText)}catch(_){return false}});
     const q=s.querySelector('.qs:not([hidden]) .qq');return {hover:matchMedia('(hover:hover)').matches,seen,hidden,quote:!!(q&&q.textContent)}})()`);
   if (!node || !node.seen || node.hidden || !node.quote) fail.push('an open node shows its sentence (also with a mouse) and, on request, its quote: ' + JSON.stringify(node));
+  // each branch ends at its node's dot: the tip at the dot's centre (within 1 px), a few px short of it (measured: 7 to
+  // 20 px above it and 10 px away before 2026-10-26)
+  const aligned = () => ev(`(()=>{if(typeof settle==='function')settle();const out=[];document.querySelectorAll('.row').forEach(r=>{const p=r.querySelector('.arm path'),d=r.querySelector('.node .dw > *');if(!p||!d)return;
+    const e=p.getPointAtLength(p.getTotalLength()),m=p.getScreenCTM(),x=e.x*m.a+e.y*m.c+m.e,y=e.x*m.b+e.y*m.d+m.f,b=d.getBoundingClientRect();
+    out.push({dy:Math.round(Math.abs(y-(b.top+b.height/2))*10)/10,gap:Math.round((r.classList.contains('l')?x-b.right:b.left-x)*10)/10})});return out})()`);
+  for (const [view, rows] of [['session', await aligned()], ['project', (await ev(`location.hash='p'`), await sleep(800), await aligned())]])
+    if (!rows || !rows.length || rows.some(r => r.dy > 1 || r.gap < 0 || r.gap > 5)) fail.push('every branch ends at its dot (' + view + ' view): ' + JSON.stringify(rows));
   // a session without a tree: two links into Claude Code, and after a click the same command to copy
   await ev(`location.hash='p'`); await sleep(800);
   const nt = await ev(`(()=>{const b=[...document.querySelectorAll('.node.pn')].find(n=>!n.getAttribute('href'));if(!b)return null;b.click();
@@ -57,10 +66,17 @@ try {
   if ((await state()).v === first) fail.push('the page kept its old build after a correction');
   p = ts('prepare', '--session', S2); ts('build', '--session', S2);
   await until({hash: '', pending: true, focus: '0a182a7b'}, 'a run that starts shows its session');
-  // the tree grows on a page opened while the run is drawing (not the light running round its line: a CSS animation)
+  // the tree grows on a page opened while the run is drawing (not the small tree in its line: a CSS animation)
   await send('Page.navigate', {url: page + '?opened'});
   let grew = 0; for (let i = 0; i < 60 && !grew; i++) { await sleep(50); grew = await ev(`document.getAnimations().filter(a=>!(a instanceof CSSAnimation)).length`) || 0 }
   if (!grew) fail.push('a page opened while a run is drawing grows its tree');
+  // the line while drawing: a small tree that grows, a click on the words pauses nothing, its button does; and the
+  // overview of a session the run is writing is said to be on its way
+  const bar = await ev(`(()=>{const p=document.getElementById('pending'),g=p&&p.querySelector('.gt');if(!g)return null;p.querySelector('.hd').click();const kept=!p.classList.contains('paused');
+    const z=p.querySelector('.pz');z.click();const paused=p.classList.contains('paused')&&z.getAttribute('aria-pressed')==='true';z.click();
+    const tips=[...document.querySelectorAll('.node.pn .card')].map(c=>c.textContent);
+    return {parts:g.querySelectorAll('path').length+'/'+g.querySelectorAll('circle').length,grow:p.classList.contains('grow'),kept,paused,gen:tips.some(t=>/being generated/.test(t))}})()`);
+  if (!bar || bar.parts !== '4/4' || !bar.grow || !bar.kept || !bar.paused || !bar.gen) fail.push('the line while drawing grows its small tree, pauses only by its button, and overviews being generated say so: ' + JSON.stringify(bar));
   fs.copyFileSync(R + '/fixtures/extract/tidepool-2.json', p.extract); ts('apply', '--session', S2); ts('build', '--done', '--session', S2);
   await until({pending: false, focus: '0a182a7b'}, 'a run that ends shows its result');
   // a page with no view in its address (as the browser first opens it) keeps showing the same session after a correction
@@ -75,5 +91,5 @@ try {
   await sleep(300);
   try { fs.rmSync(T, {recursive: true, force: true, maxRetries: 10, retryDelay: 200}) } catch (e) { console.error('could not remove ' + T + ': ' + e.code) }
 }
-console.log(fail.length ? fail.join('\n') : 'ok: the open page followed corrections, a run starting and a run ending; nodes, links and growth work');
+console.log(fail.length ? fail.join('\n') : 'ok: the open page followed corrections, a run starting and a run ending; nodes, links, branches, the line while drawing and growth work');
 process.exit(fail.length ? 1 : 0);

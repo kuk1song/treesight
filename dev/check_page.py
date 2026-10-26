@@ -3,7 +3,7 @@
 
 Builds the made-up tidepool project in a temporary folder: a page with no tree yet, one while a run is going on, and a
 finished one. Each is loaded with the views and hooks the page knows (#p, #s=, #drawer=1, #expand=, #all=1, and #poke=1,
-which clicks every citation, drawer item, copy and pause button and the "unsure" line once), in English and Chinese,
+which clicks every quote mark, drawer item, copy and pause button once), in English and Chinese,
 and the browser's console is read from its log.
 Needs a Chromium: $CH, else Playwright's chrome-headless-shell, else on Linux google-chrome or chromium. Headless Google
 Chrome is not used on macOS, where it leaves app clones behind.

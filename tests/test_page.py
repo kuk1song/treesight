@@ -186,6 +186,122 @@ class Render(unittest.TestCase):
         self.assertIn(".node.open>.card{display:none}", css)
         self.assertNotRegex(css, r"\.(?:ln|lt|dup)\b[^{}]*\{[^}]*display:none")       # a rule that hides the sentence
 
+    def test_no_line_for_what_a_run_was_unsure_about(self):
+        """The line under the title is gone (the author found it noise next to the tree, 2026-10-26); the ledger keeps the notes."""
+        with open(build.TEMPLATE, encoding="utf-8") as f:
+            html = f.read()
+        for gone in ("W.unsure", "unsure:'", "'unsure'", ".unsure", "'notes'", ".notes{", "c.notes"):
+            self.assertNotIn(gone, html)
+
+    def test_a_session_without_a_tree_says_what_it_has(self):
+        """The hover offers the session overview only when there is one, says it is being generated while a run writes
+        it, and says nothing about it otherwise; the panel says the same."""
+        with open(build.TEMPLATE, encoding="utf-8") as f:
+            html = f.read()
+        self.assertIn("(s.summary?W.tipSum:s.summarizing?W.tipGen:W.tipNone)", html)
+        self.assertIn("sm.textContent=s.summarizing?W.genSum:W.noSummary", html)
+        for words in ("tipSum:'尚未生成树 · 点开看会话概况'", "tipGen:'尚未生成树 · 会话概况正在生成'", "tipNone:'尚未生成树'",
+                      "tipSum:'No tree yet · click for the session overview'", "tipNone:'No tree yet'"):
+            self.assertIn(words, html)
+        self.assertNotIn("摘要", html.split("const W=ZH?{", 1)[1].split("}:{", 1)[0].replace("压缩摘要", ""))
+
+    def test_the_line_while_drawing_grows_a_small_tree(self):
+        """S1, chosen on 2026-10-26: a pill as wide as its words with a small tree that grows; clicking the words pauses
+        nothing (the whole line used to), a button that shows on hover, keyboard focus and where there is no hover does;
+        reduced motion and a run that seems to have stopped show the tree still."""
+        with open(build.TEMPLATE, encoding="utf-8") as f:
+            html = f.read()
+        block = html[html.index("if(D.pending){"):html.index("setInterval(show,30000)}")]
+        self.assertNotIn("p.onclick", block)
+        self.assertIn("p.classList.toggle('grow',!l);p.classList.toggle('late',l)", block)
+        self.assertIn("p.append(tree(),tx,pz)", block)
+        css = html.split("</style>", 1)[0]
+        for rule in (".pending:hover .pz,.pz:focus-visible,.paused .pz{opacity:1}", "@media (hover:none){.pz{opacity:1}}",
+                     "@media (prefers-reduced-motion:reduce){.grow .gt *{animation:none}}", ".paused .gt *{animation-play-state:paused}"):
+            self.assertIn(rule, css)
+        self.assertNotIn("beam", html)
+
+    def test_the_small_tree_has_no_parts_that_touch(self):
+        """The last round's tree had two buds over each other (centres 4.0 apart, radii 4.6); every bud now stands at
+        least 2.5 units clear of the other buds and of the trunk (half its 2-unit stroke), except the top one, which it holds."""
+        with open(build.TEMPLATE, encoding="utf-8") as f:
+            html = f.read()
+        fn = html[html.index("function tree(){"):html.index("return s}", html.index("function tree(){"))]
+        buds = [(float(x), float(y), float(r)) for x, y, r in re.findall(r"\['f\d',([\d.]+),([\d.]+),([\d.]+)\]", fn)]
+        self.assertEqual(len(buds), 4)
+        self.assertEqual(len(re.findall(r"\['k\d','M", fn)), 4)
+        for i, (x1, y1, r1) in enumerate(buds):
+            for x2, y2, r2 in buds[i + 1:]:
+                self.assertGreaterEqual(((x1 - x2) ** 2 + (y1 - y2) ** 2) ** .5 - r1 - r2, 2.5)
+        for x, y, r in buds[:3]:
+            self.assertGreaterEqual(abs(x - 16) - r - 1, 2.5)
+
+    def test_branches_end_at_their_dots(self):
+        """The dot sits on the title's first line and the branch's tip at the dot's centre: before 2026-10-26 the tip was
+        7 to 20 px above it and 10 px away. dev/check_live.mjs measures it in a browser."""
+        with open(build.TEMPLATE, encoding="utf-8") as f:
+            css = f.read().split("</style>", 1)[0]
+        node = re.search(r"\.node\{[^}]*padding:(\d+)px", css).group(1)
+        size = lambda sel: float(re.search(re.escape(sel) + r"\{[^}]*font-size:([\d.]+)px", css).group(1))
+        self.assertIn(":root{--tc:%gpx}" % round(int(node) + size(".node .t") * 1.6 / 2, 1), css)
+        self.assertIn("@media (max-width:640px){:root{--tc:%gpx}" % round(int(node) + 14 * 1.6 / 2, 1), css)
+        self.assertIn(".dw{flex:none;display:flex;align-items:center;justify-content:center;height:1.6em}", css)
+        self.assertIn(".arm{grid-column:2;height:26px;position:relative;top:calc(var(--tc) - 9px)}", css)
+        self.assertIn("M0 24 C 12 24, 20 20, 34 9", css + open(build.TEMPLATE, encoding="utf-8").read())     # the tip is 9 px down the arm
+
+    def test_english_wording(self):
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node not installed")
+        with open(build.TEMPLATE, encoding="utf-8") as f:
+            html = f.read()
+        en = html[html.index("}:{", html.index("const W=ZH?{")):]
+        wrote = re.search(r"wrote:(\(w,t\)=>[^\n]*?\+':'),", en).group(1)
+        first = re.search(r"firstYou:(x=>[^,]*),", en).group(1)
+        r = subprocess.run([node, "-e", "const w=%s,f=%s;console.log(JSON.stringify([w('Claude','21 Sep 10:07'),w('You','21 Sep 2025 10:07'),f('ship it')]))" % (wrote, first)],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(json.loads(r.stdout), ["Claude on 21 Sep at 10:07:", "You on 21 Sep 2025 at 10:07:", "Needs your \u201cship it\u201d first"])
+        self.assertIn("byRaised:'Below, in the order raised'", en)
+        self.assertIn("lgNoTree:'No tree yet'", en)
+
+    def test_chinese_the_model_wrote_gets_full_width_punctuation(self):
+        """As the page's own words have (#14); quotes keep what was said, word for word."""
+        z = build.zh_punct
+        self.assertEqual(z("发布前先不做登录;10-02 复盘后卡在你:导出数据"), "发布前先不做登录；10-02 复盘后卡在你：导出数据")
+        self.assertEqual(z("要接入 Sentry,需你建令牌"), "要接入 Sentry，需你建令牌")
+        self.assertEqual(z("按首次出现的时间记(api、v2、v3)"), "按首次出现的时间记（api、v2、v3）")
+        self.assertEqual(z("要不要先测?好!"), "要不要先测？好！")
+        self.assertEqual(z("页面:file:///tmp/p.html"), "页面：file:///tmp/p.html")
+        for same in ("12:31 开会", "改 `a:b,c` 两处", "Redis, Postgres 与 GitHub", "Ship it, then: done (v2)", "只有 (v2)", "", None,
+                     "time 12:30, ok", "版本 v2.1.299"):
+            self.assertEqual(z(same), same)
+        doc = build._zh_fields({"summary": "做完了:等你", "nodes": [{"label": "甲:乙", "line": "丙,丁", "twigs": ["戊;己"], "evidence": [{"quote": "原话:不动"}],
+                                                       "story": {"basis": "从卡住起,到解决", "steps": [{"text": "卡在这:网络"}]}}],
+                                "open": [{"label": "庚?", "line": "辛!", "evidence": [{"quote": "原话,不动"}]}]})
+        self.assertEqual((doc["summary"], doc["nodes"][0]["label"], doc["nodes"][0]["line"], doc["nodes"][0]["twigs"], doc["nodes"][0]["story"]["basis"],
+                          doc["nodes"][0]["story"]["steps"][0]["text"], doc["open"][0]["label"], doc["open"][0]["line"]),
+                         ("做完了：等你", "甲：乙", "丙，丁", ["戊；己"], "从卡住起，到解决", "卡在这：网络", "庚？", "辛！"))
+        self.assertEqual((doc["nodes"][0]["evidence"][0]["quote"], doc["open"][0]["evidence"][0]["quote"]), ("原话:不动", "原话,不动"))
+        with open(os.path.join(ROOT, "fixtures", "extract", "tidepool-1.json"), encoding="utf-8") as f:
+            ext = json.load(f)
+        quotes = {e["quote"] for e in ext["nodes"][0]["evidence"]}
+        home = tempfile.mkdtemp(prefix="treesight-zh-")
+        try:
+            with mock.patch.dict(os.environ, {"TREESIGHT_HOME": home}):
+                path = glob.glob(os.path.join(FOLDER, "953c0ab1-*.jsonl"))[0]
+                meta, entries = transcript.read_session(path)
+                text, _ = transcript.digest_pass(path)
+                ext["nodes"][0]["line"] = "先做这个:再做那个"
+                probs, _ = ledger.apply(ext, text, ledger.project_key(FOLDER))
+                self.assertEqual(probs, [])
+                doc = next(s for s in build.page_data(FOLDER)["sessions"] if s["id"] == meta["id"])
+                n = next(n for n in doc["nodes"] if n["line"].startswith("先做这个"))
+                self.assertEqual(n["line"], "先做这个：再做那个")
+                self.assertEqual({e["quote"] for e in n["evidence"]}, {transcript.scrub(q) for q in quotes})
+        finally:
+            shutil.rmtree(home)
+
     def test_english_counts_one_day(self):
         node = shutil.which("node")
         if not node:

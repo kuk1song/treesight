@@ -370,6 +370,9 @@ def apply(a):
         return {"ok": False, "problems": probs}
     _remove(dig, ext, oth, oth_ids)
     left = len(transcript.entries_after(path, entries, data["through"]))
+    if job:     # for the report build --done writes: apply's counts already cover every pass of this run
+        job["said"] = dict({k: summary.get(k, 0) for k in ("nodes", "open", "closed", "to_confirm")}, entries_left=left)
+        write_job(cache, key, meta["id"], job)
     # go on only for entries the run found and could not fit; what the user wrote since waits for the next run
     return {"ok": True, **summary, "entries_left": left,
             "go_on": bool(left) and job.get("more", True) and job.get("pass", 1) < MAX_PASSES}
@@ -382,17 +385,66 @@ def do_build(a):
     cache = cache_dir(a.cache)
     out = os.path.join(ledger.private_dir(os.path.join(cache, "pages")), key + ".html")
     current = a.current if a.current and _by_id(a.current) else None
-    sid = transcript.read_session(path)[0]["id"] if a.session else None
+    meta, entries = transcript.read_session(path) if a.session else (None, None)
+    sid = meta["id"] if meta else None
+    kept = os.path.join(cache, "current", key + ".json")
     # Under the project lock from the job marks to the written page: two builds at once (two runs finishing, or a
     # run's progress page and another's result) must not let the one that read the older state write last.
     with ledger.project_lock(key):
+        job = _load_json(_job_path(cache, key, sid)) if sid and a.done else None
         if sid and a.done:                          # this run is over, finished or not: its mark and work files go
             _remove(_job_path(cache, key, sid), *work_paths(key, sid), *others_paths(key, sid))
-        res = build.write_page(folder, out, current, pending=live_jobs(cache, key) or None, focus=sid)
+        jobs = live_jobs(cache, key)
+        # sessions whose overview a run that is going on is writing: those its first pass listed
+        summarizing = {o["id"] for j in jobs for o in (_load_json(others_paths(key, j["session"])[1]) or {}).values()}
+        res = build.write_page(folder, out, current, pending=jobs or None, focus=sid, summarizing=summarizing,
+                               keep_current=(_load_json(kept) or {}).get("id"))
+        if current and res["current"] == current:   # a conversation of its own, listed: the one to keep marking
+            ledger.private_dir(os.path.dirname(kept))
+            ledger.write_private(kept, json.dumps({"id": current}))
     if a.open:
         open_once(cache, key, a.current, res)
+    if job and job.get("said"):
+        res["report"] = report(job, res["url"], report_lang(entries))
     print(json.dumps(res, ensure_ascii=False))
     return None
+
+
+# ---------- what the user reads in the conversation when a run is done (the plugin's hook asks Claude to show it as is) ----------
+REPORT_HEAD = "treesight finished. This report is for the user; nothing else needs doing."
+
+
+def report_lang(entries):
+    """The language of the session's prompts, for the report: Chinese when its last prompts hold more Chinese
+    characters than English words (pasted text and code left out), else English."""
+    text = " ".join([e["text"] for e in entries if e["k"] == "P"][-20:])
+    text = re.sub(r"<pasted_content[^>]*>.*?</pasted_content[^>]*>|```.*?```|`[^`]*`", " ", text, flags=re.S)
+    return "zh" if len(re.findall("[\u3400-\u9fff]", text)) > len(re.findall(r"[A-Za-z]+", text)) else "en"
+
+
+def report(job, url, lang):
+    """The run's report: the fixed first line for the main conversation, then a line and a half for the user, with
+    only what is not zero, and a line more only when something needs the user."""
+    said, title = job["said"], job.get("title") or job.get("session", "")[:8]
+    n, o, c, k, left = (said.get(x, 0) for x in ("nodes", "open", "closed", "to_confirm", "entries_left"))
+    if lang == "zh":
+        added = "、".join(x for x in ("%d 个节点" % n if n else "", "%d 件待完成" % o if o else "") if x)
+        body = "，".join(x for x in ("新增 " + added if added else "", "关掉 %d 件" % c if c else "") if x) or "这次没有新内容"
+        lines = ["🌳 treesight：「%s」的树已生成，%s。" % (title, body), "页面已更新：%s" % url]
+        if k:
+            lines.append("有 %d 件看起来做完了，等你在页面上确认。" % k)
+        if left:
+            lines.append("这个会话还有 %d 条没读，再运行一次会接着读。" % left)
+    else:
+        pl = lambda x, one, many: "%d %s" % (x, one if x == 1 else many)
+        body = ", ".join(x for x in (pl(n, "new node", "new nodes") if n else "", pl(o, "new open item", "new open items") if o else "",
+                                     "%d closed" % c if c else "") if x) or "nothing new this time"
+        lines = ["🌳 treesight: the tree of \u201c%s\u201d is ready: %s." % (title, body), "Page updated: %s" % url]
+        if k:
+            lines.append("%s done; confirm %s on the page." % (pl(k, "looks", "look"), "it" if k == 1 else "them"))
+        if left:
+            lines.append("%s of this session %s not read yet; run treesight again to go on." % (pl(left, "entry", "entries"), "is" if left == 1 else "are"))
+    return "\n".join([REPORT_HEAD, ""] + lines)
 
 
 OPEN_KEEP_S = 3 * 3600    # a conversation that has not updated its page for this long gets it opened again (resumed later)

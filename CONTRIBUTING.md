@@ -8,7 +8,7 @@ treesight reads people's own Claude Code sessions, so nothing from a real sessio
 
 ## Checks
 
-Python 3.9 or later and the standard library only. Seven tests of the page's script need `node`, one cross-check needs the `jsonschema` package, and two drive the page in a headless Chromium (`dev/check_page.py` loads every view, `dev/check_live.mjs` checks that an open page updates itself and that nodes, links and growth work with a mouse; Playwright's chrome-headless-shell, or `google-chrome` on Linux, and Node 22 or later for the second); they are skipped when those are missing.
+Python 3.9 or later and the standard library only. Eight tests of the page's script need `node`, one cross-check needs the `jsonschema` package, and two drive the page in a headless Chromium (`dev/check_page.py` loads every view, `dev/check_live.mjs` checks that an open page updates itself and that nodes, links, branches, the line while drawing and growth work with a mouse; Playwright's chrome-headless-shell, or `google-chrome` on Linux, and Node 22 or later for the second); they are skipped when those are missing.
 
 ```bash
 python3 -m unittest discover -s tests     # tests
@@ -35,4 +35,4 @@ To try a change in Claude Code, start it with `claude --plugin-dir <a clean chec
 2. After it is merged, tag that commit and push the tag: `git tag -a vX.Y.Z -m "treesight X.Y.Z" && git push origin vX.Y.Z`.
 3. The release workflow checks that the tag points at a commit on `main`, runs the tests, checks that the tag, `plugin.json` and `CHANGELOG.md` agree, then publishes the GitHub release with that CHANGELOG section as its notes. Users get it with `claude plugin update treesight@treesight`.
 
-The marketplace installs straight from `main`, so a merged change to what ships (`scripts/`, `skills/`, `templates/`, `schema/`, `.claude-plugin/`) reaches new installs at once, still under the last version number, while existing installs only update on a new version. Release soon after merging such a change.
+The marketplace installs straight from `main`, so a merged change to what ships (`scripts/`, `skills/`, `hooks/`, `templates/`, `schema/`, `.claude-plugin/`) reaches new installs at once, still under the last version number, while existing installs only update on a new version. Release soon after merging such a change.
