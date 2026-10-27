@@ -194,9 +194,9 @@ const ZH=(LANGS.find(l=>/^(zh|en)\b/.test(l))||'en').startsWith('zh');
 document.documentElement.lang=ZH?'zh-CN':'en';
 const W=ZH?{
   done:'做完',found:'发现',scar:'树疤：中间卡过',session:'会话',back:'整个项目',backAria:'返回整个项目',open:'待完成的事',close:'关闭',
-  thisSession:'这个会话',wholeProject:n=>'整个项目 · 已生成的 '+n+' 个会话',today:d=>'今天 '+d,
+  thisSession:'这个会话',wholeProject:n=>'整个项目 · 已生成树的 '+n+' 个会话',today:d=>'今天 '+d,
   foot:d=>'目前只有深色 · 时刻为本地时间 · 数据截至 '+d,count:n=>'待完成 '+n+' 件',overdueN:n=>' · 已过期 '+n,staleN:n=>' · 已失效 '+n,show:' ›',hide:' ‹',
-  none:'没有待完成的事',lgTree:'已生成树',lgNoTree:'尚未生成',
+  none:'没有待完成的事',lgTree:'已生成树',lgNoTree:'尚未生成树',
   bOverdue:'已过期',bStale:'已失效',bBoth:'已过期或失效',bConfirm:'待你确认',bDue:'有截止日期',bNoTime:'没定时间',byRaised:'以下按提出先后',stale:'已失效 · 关掉？',lateDays:n=>'过期 '+n+' 天',
   firstYou:x=>'先要你「'+x+'」',waitingOn:x=>'在等'+(/^[\p{Script=Latin}\p{Nd}]/u.test(x)?' ':'')+x,putOff:'先放着',since:(d,n)=>' · 自 '+d+' · 已过 '+n+' 天',raised:d=>d+' 提出',due:(d,n)=>n===0?'今天截止':'截止 '+d+' · 还有 '+n+' 天',confirm:'看起来已做完 · 待你确认',
   from:x=>'来自「'+x+'」',lgTodo:'待办（你来）',lgWait:'等待（在等别人或先放着）',
@@ -224,7 +224,7 @@ const W=ZH?{
   current:'Current',currentSession:'Current session',tipSum:'No tree yet · click for the session overview',tipGen:'No tree yet · overview being generated',tipNone:'No tree yet',genSum:'Generating the session overview; the page updates itself when it is ready.',copied:'Copied',selected:'Selected; copy it',copyDraw:'Copy the command that draws it',
   ai:'AI',aiTip:'Written by AI; it may be wrong',noSummary:'No session overview yet: the next run that draws a tree generates one.',nodesOpen:(n,o)=>n+' node'+(n===1?'':'s')+' · '+o+' still open',
   draw:'Draw the tree',openS:'Open the session',noOpen:'Nothing opened?',copyCmd:'Copy the command',hiddenN:n=>n+' claude -p session'+(n===1?'':'s')+' not listed',span:(a,b)=>a===b?a:a+' to '+b,
-  sinceLast:(n,o,c,f)=>'Last run: '+n+' new node'+(n===1?'':'s')+', '+o+' open item'+(o===1?'':'s')+(c?', '+c+' closed':'')+(f?', '+f+' to confirm':''),
+  sinceLast:(n,o,c,f)=>'Last run: '+n+' new node'+(n===1?'':'s')+', '+o+' new open item'+(o===1?'':'s')+(c?', '+c+' closed':'')+(f?', '+f+' to confirm':''),
   pHead:'Drawing a tree',pDetail:(t,m)=>'Session “'+t+'” · about '+m+' min · updates itself when done',pLateHead:'May have stopped',
   pDetailMany:(ts,m)=>ts.length+' sessions: '+ts.map(t=>'“'+t+'”').join(', ')+' · about '+m+' min · updates itself when done',pause:'Click to pause or resume the animation',
   pendingLate:'This is taking much longer than expected and may have stopped. Run /treesight:treesight again in Claude Code; if it is still running, it will say so.',

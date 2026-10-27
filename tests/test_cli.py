@@ -236,7 +236,7 @@ class Cli(unittest.TestCase):
         led = ledger.load(PROJECT)["sessions"][S1]
         self.assertEqual((led["last_run"]["notes"], led["runs"]), ("pass 1 was unsure\n\npass 2 was unsure", 2))
 
-    def test_the_report_is_a_line_and_a_half_for_the_user(self):
+    def test_the_report_is_two_lines_for_the_user(self):
         """After a run that applied, build --done writes the whole report: the fixed line the hook looks for, then what
         changed (only what is not zero) and the page's link, in the language of the session's prompts."""
         code, out = run("prepare", *self.common)
@@ -245,7 +245,7 @@ class Cli(unittest.TestCase):
         code, b = run("build", "--done", "--session", S1, *self.common)
         head, blank, first, page = b["report"].split("\n")[:4]
         self.assertEqual((head, blank), (treesight.REPORT_HEAD, ""))
-        self.assertTrue(first.startswith("🌳 treesight: the tree of \u201c%s\u201d is ready: %d new nodes, %d new open items" % (out["title"], res["nodes"], res["open"])), first)
+        self.assertTrue(first.startswith("🌳 treesight: the tree of \u201c%s\u201d is ready (%d new nodes, %d new open items" % (out["title"], res["nodes"], res["open"])), first)
         self.assertEqual(page, "Page updated: " + b["url"])
         self.assertNotIn(" 0 ", b["report"])
 
@@ -258,10 +258,10 @@ class Cli(unittest.TestCase):
                          ["🌳 treesight：「发布 0.3.0」的树已生成，新增 2 件待完成，关掉 1 件。", "有 2 件看起来做完了，等你在页面上确认。"])
         self.assertEqual(zh(entries_left=120)[-1], "这个会话还有 120 条没读，再运行一次会接着读。")
         self.assertEqual(zh()[0], "🌳 treesight：「发布 0.3.0」的树已生成，这次没有新内容。")
-        self.assertEqual(en(nodes=1, open=1, closed=2), ["🌳 treesight: the tree of \u201c发布 0.3.0\u201d is ready: 1 new node, 1 new open item, 2 closed.", "Page updated: file:///p.html"])
-        self.assertEqual(en(to_confirm=1, entries_left=1)[2:], ["1 looks done; confirm it on the page.", "1 entry of this session is not read yet; run treesight again to go on."])
-        self.assertEqual(en(to_confirm=3)[2], "3 look done; confirm them on the page.")
-        self.assertEqual(en()[0], "🌳 treesight: the tree of \u201c发布 0.3.0\u201d is ready: nothing new this time.")
+        self.assertEqual(en(nodes=1, open=1, closed=2), ["🌳 treesight: the tree of \u201c发布 0.3.0\u201d is ready (1 new node, 1 new open item, 2 closed).", "Page updated: file:///p.html"])
+        self.assertEqual(en(to_confirm=1, entries_left=1)[2:], ["1 item looks done; confirm it on the page.", "1 message of this session is not read yet; run treesight again to read it."])
+        self.assertEqual(en(to_confirm=3, entries_left=40)[2:], ["3 items look done; confirm them on the page.", "40 messages of this session are not read yet; run treesight again to read them."])
+        self.assertEqual(en()[0], "🌳 treesight: the tree of \u201c发布 0.3.0\u201d is ready, with nothing new this time.")
 
     def test_the_report_follows_the_language_of_the_prompts(self):
         P = lambda *texts: [{"k": "P", "text": t} for t in texts] + [{"k": "R", "text": "A long English reply " * 50}]

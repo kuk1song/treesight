@@ -432,8 +432,8 @@ def report_lang(entries):
 
 
 def report(job, url, lang):
-    """The run's report: the fixed first line for the main conversation, then a line and a half for the user, with
-    only what is not zero, and a line more only when something needs the user."""
+    """The run's report: the fixed first line for the main conversation, then two lines for the user (what changed,
+    with only what is not zero, and the page's link), and a line more only when something needs the user."""
     said, title = job["said"], job.get("title") or job.get("session", "")[:8]
     n, o, c, k, left = (said.get(x, 0) for x in ("nodes", "open", "closed", "to_confirm", "entries_left"))
     if lang == "zh":
@@ -447,12 +447,14 @@ def report(job, url, lang):
     else:
         pl = lambda x, one, many: "%d %s" % (x, one if x == 1 else many)
         body = ", ".join(x for x in (pl(n, "new node", "new nodes") if n else "", pl(o, "new open item", "new open items") if o else "",
-                                     "%d closed" % c if c else "") if x) or "nothing new this time"
-        lines = ["🌳 treesight: the tree of \u201c%s\u201d is ready: %s." % (title, body), "Page updated: %s" % url]
+                                     "%d closed" % c if c else "") if x)
+        lines = ["🌳 treesight: the tree of \u201c%s\u201d is ready%s." % (title, " (%s)" % body if body else ", with nothing new this time"),
+                 "Page updated: %s" % url]
         if k:
-            lines.append("%s done; confirm %s on the page." % (pl(k, "looks", "look"), "it" if k == 1 else "them"))
+            lines.append("%s done; confirm %s on the page." % (pl(k, "item looks", "items look"), "it" if k == 1 else "them"))
         if left:
-            lines.append("%s of this session %s not read yet; run treesight again to go on." % (pl(left, "entry", "entries"), "is" if left == 1 else "are"))
+            lines.append("%s of this session %s not read yet; run treesight again to read %s." % (
+                pl(left, "message", "messages"), "is" if left == 1 else "are", "it" if left == 1 else "them"))
     return "\n".join([REPORT_HEAD, ""] + lines)
 
 

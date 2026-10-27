@@ -89,7 +89,7 @@ body{margin:0;width:${W}px;height:${H}px;background:#0f1013;font:17px/1.6 ui-mon
 .bar{height:34px;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid #2a2c31;color:#8b8f97;font-size:13px}
 .bar i{width:11px;height:11px;border-radius:50%;background:#3a3d44}.bar span{margin-left:10px}
 .out{flex:1;padding:16px 22px 0;display:flex;flex-direction:column;justify-content:flex-end;gap:6px;overflow:hidden}
-.l{white-space:pre-wrap;word-break:break-all}.dim{color:#7d828b}.g{color:#7ee787}.w{color:#e9e8e3}.hide{display:none}
+.l{white-space:pre-wrap;overflow-wrap:anywhere;padding-left:2ch;text-indent:-2ch}.dim{color:#7d828b}.g{color:#7ee787}.w{color:#e9e8e3}.hide{display:none}
 .in{margin:12px 22px 18px;border-top:1px solid #3a3d44;border-bottom:1px solid #3a3d44;padding:9px 4px;color:#e9e8e3}
 .in b{color:#8b8f97;font-weight:400;margin-right:10px}.caret{display:inline-block;width:9px;height:18px;background:#d7dae0;vertical-align:-3px;margin-left:1px}
 </style><body><div class="win"><div class="bar"><i></i><i></i><i></i><span>claude · ~/recipe-box</span></div><div class="out">
