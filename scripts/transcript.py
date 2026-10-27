@@ -41,7 +41,7 @@ _SECRETS = [
     re.compile(r"\bhttps://hooks\.slack\.com/(?:services|workflows|triggers)/[A-Za-z0-9/_-]+"),     # Slack webhook
     re.compile(r"\bhttps://(?:ptb\.|canary\.)?discord(?:app)?\.com/api/webhooks/\d+/[A-Za-z0-9_-]+"),   # Discord webhook
     re.compile(r"(?i)\bAccountKey=[A-Za-z0-9+/]{20,}={0,2}"),               # Azure storage connection string
-    re.compile(r"(?i)(?<![\w-])--(?:password|passwd|passphrase|token|secret|api-key)\s+(?!-)[^\s'\"]{6,}"),   # --password hunter2
+    re.compile(r"(?i)(?<![\w-])--(?:password|passwd|passphrase|token|secret|api-key)\s+(?!-)[!#-&(-~]{6,}"),   # --password hunter2
     re.compile(r"\bSG\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}"),            # SendGrid
     re.compile(r"\b\d{8,10}:AA[A-Za-z0-9_-]{33}(?![A-Za-z0-9_-])"),       # Telegram bot token (it may end in -)
     # Discord bot token: the user id in base64 (M, N or O first), a time and an HMAC; a digit somewhere in the token
@@ -50,8 +50,9 @@ _SECRETS = [
     re.compile(r"\b(?=[MNO][A-Za-z0-9._-]{0,80}\d)[MNO][A-Za-z0-9]{23,25}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27,}"),
     # a name with token, password, secret or api key in it (DB_PASSWORD, client_secret, "password" in JSON), then a value
     # that is not just a number (max_tokens: 4096 and password_changed_at: 1729500000 stay); at most 100 name characters
-    # after the word, which keeps a long run of such words linear
-    re.compile(r"(?i)\b[a-z0-9_]*(?:token|password|passwd|passphrase|secret|api[_-]?key)[a-z0-9_]{0,100}['\"]?\s*[:=]\s*['\"]?(?![0-9]+\b)[^\s'\"]{8,}"),
+    # after the word, which keeps a long run of such words linear. Values here and above are printable ASCII without
+    # spaces or quotes: Chinese has no spaces, so "token: 我已经…" would otherwise lose the whole sentence
+    re.compile(r"(?i)\b[a-z0-9_]*(?:token|password|passwd|passphrase|secret|api[_-]?key)[a-z0-9_]{0,100}['\"]?\s*[:=]\s*['\"]?(?![0-9]+\b)[!#-&(-~]{8,}"),
     # a name that ends in password, then a value of digits only (DB_PASSWORD=12345678)
     re.compile(r"(?i)\b[a-z0-9_]*(?:password|passwd|passphrase)['\"]?\s*[:=]\s*['\"]?[0-9]{6,}\b"),
     # any other name ending in _key (OPENAI_KEY, ACCESS_KEY), when the value looks like a key: 16 or more letters and
@@ -80,16 +81,18 @@ def scrub(text):
 
 # ---------- reading ----------
 def records(path):
-    """Every JSON record in the file; a damaged line is skipped, not fatal."""
+    """Every JSON record in the file; a damaged line, or one that is not an object, is skipped, not fatal."""
     with open(path, encoding="utf-8", errors="replace") as f:     # a line Claude Code is still writing may end mid-character
         for line in f:
             line = line.strip()
             if not line:
                 continue
             try:
-                yield json.loads(line)
+                rec = json.loads(line)
             except ValueError:
                 continue
+            if isinstance(rec, dict):
+                yield rec
 
 
 def _text_blocks(content):
@@ -228,14 +231,24 @@ def overview(meta, entries, prompt_chars=200, reply_chars=400, recap_chars=300):
 # shorten sections in reverse order of how much they say about what is open, so Pending Tasks is the last to be cut
 _DROP_SECTIONS = ("Files and Code Sections", "All user messages")
 _KEEP_FIRST = ("Pending Tasks", "Current Work", "Primary Request", "Errors and fixes", "Problem Solving", "Optional Next Step")
+_SECTIONS = _DROP_SECTIONS + _KEEP_FIRST + ("Key Technical Concepts",)
+# a section heading at the start of a line: "7. Pending Tasks:", or any title of plain words; the sections named above
+# also in Markdown ("## 7. Pending Tasks", "7. **Pending Tasks** (note)", "**7. Pending Tasks:**"), as some summaries
+# are written (2 of 8 in this project's own transcripts on 2026-10-27)
+_COMPACT_HEAD = re.compile(r"(?m)^(?=\d+\. [A-Z][A-Za-z ]+:?\s*$|(?:#{1,6} +)?(?:\*\*)?\d+\. +(?:\*\*)?(?i:%s))"
+                           % "|".join(re.escape(s) for s in _SECTIONS))
 
 
 def _trim_compact(text, limit):
     text = re.sub(r"^This session is being continued from a previous conversation.*?\n\n", "", text, flags=re.S)
-    parts = [p for p in re.split(r"(?m)^(?=\d+\. [A-Z][A-Za-z ]+:?\s*$)", text) if p.strip()]
-    title = lambda p: p.lstrip().split("\n", 1)[0].strip(" 0123456789.:")
-    parts = [p for p in parts if not any(title(p).startswith(s) for s in _DROP_SECTIONS)]
-    rank = lambda p: next((i for i, s in enumerate(_KEEP_FIRST) if title(p).startswith(s)), len(_KEEP_FIRST))
+    parts = [p for p in _COMPACT_HEAD.split(text) if p.strip()]
+    if len(parts) == 1 and len(text) > limit:
+        # no heading found (another format, or titles in another language): what is open is usually at the end
+        head = limit * 2 // 5
+        return (text[:head].rstrip() + " ...[cut: %d characters]...\n" % (len(text) - limit) + text[-(limit - head):].lstrip()).strip()
+    title = lambda p: p.lstrip().split("\n", 1)[0].strip(" #*0123456789.:")
+    parts = [p for p in parts if not any(title(p).lower().startswith(s.lower()) for s in _DROP_SECTIONS)]
+    rank = lambda p: next((i for i, s in enumerate(_KEEP_FIRST) if title(p).lower().startswith(s.lower())), len(_KEEP_FIRST))
     room, size = limit, {}
     for i in sorted(range(len(parts)), key=lambda i: rank(parts[i])):
         size[i] = min(len(parts[i]), max(0, room))
@@ -504,4 +517,5 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")
     sys.exit(main())

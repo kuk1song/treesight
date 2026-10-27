@@ -153,10 +153,38 @@ class Cli(unittest.TestCase):
         self.assertEqual(oct(os.stat(digest).st_mode & 0o777), "0o600")
 
     def test_apply_without_extract_fails_cleanly(self):
-        run("prepare", *self.common)
+        code, out = run("prepare", *self.common)
         code, res = run("apply", *self.common)
         self.assertEqual(code, 1)
         self.assertIn("no extraction", res["error"])
+        # another run of the session finished and removed both files: the skill's cue to stop, not to write it again
+        os.remove(out["extract"].replace(".extract.json", ".digest.txt"))
+        code, res = run("apply", *self.common)
+        self.assertEqual(code, 1)
+        self.assertIn("no digest", res["error"])
+
+    def test_a_transcript_without_messages_is_an_error_not_a_traceback(self):
+        projects = os.path.join(self.tmp, "projects")
+        shutil.copytree(os.path.join(ROOT, "fixtures", "projects"), projects)
+        os.environ["TREESIGHT_PROJECTS"] = projects
+        bare = "c1000000-0000-4000-8000-000000000000"
+        with open(os.path.join(projects, PROJECT, bare + ".jsonl"), "w", encoding="utf-8") as f:
+            f.write(json.dumps({"type": "custom-title", "customTitle": "Only a title", "sessionId": bare}) + "\n")
+        for cmd in (["prepare"], ["show", "digest"], ["apply"]):
+            code, out = run(*cmd, "--session", bare[:8], *self.common)
+            self.assertEqual((code, out["ok"]), (1, False), cmd)
+            self.assertIn("has no messages yet", out["error"])
+
+    def test_the_output_is_utf8_whatever_the_console(self):
+        """On a console whose code page cannot write Chinese or the report's 🌳 (Windows, a Latin-1 locale), the last
+        step of every run failed after its page was written, and the report was lost."""
+        import subprocess
+        env = dict(os.environ, PYTHONIOENCODING="cp1252")
+        p = subprocess.run([sys.executable, os.path.join(ROOT, "scripts", "treesight.py"), "list", "--current", "706417bf",
+                            "--cache", self.cache], env=env, capture_output=True)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        rows = json.loads(p.stdout.decode("utf-8"))
+        self.assertTrue(any(re.search("[\u4e00-\u9fff]", r["title"]) for r in rows), rows)
 
     def test_a_session_being_drawn_is_not_drawn_twice(self):
         code, out = run("prepare", *self.common)

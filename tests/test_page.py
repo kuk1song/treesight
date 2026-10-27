@@ -82,8 +82,8 @@ class Render(unittest.TestCase):
             self.assertEqual(build._browser_command("/p/x.html"), ["open", "/p/x.html"])     # no default browser found
         with mock.patch.dict(os.environ, {"BROWSER": "true"}), mock.patch.object(build.webbrowser, "open", return_value=True) as wb:
             self.assertIsNone(build._browser_command("/p/x.html"))
-            self.assertEqual(build.open_page({"page": "/p/x.html"})["browser_asked"], True)
-            wb.assert_called_once_with("file:///p/x.html")
+            self.assertEqual(build.open_page({"page": "/p/a b#1.html", "url": "file:///p/a%20b%231.html"})["browser_asked"], True)
+            wb.assert_called_once_with("file:///p/a%20b%231.html")     # the page's own URL, not "file://" and its path
         with mock.patch.object(build.sys, "platform", "linux"), mock.patch.dict(os.environ, {}, clear=False):
             os.environ.pop("BROWSER", None)
             self.assertIsNone(build._browser_command("/p/x.html"))
