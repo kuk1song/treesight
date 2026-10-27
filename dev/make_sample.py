@@ -6,6 +6,7 @@ recipe-box (the default) is the README demo, docs/demo.html, and recipe-box-zh t
 Chinese README's video; tidepool is the project the tests and the measurements in docs/design.md use. The ledger goes to a temporary TREESIGHT_HOME, removed afterwards,
 so nothing of the user's own data is touched.
 Usage: python3 dev/make_sample.py [--sample recipe-box|recipe-box-zh|tidepool] [--out docs/demo.html]
+       python3 dev/make_sample.py --sample recipe-box --first-run DIR   (the pages and report of a first run, for the video)
 """
 import argparse
 import glob
@@ -30,10 +31,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sample", choices=sorted(SAMPLES), default="recipe-box")
     ap.add_argument("--out", default=os.path.join(ROOT, "docs", "demo.html"))
+    ap.add_argument("--first-run", metavar="DIR", help="write pending.html, done.html and report.txt of the sample's first run")
     a = ap.parse_args()
     os.environ["TREESIGHT_HOME"] = tempfile.mkdtemp(prefix="treesight-sample-")
     try:
-        return build_sample(a.sample, a.out)
+        return first_run(a.sample, a.first_run) if a.first_run else build_sample(a.sample, a.out)
     finally:
         shutil.rmtree(os.environ["TREESIGHT_HOME"])
 
@@ -65,6 +67,47 @@ def build_sample(name, out):
     with open(os.path.join(ROOT, "fixtures", "extract", steps[-1][1]), encoding="utf-8") as f:
         current = json.load(f)["session"]
     return build.main(["--project", folder, "--current", current, "--out", out, "--now", now, "--public"])
+
+
+def first_run(name, outdir):
+    """The README video's run: the project's first, from its first session. pending.html is the page while that session
+    is drawn (no tree yet, the other sessions' overviews being written), done.html the page after it, and report.txt
+    the lines build --done gives the user for it, with the page's address as it would be for a project in the
+    transcripts' folder (the samples' own folder names differ only so that both demos can share one path)."""
+    import build, ledger, transcript, treesight   # noqa: E401  (after TREESIGHT_HOME is set)
+    project, steps, now = SAMPLES[name]
+    folder = os.path.join(ROOT, "fixtures", "projects", project)
+    key = ledger.project_key(folder)
+    path = glob.glob(os.path.join(folder, steps[0][0] + "-*.jsonl"))[0]
+    meta, entries = transcript.read_session(path)
+    with open(os.path.join(ROOT, "fixtures", "extract", "others.json"), encoding="utf-8") as f:
+        others = json.load(f)["samples"].get(name, {})
+    listed = {}
+    for sid8 in others:
+        m = transcript.read_session(glob.glob(os.path.join(folder, sid8 + "-*.jsonl"))[0])[0]
+        listed[sid8] = {"id": m["id"], "upto": m["last_at"]}
+    os.makedirs(outdir, exist_ok=True)
+    ledger._now = lambda: now
+    pending = [{"session": meta["id"], "title": meta["title"], "estimate_s": 240, "started_at": now}]
+    build.write_page(folder, os.path.join(outdir, "pending.html"), current=meta["id"], now=now, pending=pending,
+                     public=True, summarizing={v["id"] for v in listed.values()})
+    with open(os.path.join(ROOT, "fixtures", "extract", steps[0][1]), encoding="utf-8") as f:
+        ext = json.load(f)
+    ext["others"] = [{"session": s, "gist": g} for s, g in others.items()]
+    done = now[:11] + "09:04:00Z"     # about four minutes later, the estimate above
+    ledger._now = lambda: done
+    digest = transcript.digest(path, after=None, known=ledger.known_for(ledger.load(key), ext["session"]))
+    probs, summary = ledger.apply(ext, digest, key, model="fixture", others=listed)
+    if probs:
+        raise SystemExit("%s: %s" % (steps[0][1], probs))
+    build.write_page(folder, os.path.join(outdir, "done.html"), current=meta["id"], now=done, public=True)
+    said = {k: summary.get(k, 0) for k in ("nodes", "open", "closed", "to_confirm")}
+    url = "file:///home/kuki/.claude/plugins/data/treesight-treesight/pages/%s.html" % meta["cwd"].replace("/", "-")
+    lines = treesight.report({"said": said, "title": meta["title"]}, url, treesight.report_lang(entries)).split("\n")[2:]
+    with open(os.path.join(outdir, "report.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+    print(json.dumps({"dir": outdir, "said": said, "report": lines}, ensure_ascii=False))
+    return 0
 
 
 if __name__ == "__main__":
