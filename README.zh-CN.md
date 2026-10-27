@@ -26,13 +26,13 @@ https://github.com/user-attachments/assets/c6183fb0-09f4-4f7c-a4dc-e0322069bac5
 
 然后选择装在哪个范围。版本更早的话，先运行 `/plugin marketplace add kuk1song/treesight`，再运行 `/plugin install treesight@treesight`。
 
-**想让编程代理帮你装**？请它在终端里运行下面这条（需要 Claude Code 2.1.292 及以上），装好后你自己运行 `/reload-plugins`，或者开一个新会话：
+**想让 coding agent 帮你装**？请它在终端里运行下面这条（需要 Claude Code 2.1.292 及以上），装好后你自己运行 `/reload-plugins`，或者开一个新会话：
 
 ```
 claude plugin install treesight --marketplace kuk1song/treesight
 ```
 
-它在你自己电脑上的 Claude Code 里使用：终端里实测过；桌面端的 Code 页签和 IDE 扩展应该也能用，但没测过。云端会话、Cowork、claude.ai 聊天和其他编程代理里不能用（[详细说明](docs/design.md#5-delivery)，英文）。
+它在你自己电脑上的 Claude Code 里使用：终端里实测过；桌面端的 Code 页签和 IDE 扩展应该也能用，但没测过。云端会话、Cowork、claude.ai 聊天和其他 coding agent 里不能用（[详细说明](docs/design.md#5-delivery)，英文）。
 
 treesight 还需要 3.9 及以上的 `python3`（Apple 命令行工具里的就行），系统是 macOS 或 Linux；Windows 没测过。在 Claude Code 2.1.299 上测过。这类插件市场默认不自动更新：可以在 `/plugin` 里打开自动更新，或者运行 `claude plugin update treesight@treesight`，再运行 `/reload-plugins` 或开一个新会话。
 
@@ -106,4 +106,4 @@ skill 只预先放行两件事：运行它自己的脚本，以及把结果写�
 
 ## 许可证
 
-[MIT](LICENSE)。treesight 是独立项目，与 Anthropic 没有关联，也未获其认可。
+[MIT](LICENSE)。

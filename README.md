@@ -106,4 +106,4 @@ Tests, checks, pull requests and releases are in [CONTRIBUTING.md](CONTRIBUTING.
 
 ## License
 
-[MIT](LICENSE). treesight is an independent project, not affiliated with or endorsed by Anthropic.
+[MIT](LICENSE).
