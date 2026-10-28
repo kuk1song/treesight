@@ -24,6 +24,23 @@ body:
       description: The lines treesight printed in your conversation, with anything private removed.
       render: text
   - type: input
+    id: version
+    attributes:
+      label: treesight version
+      description: The version `claude plugin list` shows for treesight.
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How treesight was installed
+      options:
+        - From the marketplace kuk1song/treesight (/plugin install)
+        - From a local copy (claude --plugin-dir)
+        - Other
+    validations:
+      required: true
+  - type: input
     id: claude
     attributes:
       label: Claude Code version

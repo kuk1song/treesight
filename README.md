@@ -14,7 +14,7 @@ Do you find it hard, after a while, to recall how a session went and its details
 
 treesight reads the whole session and draws it as a tree: what got done, what was found, where it got stuck, and what is still open. It runs as a plugin inside your AI: no server, no account, no extra API key, and the page makes no network requests.
 
-https://github.com/user-attachments/assets/9b4e3a3f-85fa-48ba-95d3-a58881259e15
+https://github.com/user-attachments/assets/3e5efb9a-1699-41e0-9e67-a4312527d83b
 
 ## Install
 
@@ -44,7 +44,7 @@ Open the session you want to see (for example with `claude --resume`) and run:
 /treesight:treesight
 ```
 
-Within seconds treesight asks your browser to open the page, and the session's tree appears there when the background run is done, a few minutes for most sessions. Keep working meanwhile. When it is done, a line and a half in your conversation says what changed, with the page's link. Later runs and corrections in the same conversation update that page instead of opening another tab.
+Within seconds treesight asks your browser to open the page, and the session's tree appears there when the background run is done, a few minutes for most sessions. Keep working meanwhile. When it is done, two short lines in your conversation say what changed, with the page's link. Later runs and corrections in the same conversation update that page instead of opening another tab.
 
 - **Another session of this project:** add its id or words from its title, in any order, as in `/treesight:treesight 0a182a7b` or `/treesight:treesight release`. The project page lists the project's sessions: click one without a tree for its session overview, and for links that open Claude Code with the command to draw it, or to resume it, typed in.
 - **Run it again** to read only what is new. A run started while another is still going runs in the foreground, so your conversation waits for it. If you stopped a run, add `--restart` to start that session again.
@@ -62,7 +62,7 @@ The skill pre-approves only two things: running its own script, and writing its 
 ## Privacy
 
 - The page makes no network requests. Its Content Security Policy runs no script but its own (allowed by hash) and the files that script loads, and the only one it loads is a one-line stamp next to the page, which tells an open page that a newer build exists. Session text sits in a non-executing block, so it cannot run as code.
-- The digest, and short excerpts of the project's other sessions for their overviews, reach the model the same way your conversation does: same account, same provider, after common secret formats are removed and IPv4 addresses and emails are masked.
+- The session's text, and short excerpts of the project's other sessions for their overviews, reach the model the same way your conversation does: same account, same provider, after common secret formats are removed and IPv4 addresses and emails are masked.
 - To pass on a run's report as it is, the plugin adds a hook that looks at each message sent to Claude Code, in memory, for treesight's own completion notice. It keeps nothing, sends nothing, and lets every other message through untouched.
 - treesight sends nothing anywhere else. Its ledger (in `~/.local/share/treesight/` by default) stays after you uninstall the plugin; delete that folder and `~/.cache/treesight` to remove what treesight kept.
 
@@ -76,7 +76,7 @@ Extraction counts against your Claude Code plan. treesight favours finding every
 - The page waits for the model's first reply before it opens; once in testing that took 3.4 minutes.
 - The run's report comes back to your conversation. The plugin's hook asks Claude to pass it on as it is, which a model can still ignore; where the hook does not run, Claude may comment on it or check things on its own.
 - Overviews of sessions without a tree are written from a short excerpt and can be wrong, so they are marked AI.
-- The links into Claude Code need its `claude-cli://` handler, which Claude Code registers on your first interactive prompt; if nothing opens, the page offers the command to copy. Sessions run with `claude -p` or the Agent SDK are listed only once drawn.
+- The links into Claude Code need its `claude-cli://` handler, which Claude Code registers on your first interactive prompt; if nothing opens, the page offers the command to copy. They follow Claude Code's documented deep links but have not been tried end to end yet. Sessions run with `claude -p` or the Agent SDK are listed only once drawn.
 - The transcript format is internal to Claude Code and may change in any release.
 - The page has a dark theme only.
 - An open page updating itself is tested in Chrome only; Safari and Firefox are untested.

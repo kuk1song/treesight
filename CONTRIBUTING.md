@@ -31,8 +31,11 @@ To try a change in Claude Code, start it with `claude --plugin-dir <a clean chec
 
 ## Releases
 
+Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Before 1.0, a release with a new feature, or with any change that an earlier version cannot read or call the same way (the ledger's or a schema's format, the command's arguments, the script's JSON), raises the minor version (0.2.0 to 0.3.0); a release with fixes only raises the patch version (0.2.0 to 0.2.1). Each pull request adds its user-visible changes under `## Unreleased` in `CHANGELOG.md`, in the groups listed there, with its number; anything an update asks of users goes under "Before you update".
+
 1. In a pull request, set the new version in `.claude-plugin/plugin.json` and rename `## Unreleased` in `CHANGELOG.md` to `## X.Y.Z (YYYY-MM-DD)`.
-2. After it is merged, tag that commit and push the tag: `git tag -a vX.Y.Z -m "treesight X.Y.Z" && git push origin vX.Y.Z`.
-3. The release workflow checks that the tag points at a commit on `main`, runs the tests, checks that the tag, `plugin.json` and `CHANGELOG.md` agree, then publishes the GitHub release with that CHANGELOG section as its notes. Users get it with `claude plugin update treesight@treesight`.
+2. Before merging it, check it as users will get it. Install it into a throwaway configuration (`export CLAUDE_CONFIG_DIR="$(mktemp -d)"`, then `claude plugin marketplace add <a clean checkout of the branch>` and `claude plugin install treesight@treesight`) and compare the installed copy under `$CLAUDE_CONFIG_DIR/plugins/cache/` with the checkout. Then, in your own configuration, run `claude --plugin-dir <the checkout>`, draw a small session with `/treesight:treesight`, and check the page and the two report lines.
+3. After it is merged, tag that commit and push the tag: `git tag -a vX.Y.Z -m "treesight X.Y.Z" && git push origin vX.Y.Z`.
+4. The release workflow checks that the tag points at a commit on `main`, runs the tests, checks that the tag, `plugin.json` and `CHANGELOG.md` agree, then publishes the GitHub release with that CHANGELOG section as its notes. Releases are immutable once published (a repository setting, on since 2026-10-27): the tag cannot be moved, and only the title and notes can be edited. Users get it with `claude plugin update treesight@treesight`.
 
 The marketplace installs straight from `main`, so a merged change to what ships (`scripts/`, `skills/`, `hooks/`, `templates/`, `schema/`, `.claude-plugin/`) reaches new installs at once, still under the last version number, while existing installs only update on a new version. Release soon after merging such a change.
