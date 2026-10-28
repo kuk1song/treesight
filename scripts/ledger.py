@@ -3,7 +3,8 @@
 
 Files live in $TREESIGHT_HOME, else $XDG_DATA_HOME/treesight, else ~/.local/share/treesight, under
 projects/<project key>/ (the key is the folder name Claude Code uses under ~/.claude/projects):
-  ledger.jsonl  what the model added or proposed to close; lines are only ever appended
+  ledger.jsonl  what the model added or proposed to close; lines are only ever appended (a last line that a crash left
+                unfinished is removed before the next append)
   edits.jsonl   the user's own changes; applied last, so they always win
 
 Before anything is appended, an extraction output must match schema/extract.schema.json, every
@@ -35,7 +36,7 @@ except ImportError:  # Windows: no lock, single writer assumed
     fcntl = None
 
 from schema import Validator
-from transcript import instant
+from transcript import instant, scrub
 
 _BLOCK = re.compile(r"^\[(prompt|reply|recap|compact) (\S+) ([0-9a-f-]{36})\]\n", re.M)
 
@@ -229,18 +230,45 @@ def project_lock(key):
 
 
 def _read(path):
+    """The records of a ledger file. A last line without its line end is a write that never finished (a crash or a
+    full disk during _append): it is left out, and the next append removes it. Any other line that is not JSON is
+    an error, since the file was edited by hand."""
     out = []
     if not os.path.exists(path):
         return out
-    with open(path, encoding="utf-8") as f:
-        for n, line in enumerate(f, 1):
-            line = line.strip()
-            if line:
-                try:
-                    out.append(json.loads(line))
-                except ValueError:
-                    raise ValueError("%s line %d is not JSON; the file was edited by hand or cut short" % (path, n))
+    with open(path, "rb") as f:
+        lines = f.read().split(b"\n")      # the last piece is empty when the file ends with a line end
+    for n, line in enumerate(lines, 1):
+        if line.strip():
+            try:
+                out.append(json.loads(line.decode("utf-8")))
+            except ValueError:              # also a line cut in the middle of a character
+                if n == len(lines):
+                    break
+                raise ValueError("%s line %d is not JSON; the file was edited by hand" % (path, n))
     return out
+
+
+def _end_last_line(path, fd):
+    """Before an append: when the file does not end with a line end, its last line is a write that never finished,
+    so it is removed (_read leaves it out too); if it is whole JSON after all, only its line end was missing."""
+    with open(path, "rb") as r:
+        r.seek(0, os.SEEK_END)
+        size = r.tell()
+        if not size:
+            return ""
+        r.seek(size - 1)
+        if r.read(1) == b"\n":
+            return ""
+        r.seek(0)
+        old = r.read()
+    tail = old[old.rfind(b"\n") + 1:]
+    try:
+        json.loads(tail.decode("utf-8"))
+        return "\n"
+    except ValueError:
+        os.ftruncate(fd, len(old) - len(tail))
+        return ""
 
 
 def _append(path, events):
@@ -252,7 +280,7 @@ def _append(path, events):
         if fcntl:
             fcntl.flock(f, fcntl.LOCK_EX)
         try:
-            f.write(data)
+            f.write(_end_last_line(path, f.fileno()) + data)
             f.flush()
             os.fsync(f.fileno())
         finally:
@@ -402,6 +430,23 @@ def _own_first(x):
     return sorted(x["evidence"], key=lambda e: e["msg"] != x["msg"])
 
 
+# what the model wrote is scrubbed again before it is kept, as the page does (build._scrub_all): it reads a scrubbed
+# digest, but a forked skill may also see the conversation itself. Ids, times and fixed values are left as they are,
+# and so is the session's metadata, which treesight.session_meta scrubbed already.
+_NOT_TEXT = ("v", "at", "run", "session", "ev", "through", "after", "rules", "model", "pass", "upto", "session_meta",
+             "id", "msg", "ref", "kind", "status", "sure", "by", "via", "blocked_by", "overturns", "raised_at", "due")
+
+
+def _scrubbed(x):
+    if isinstance(x, str):
+        return scrub(x)
+    if isinstance(x, list):
+        return [_scrubbed(v) for v in x]
+    if isinstance(x, dict):
+        return {k: v if k in _NOT_TEXT else _scrubbed(v) for k, v in x.items()}
+    return x
+
+
 def apply(ext, digest_text, key, model=None, meta=None, pass_number=1, others=None):
     """Check an extraction output and append it. Returns (problems, summary); nothing is written when there are problems.
 
@@ -417,9 +462,11 @@ def _apply(ext, digest_text, key, model, meta, pass_number, others):
     d = project_dir(key)
     events, edits = _read(os.path.join(d, "ledger.jsonl")), _read(os.path.join(d, "edits.jsonl"))
     state = view(events, edits)
-    known = known_for(state, ext["session"]) if isinstance(ext, dict) and "session" in ext else None
+    sid = ext.get("session") if isinstance(ext, dict) else None
+    sid = sid if isinstance(sid, str) else None       # anything else fails the schema check below
+    known = known_for(state, sid) if sid else None
     probs = check(ext, digest_text, known, others)
-    prev = (state["sessions"].get(ext.get("session")) or {}).get("through") if isinstance(ext, dict) else None
+    prev = (state["sessions"].get(sid) or {}).get("through") if sid else None
     if not probs and prev and prev in parse_digest(digest_text)[1]:
         probs.append("the digest repeats entries the ledger already read; build it with --after %s" % prev)
     start = re.search(r"^range: .*?(?:, continuing after (\S+))?$", digest_text, re.M)
@@ -469,6 +516,7 @@ def _apply(ext, digest_text, key, model, meta, pass_number, others):
     for o in ext.get("others", []):
         other = others[o["session"]]
         out.append(dict(base, ev="gist", session=other["id"], gist=o["gist"], upto=other["upto"]))
+    out = [_scrubbed(e) for e in out]
     _append(os.path.join(d, "ledger.jsonl"), out)
     after = view(events + out, edits)
     lr = after["sessions"][sid]["last_run"]
@@ -597,6 +645,7 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")
     try:
         sys.exit(main())
     except ValueError as e:

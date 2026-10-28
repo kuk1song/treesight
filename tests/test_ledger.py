@@ -468,6 +468,57 @@ class Ledger(unittest.TestCase):
             after = f.read()
         self.assertTrue(after.startswith(before) and len(after) > len(before))
 
+    def test_a_write_that_never_finished_does_not_block_the_project(self):
+        """A crash or a full disk during an append can leave a last line cut short; every build and edit of the project
+        then failed on it. It is left out, and the next append removes it; a line that is whole JSON but lost only its
+        line end is kept; a broken line before the last is still an error."""
+        self.first()
+        path = os.path.join(ledger.project_dir(PROJECT), "ledger.jsonl")
+        with open(path, "rb") as f:
+            good = f.read()
+        whole = len(ledger._read(path))
+        with open(path, "ab") as f:
+            f.write('{"v": 1, "ev": "node", "node": {"label": "半'.encode("utf-8")[:-1])     # cut inside a character
+        self.assertEqual(len(ledger._read(path)), whole)
+        by = self.labels(ledger.load(PROJECT))
+        d2 = transcript.digest(T2)
+        self.assertEqual(ledger.apply(extract2(d2, by), d2, PROJECT)[0], [])
+        with open(path, "rb") as f:
+            after = f.read()
+        self.assertTrue(after.startswith(good) and after.endswith(b"\n") and b"\xe5\x8d" not in after)
+        n = len(ledger._read(path))
+        with open(path, "rb+") as f:             # whole, without its line end
+            f.truncate(len(after) - 1)
+        self.assertEqual(len(ledger._read(path)), n)
+        ledger.edit(PROJECT, "hide", "953c0ab1-n1")       # edits.jsonl: a file of its own
+        ledger._append(path, [{"v": 1, "ev": "noop"}])
+        self.assertEqual(len(ledger._read(path)), n + 1)
+        with open(path, "ab") as f:
+            f.write(b"{broken\n" + after[-10:])
+        with self.assertRaises(ValueError):
+            ledger._read(path)
+
+    def test_a_session_that_is_not_a_string_is_a_problem_not_a_crash(self):
+        bad = dict(copy.deepcopy(EXTRACT1), session=[EXTRACT1["session"]])
+        probs, _ = ledger.apply(bad, self.d1, PROJECT)
+        self.assertTrue(probs)
+
+    def test_what_the_model_wrote_is_scrubbed_before_it_is_kept(self):
+        """It reads a scrubbed digest, but a forked skill may see the conversation too; the page scrubs it again
+        anyway, so the ledger now holds what the page shows."""
+        ext = copy.deepcopy(EXTRACT1)
+        ext["nodes"][0]["line"] = "Mail maya@example.com the token ghp_" + "a1" * 18
+        ext["gist"] = "Deploy to 192.0.2.20 went fine"
+        self.assertEqual(ledger.apply(ext, self.d1, PROJECT)[0], [])
+        with open(os.path.join(ledger.project_dir(PROJECT), "ledger.jsonl"), encoding="utf-8") as f:
+            text = f.read()
+        self.assertNotIn("maya@example.com", text)
+        self.assertNotIn("192.0.2.20", text)
+        self.assertNotIn("ghp_", text)
+        s = ledger.load(PROJECT)["sessions"][EXTRACT1["session"]]
+        self.assertEqual((s["nodes"][0]["line"], s["gist"]["text"]), ("Mail [email] the token [secret]", "Deploy to x.x.x.x went fine"))
+        self.assertEqual(s["nodes"][0]["id"], "953c0ab1-n1")
+
 
 if __name__ == "__main__":
     unittest.main()

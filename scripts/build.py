@@ -276,7 +276,7 @@ def open_page(res):
         if cmd:
             res["browser_asked"] = subprocess.run(cmd, capture_output=True, timeout=20).returncode == 0
         else:
-            res["browser_asked"] = bool(webbrowser.open("file://" + res["page"]))
+            res["browser_asked"] = bool(webbrowser.open(res["url"]))
     except (OSError, subprocess.SubprocessError, webbrowser.Error):
         res["browser_asked"] = False
     return res
@@ -307,6 +307,7 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")
     try:
         sys.exit(main())
     except ValueError as e:

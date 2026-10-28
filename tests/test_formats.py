@@ -148,6 +148,17 @@ class Transcript(unittest.TestCase):
                        {"message": {"content": "[Request interrupted by user for tool use]"}}):
             self.assertFalse(transcript.is_prompt(dict(base, **change)), change)
 
+    def test_lines_that_are_not_objects_are_skipped(self):
+        """Valid JSON that is not an object (a list, null, a number) stopped the whole project's page with a traceback."""
+        path, ids = write_transcript([("Plan the release", ["Planned."])])
+        try:
+            with open(path, "a", encoding="utf-8") as f:
+                f.write("[1, 2]\nnull\n42\n\"text\"\n")
+            meta, entries = transcript.read_session(path)
+        finally:
+            os.unlink(path)
+        self.assertEqual((meta["prompts"]["total"], [e["msg"] for e in entries]), (1, ids))
+
     def test_substantive(self):
         self.assertFalse(transcript.is_substantive("继续"))
         self.assertFalse(transcript.is_substantive("go on"))
@@ -199,6 +210,10 @@ class Transcript(unittest.TestCase):
             self.assertEqual(s(text), want, text)
         self.assertEqual(s("Authorization: Basic " + "dXNlcjpwYXNz" * 2), "[secret]")
         self.assertEqual(s("npm_modules and hf_hub are names, not keys"), "npm_modules and hf_hub are names, not keys")
+        # values are ASCII: Chinese has no spaces, so the sentence after a name with token in it was taken as its value
+        for text in ("GitHub token: 我已经放到环境变量里了，下一步部署到服务器上", "--token 我的令牌已经换过了，不用再改", "secret：明天再说"):
+            self.assertEqual(s(text), text)
+        self.assertEqual(s("GitHub token: hunter2hunter2，下一步部署"), "GitHub [secret]，下一步部署")
 
     def test_scrubbing_takes_linear_time(self):
         """Long runs without spaces (minified code, base64, dotted names) took seconds to minutes: the email, URL,
@@ -307,6 +322,27 @@ class Transcript(unittest.TestCase):
         self.assertNotIn("Files and Code Sections", out)
         self.assertIn("2. Key Technical Concepts", out)       # shortened, not dropped
         self.assertLessEqual(len(out), 2000 + 200)
+
+    def test_compaction_keeps_pending_tasks_in_markdown_headings_too(self):
+        """Some summaries mark their headings in Markdown (2 of 8 in this project's own transcripts, "1. **Title**"):
+        nothing split there, so the summary was cut from its end, Pending Tasks with it, and code sections were kept."""
+        long = "x " * 3000
+        for head in ("{n}. **{t}**", "{n}. **{t}** (as of the last turn)", "## {n}. {t}", "**{n}. {t}:**"):
+            h = lambda n, t: head.format(n=n, t=t)
+            text = ("Summary:\n" + h(1, "Primary Request and Intent") + "\n   build it\n\n" + h(3, "Files and Code Sections") + "\n   "
+                    + long + "\n\n" + h(6, "All user messages") + "\n   " + long + "\n\n" + h(7, "Pending Tasks")
+                    + "\n   - decide the palette\n\n" + h(8, "Current Work") + "\n   " + long + "\n")
+            out = transcript._trim_compact(text, 2000)
+            self.assertIn("- decide the palette", out, head)
+            self.assertNotIn("Files and Code Sections", out, head)
+            self.assertLessEqual(len(out), 2000 + 200, head)
+        # headings it does not know (another language): the end, where the open work usually is, is kept with the start
+        text = "1. 主要请求：\n   做一个页面\n\n2. 关键概念：\n   " + "字" * 9000 + "\n\n7. 待处理任务：\n   - 决定配色\n"
+        out = transcript._trim_compact(text, 2000)
+        self.assertIn("- 决定配色", out)
+        self.assertIn("1. 主要请求", out)
+        self.assertIn("[cut: %d characters]" % (len(text) - 2000), out)
+        self.assertLessEqual(len(out), 2000 + 100)
 
     def test_long_texts_are_kept_whole(self):
         path, _ = write_transcript([("Plan the release " + "and more " * 300, ["Checking.", "Done. " + "detail " * 900 + "Still open: ask Maya about the feed."])])

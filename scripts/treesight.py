@@ -96,6 +96,15 @@ def find_session(name, current=None):
     return hits[0]
 
 
+def read_session(path):
+    """transcript.read_session, for a session that has messages: a transcript with none (only a title, say) has no
+    session id inside it."""
+    meta, entries = transcript.read_session(path)
+    if not meta["id"]:
+        raise Problem("%s has no messages yet" % os.path.basename(path))
+    return meta, entries
+
+
 def cache_dir(arg):
     return ledger.private_dir(os.path.expanduser(arg) if arg else os.path.join(ledger.home(), "cache"))
 
@@ -228,7 +237,7 @@ def prepare(a):
     a.session = " ".join(w for w in words if w not in ("--restart", "--no-open"))
     path = find_session(a.session, a.current)
     key = ledger.project_key(path)
-    meta, entries = transcript.read_session(path)
+    meta, entries = read_session(path)
     cache = cache_dir(a.cache)
     if no_open:
         mark_opened(cache, key, a.current)
@@ -326,7 +335,7 @@ def show(a):
         return None
     path = find_session(a.session, a.current)
     key = ledger.project_key(path)
-    sid = transcript.read_session(path)[0]["id"]
+    sid = read_session(path)[0]["id"]
     if a.what == "others":
         src, head = others_paths(key, sid)[0], OTHER_HEAD
         if not os.path.exists(src):
@@ -348,12 +357,12 @@ def show(a):
 def apply(a):
     path = find_session(a.session, a.current)
     key = ledger.project_key(path)
-    meta, entries = transcript.read_session(path)
+    meta, entries = read_session(path)
     dig, ext = work_paths(key, meta["id"])
+    if not os.path.exists(dig):     # first: when another run of the session has finished, both files are gone
+        raise Problem("no digest for session %s; run prepare first" % meta["id"][:8])
     if not os.path.exists(ext):
         raise Problem("no extraction at %s; write it there first" % ext)
-    if not os.path.exists(dig):
-        raise Problem("no digest for session %s; run prepare first" % meta["id"][:8])
     with open(ext, encoding="utf-8") as f:
         try:
             data = json.load(f)
@@ -572,4 +581,5 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")      # the JSON holds Chinese and the report's 🌳, whatever the console's code page
     sys.exit(main())
