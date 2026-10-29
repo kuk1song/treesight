@@ -52,13 +52,14 @@ try {
     out.push({dy:Math.round(Math.abs(y-(b.top+b.height/2))*10)/10,gap:Math.round((r.classList.contains('l')?x-b.right:b.left-x)*10)/10})});return out})()`);
   for (const [view, rows] of [['session', await aligned()], ['project', (await ev(`location.hash='p'`), await sleep(800), await aligned())]])
     if (!rows || !rows.length || rows.some(r => r.dy > 1 || r.gap < 0 || r.gap > 5)) fail.push('every branch ends at its dot (' + view + ' view): ' + JSON.stringify(rows));
-  // a session without a tree: two links into Claude Code, and after a click the same command to copy
+  // a session without a tree: two links into Claude Code with a line that the browser asks first, and after a click the same command to copy
   await ev(`location.hash='p'`); await sleep(800);
   const nt = await ev(`(()=>{const b=[...document.querySelectorAll('.node.pn')].find(n=>!n.getAttribute('href'));if(!b)return null;b.click();
-    const s=b.closest('.slot'),a=s.querySelector('a.act'),after=s.querySelector('.after'),before=!after.childElementCount;a.addEventListener('click',e=>e.preventDefault());a.click();
+    const s=b.closest('.slot'),a=s.querySelector('a.act'),after=s.querySelector('.after'),hint=after.textContent;
+    const before=!after.childElementCount&&hint===W.linkHint&&after.offsetHeight>0;a.addEventListener('click',e=>e.preventDefault());a.click();
     const drawn=document.querySelector('a.node.pn .card');
-    return {before,shown:after.offsetHeight>0,copy:!!after.querySelector('.cpy'),href:a.getAttribute('href'),ai:!!(drawn&&drawn.querySelector('.ai'))}})()`);
-  if (!nt || !nt.before || !nt.shown || !nt.copy || !nt.ai || !/^claude-cli:\/\/open\?cwd=/.test(nt.href)) fail.push('a session without a tree links into Claude Code, and a drawn one\'s summary is marked AI: ' + JSON.stringify(nt));
+    return {before,shown:after.offsetHeight>0,ask:after.textContent.startsWith(W.linkAsk),copy:!!after.querySelector('.cpy'),href:a.getAttribute('href'),ai:!!(drawn&&drawn.querySelector('.ai'))}})()`);
+  if (!nt || !nt.before || !nt.shown || !nt.ask || !nt.copy || !nt.ai || !/^claude-cli:\/\/open\?cwd=/.test(nt.href)) fail.push('a session without a tree links into Claude Code, says first that the browser asks, and a drawn one\'s summary is marked AI: ' + JSON.stringify(nt));
   await send('Page.navigate', {url: page + '#p'}); await sleep(1000);
   const first = (await state()).v;
   ts('edit', 'hide', 'Windows', 'support'); ts('build');

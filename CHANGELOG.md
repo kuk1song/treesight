@@ -2,7 +2,7 @@
 
 From 0.2.0 on, changes are grouped as in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `CONTRIBUTING.md` describes. Numbers in parentheses are pull requests.
 
-## Unreleased
+## 0.2.0 (2026-10-29)
 
 ### Before you update
 
@@ -13,7 +13,7 @@ From 0.2.0 on, changes are grouped as in [Keep a Changelog](https://keepachangel
 ### Added
 
 - Session overviews (会话概况): one sentence per session, marked AI, written from the whole session for the one drawn and from a short excerpt for up to 30 others a run; an overview from a session's own run is never replaced by one from an excerpt. (#18, #19)
-- Links into Claude Code: a session without a tree, when clicked, shows its overview and "Draw the tree" and "Open the session", which open Claude Code in a new terminal with the command typed in (`claude-cli://` deep links; nothing runs until Enter), and a command to copy if nothing opens. A run started this way updates the open page instead of opening another tab. (#18, #19)
+- Links into Claude Code: a session without a tree, when clicked, shows its overview and "Draw the tree" and "Open the session", which open Claude Code in a new terminal with the command typed in (`claude-cli://` deep links; nothing runs until Enter), and a command to copy if nothing opens. A line under them says first that the browser asks before it opens Claude Code and which button to choose. A run started this way updates the open page instead of opening another tab. (#18, #19, #23)
 - One page per project, kept current: the browser opens it once per conversation (again after three hours without an update there), and later runs and corrections update the open page through a one-line stamp file next to it, instead of a new tab or a reload every 20 seconds. (#17)
 - While a session is drawn, a pill at the top says "Drawing a tree", which session, and about how many minutes, beside a small growing tree with a pause button; the project tree grows on such a page too. (#18, #19)
 - When a run is done, your conversation shows two short lines starting with `🌳 treesight:`: what changed and the page's link, plus a line only when something needs you. The script writes them in the language of the session's prompts, and the plugin's hook asks the main conversation to show them as they are instead of reviewing the run on its own. (#19)
@@ -33,6 +33,7 @@ From 0.2.0 on, changes are grouped as in [Keep a Changelog](https://keepachangel
 - Extraction: twigs may have 16 units instead of 10, as phrases that make sense on their own a month later. The guide asks for one node where a thread ended up, leaves out Claude's own queued work and offers you did not take up, and keeps usage-limit waits and time away out of stuck time. (#17, #18)
 - The digest is shown to the model in parts of at most 24,000 bytes rather than 20,000 characters, so Claude Code shows each part inline. (#17)
 - The English report reads "the tree of “…” is ready (3 new nodes, 2 new open items)" and names items and messages in its extra lines. (#22)
+- README: the links' limitation says what the browser asks and where the links were tried; a run with nothing new takes 20 to 44 seconds in testing. (#23)
 - README: a 35-second video of a project's first run in each language, from the command to the report, zoomed where the action is, with an end card that has the install command; coding agent in Chinese; no line on not being affiliated with Anthropic. (#20, #22)
 
 ### Fixed

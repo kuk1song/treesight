@@ -68,7 +68,7 @@ The skill pre-approves only two things: running its own script, and writing its 
 
 ## Time and cost
 
-Extraction counts against your Claude Code plan. treesight favours finding every open item over speed, so it runs at xhigh effort with your session's model. Measured on 2026-10-16 with Opus 5.5, as API-price equivalents: a 15-prompt session took 3.1 minutes ($0.64), and a 73-prompt session with 7 compactions took 21 minutes ($8.50) and found all 17 items on that session's own last to-do list. Later runs read only what is new, and a run with nothing new still takes a few short model requests (about 20 seconds in testing). The first run in a project also writes overviews of its other sessions: with 14 of them, a 9-prompt session took 7.0 minutes ($2.07) on 2026-10-23, and 5.6 minutes ($1.25) on 2026-10-21, before overviews existed (single runs). All measurements: [docs/design.md](docs/design.md#6-known-limits-and-what-remains-to-verify).
+Extraction counts against your Claude Code plan. treesight favours finding every open item over speed, so it runs at xhigh effort with your session's model. Measured on 2026-10-16 with Opus 5.5, as API-price equivalents: a 15-prompt session took 3.1 minutes ($0.64), and a 73-prompt session with 7 compactions took 21 minutes ($8.50) and found all 17 items on that session's own last to-do list. Later runs read only what is new, and a run with nothing new still takes a few short model requests (20 to 44 seconds in testing). The first run in a project also writes overviews of its other sessions: with 14 of them, a 9-prompt session took 7.0 minutes ($2.07) on 2026-10-23, and 5.6 minutes ($1.25) on 2026-10-21, before overviews existed (single runs). All measurements: [docs/design.md](docs/design.md#6-known-limits-and-what-remains-to-verify).
 
 ## Limitations
 
@@ -76,7 +76,7 @@ Extraction counts against your Claude Code plan. treesight favours finding every
 - The page waits for the model's first reply before it opens; once in testing that took 3.4 minutes.
 - The run's report comes back to your conversation. The plugin's hook asks Claude to pass it on as it is, which a model can still ignore; where the hook does not run, Claude may comment on it or check things on its own.
 - Overviews of sessions without a tree are written from a short excerpt and can be wrong, so they are marked AI.
-- The links into Claude Code need its `claude-cli://` handler, which Claude Code registers on your first interactive prompt; if nothing opens, the page offers the command to copy. They follow Claude Code's documented deep links but have not been tried end to end yet. Sessions run with `claude -p` or the Agent SDK are listed only once drawn.
+- The links into Claude Code need its `claude-cli://` handler, which Claude Code registers on your first interactive prompt. Your browser asks before it opens Claude Code; the command is typed into a new terminal and runs only when you press Enter, and if nothing opens, the page offers it to copy. Tried in Chrome and Terminal on macOS; other browsers and systems are untested. Sessions run with `claude -p` or the Agent SDK are listed only once drawn.
 - The transcript format is internal to Claude Code and may change in any release.
 - The page has a dark theme only.
 - An open page updating itself is tested in Chrome only; Safari and Firefox are untested.
