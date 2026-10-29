@@ -1,12 +1,23 @@
 # Changelog
 
-From 0.2.0 on, changes are grouped as in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `CONTRIBUTING.md` describes. Numbers in parentheses are pull requests.
+From 0.2.0 on, changes are grouped as in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with "Before you update" first and "Development" last, and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `CONTRIBUTING.md` describes. Numbers in parentheses are pull requests.
 
-## Unreleased
+## 0.2.1 (2026-10-29)
 
 ### Changed
 
 - The marketplace installs the latest release instead of `main`: its entry names the release's tag and commit, so a change merged after a release reaches new installs with the next release, not at once. (#24)
+- Page: the line under "Draw the tree" and "Open the session" no longer shows before a click. Hovering either link, or reaching it with the keyboard, shows one tip under both: the browser asks first, which button to click, then Enter in the terminal; Esc hides it. After a click the line says it again, with the command to copy. (#25)
+- README: to update, run `claude plugin marketplace update treesight` before `claude plugin update treesight@treesight`; the second alone may not fetch the marketplace again and then reports the version you have as the latest. (#25)
+
+### Fixed
+
+- The page said to choose "Open or Allow" in the browser's prompt, but the buttons of Chrome and Firefox start with Open, and in Chrome Allow is only on the "Always allow" checkbox the page does not suggest; it now names Allow in Safari, whose button says it, and Open elsewhere. (#25)
+
+### Development
+
+- The tests no longer open the made-up tidepool page in the developer's browser; one of them built the page with `--open`. (#25)
+- `dev/check_live.mjs` checks the tip on hover, with Esc and at a phone's width, and a browser request left without an answer fails it after 10 s instead of hanging until the test's timeout. (#25)
 
 ## 0.2.0 (2026-10-29)
 

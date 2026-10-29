@@ -34,7 +34,7 @@ claude plugin install treesight --marketplace kuk1song/treesight
 
 它在你自己电脑上的 Claude Code 里使用：终端里实测过；桌面端的 Code 页签和 IDE 扩展应该也能用，但没测过。云端会话、Cowork、claude.ai 聊天和其他 coding agent 里不能用（[详细说明](docs/design.md#5-delivery)，英文）。
 
-treesight 还需要 3.9 及以上的 `python3`（Apple 命令行工具里的就行），系统是 macOS 或 Linux；Windows 没测过。在 Claude Code 2.1.299 上测过。这类插件市场默认不自动更新：可以在 `/plugin` 里打开自动更新，或者运行 `claude plugin update treesight@treesight`，再运行 `/reload-plugins` 或开一个新会话。
+treesight 还需要 3.9 及以上的 `python3`（Apple 命令行工具里的就行），系统是 macOS 或 Linux；Windows 没测过。在 Claude Code 2.1.299 上测过。这类插件市场默认不自动更新：可以在 `/plugin` 里打开自动更新，或者运行 `claude plugin marketplace update treesight` 和 `claude plugin update treesight@treesight`，再运行 `/reload-plugins` 或开一个新会话。
 
 ## 用法
 

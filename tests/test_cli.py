@@ -63,6 +63,11 @@ class Cli(unittest.TestCase):
         os.environ["TREESIGHT_PROJECTS"] = os.path.join(ROOT, "fixtures", "projects")
         self.cache = os.path.join(self.tmp, "cache")
         self.common = ["--current", S1, "--cache", self.cache]
+        # never the real browser: a build with --open would show these made-up pages in the developer's own browser
+        # (on macOS through `open -a`); tests that check the asking replace this themselves
+        guard = mock.patch.object(build, "open_page", lambda res: res.update(browser_asked=True) or res)
+        guard.start()
+        self.addCleanup(guard.stop)
 
     def tearDown(self):
         for k in ("TREESIGHT_HOME", "TREESIGHT_PROJECTS", "TREESIGHT_WORK"):
