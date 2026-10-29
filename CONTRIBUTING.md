@@ -17,7 +17,7 @@ node dev/record_demo.mjs en|zh            # record a README video (needs Node 22
 python3 dev/palcheck.py                   # colour contrast of the page
 python3 dev/check_page.py                 # every view of the page in a headless browser, no script errors
 node dev/check_live.mjs <chromium>        # an open page follows a correction and a run without a new tab; nodes, links, growth (Node 22 or later)
-python3 dev/check_release.py              # plugin.json's version has its CHANGELOG section
+python3 dev/check_release.py --tags       # plugin.json's version has its CHANGELOG section; the marketplace installs a release's tag and commit
 claude plugin validate --strict .         # in a clean checkout
 ```
 
@@ -33,9 +33,9 @@ To try a change in Claude Code, start it with `claude --plugin-dir <a clean chec
 
 Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Before 1.0, a release with a new feature, or with any change that an earlier version cannot read or call the same way (the ledger's or a schema's format, the command's arguments, the script's JSON), raises the minor version (0.2.0 to 0.3.0); a release with fixes only raises the patch version (0.2.0 to 0.2.1). Each pull request adds its user-visible changes under `## Unreleased` in `CHANGELOG.md`, in the groups listed there, with its number; anything an update asks of users goes under "Before you update".
 
-1. In a pull request, set the new version in `.claude-plugin/plugin.json` and rename `## Unreleased` in `CHANGELOG.md` to `## X.Y.Z (YYYY-MM-DD)`.
-2. Before merging it, check it as users will get it. Install it into a throwaway configuration (`export CLAUDE_CONFIG_DIR="$(mktemp -d)"`, then `claude plugin marketplace add <a clean checkout of the branch>` and `claude plugin install treesight@treesight`) and compare the installed copy under `$CLAUDE_CONFIG_DIR/plugins/cache/` with the checkout. Then, in your own configuration, run `claude --plugin-dir <the checkout>`, draw a small session with `/treesight:treesight`, and check the page and the two report lines.
-3. After it is merged, tag that commit and push the tag: `git tag -a vX.Y.Z -m "treesight X.Y.Z" && git push origin vX.Y.Z`.
-4. The release workflow checks that the tag points at a commit on `main`, runs the tests, checks that the tag, `plugin.json` and `CHANGELOG.md` agree, then publishes the GitHub release with that CHANGELOG section as its notes. Releases are immutable once published (a repository setting, on since 2026-10-27): the tag cannot be moved, and only the title and notes can be edited. Users get it with `claude plugin update treesight@treesight`.
+1. In a pull request, set the new version in `.claude-plugin/plugin.json` and rename `## Unreleased` in `CHANGELOG.md` to `## X.Y.Z (YYYY-MM-DD)`. Before merging it, run `claude --plugin-dir <a clean checkout of the branch>` in your own configuration, draw a small session with `/treesight:treesight`, and check the page and the two report lines.
+2. After it is merged, tag that commit and push the tag: `git tag -a vX.Y.Z -m "treesight X.Y.Z" && git push origin vX.Y.Z`.
+3. The release workflow checks that the tag points at a commit on `main`, runs the tests, checks that the tag, `plugin.json` and `CHANGELOG.md` agree, then publishes the GitHub release with that CHANGELOG section as its notes. Releases are immutable once published (a repository setting, on since 2026-10-27): the tag cannot be moved, and only the title and notes can be edited.
+4. In a second pull request, move the marketplace entry's `ref` and `sha` in `.claude-plugin/marketplace.json` to the new tag and its commit (`git rev-parse vX.Y.Z^{commit}`); CI's `dev/check_release.py --tags` checks that they agree. Before merging it, install it as users will get it: in a throwaway configuration (`export CLAUDE_CONFIG_DIR="$(mktemp -d)"`), run `claude plugin marketplace add kuk1song/treesight@<the branch>` and `claude plugin install treesight@treesight`, and compare the installed copy under `$CLAUDE_CONFIG_DIR/plugins/cache/` with `git archive vX.Y.Z`. Once it is merged, users get the release with `claude plugin update treesight@treesight`.
 
-The marketplace installs straight from `main`, so a merged change to what ships (`scripts/`, `skills/`, `hooks/`, `templates/`, `schema/`, `.claude-plugin/`) reaches new installs at once, still under the last version number, while existing installs only update on a new version. Release soon after merging such a change.
+The marketplace entry names the latest release's tag and commit, so new installs and updates get released versions only; a change merged to `main` reaches users with the next release.

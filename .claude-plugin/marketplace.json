@@ -5,8 +5,18 @@
   "plugins": [
     {
       "name": "treesight",
-      "source": "./",
+      "source": {
+        "source": "github",
+        "repo": "kuk1song/treesight",
+        "ref": "v0.2.0",
+        "sha": "230c7648c8062791f7b7366b051d589adc8c91fa"
+      },
       "description": "Recall what each session did and what it left open: a tree per session and one list of what is still open across the project, on a local page with no network requests.",
+      "author": {"name": "kuk1song", "url": "https://github.com/kuk1song"},
+      "homepage": "https://github.com/kuk1song/treesight",
+      "repository": "https://github.com/kuk1song/treesight",
+      "license": "MIT",
+      "keywords": ["sessions", "history", "recap", "open-items", "visualization"],
       "category": "productivity",
       "tags": ["sessions", "history", "open-items"]
     }
