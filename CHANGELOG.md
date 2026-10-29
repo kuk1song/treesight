@@ -33,7 +33,7 @@ From 0.2.0 on, changes are grouped as in [Keep a Changelog](https://keepachangel
 - Extraction: twigs may have 16 units instead of 10, as phrases that make sense on their own a month later. The guide asks for one node where a thread ended up, leaves out Claude's own queued work and offers you did not take up, and keeps usage-limit waits and time away out of stuck time. (#17, #18)
 - The digest is shown to the model in parts of at most 24,000 bytes rather than 20,000 characters, so Claude Code shows each part inline. (#17)
 - The English report reads "the tree of “…” is ready (3 new nodes, 2 new open items)" and names items and messages in its extra lines. (#22)
-- README: the links' limitation says what the browser asks and where the links were tried; a run with nothing new takes 20 to 44 seconds in testing. (#23)
+- README: the links' limitation says what the browser asks and where the links were tried; a run with nothing new takes 18 to 44 seconds in testing. (#23)
 - README: a 35-second video of a project's first run in each language, from the command to the report, zoomed where the action is, with an end card that has the install command; coding agent in Chinese; no line on not being affiliated with Anthropic. (#20, #22)
 
 ### Fixed
