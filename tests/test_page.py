@@ -170,22 +170,37 @@ class Render(unittest.TestCase):
             "claude-cli://open?cwd=%2FUsers%2Fme%2Frecipe-box&q=%2Ftreesight%3Atreesight%200a182a7b%20--no-open",
             "/Users/Shared/work/app", "'/home/dev/tide pool'", "'it'\\''s'", "'a$b`c'"])
 
-    def test_the_links_say_first_that_the_browser_asks(self):
+    def test_before_a_click_a_tip_says_the_browser_asks(self):
         """Every browser asks before it hands a claude-cli:// link to an app, and a page cannot turn that off (Chromium's
-        external protocol dialog); the author did not understand that prompt at first (2026-10-28). So the line under the
-        links says it before a click, with the buttons to choose and that nothing runs until Enter, and after a click it
-        repeats the choice before the command to copy."""
+        external protocol dialog); the author did not understand that prompt at first (2026-10-28) and then found a line
+        shown at rest clutter (2026-10-29). So hovering or focusing either link shows one tip under both, and after a click
+        a line says it again before the command to copy. Both name the prompt's button: Safari's says Allow; Chrome's,
+        Edge's and Firefox's start with Open, and Allow there is only on the "Always allow" checkbox the page does not
+        suggest."""
         with open(build.TEMPLATE, encoding="utf-8") as f:
             html = f.read()
         zh = html[html.index("const W=ZH?{"):html.index("}:{", html.index("const W=ZH?{"))]
         en = html[html.index("}:{", html.index("const W=ZH?{")):html.index("/* ---------- time")]
-        self.assertIn("linkHint:'浏览器会先问是否打开 Claude Code，选「打开」或「允许」；命令会填进新终端，按回车才运行。'", zh)
-        self.assertIn("linkAsk:'在浏览器的提示里选「打开」或「允许」。没打开？'", zh)
-        self.assertIn("linkHint:'Your browser first asks to open Claude Code: choose Open or Allow. The command then waits in a new terminal until you press Enter.'", en)
-        self.assertIn("linkAsk:'Choose Open or Allow in your browser’s prompt. Nothing opened?'", en)
-        self.assertIn("const after=$('div','after',W.linkHint);", html)
-        self.assertIn("after.textContent='';after.append(W.linkAsk,copyBtn(W.copyCmd,cmd))", html)
+        self.assertIn("linkTip:b=>'浏览器会先询问：点「'+b+'」，再在终端按回车',linkAsk:b=>'在浏览器弹窗里点「'+b+'」，再在终端按回车。没打开？',"
+                      "btnOpen:'打开',btnAllow:'允许'", zh)
+        self.assertIn("linkTip:b=>'Your browser asks first: click '+b+', then press Enter in the terminal',"
+                      "linkAsk:b=>'Click '+b+' in your browser’s prompt, then press Enter in the terminal. Nothing opened?',"
+                      "btnOpen:'Open',btnAllow:'Allow'", en)
+        self.assertIn("const after=$('div','after');", html)
+        self.assertIn("a.setAttribute('aria-describedby',tip.id)", html)
+        self.assertIn("after.append(W.linkAsk(BTN),copyBtn(W.copyCmd,cmd))", html)
+        self.assertNotIn("linkHint", html)
         self.assertNotIn("noOpen", html)
+        rule = re.search(r"^const BTN=/(.+)/i\.test\(navigator\.userAgent\)\?W\.btnAllow:W\.btnOpen;$", html, re.M).group(1)
+        mac = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/"
+        for ua, safari in [(mac + "605.1.15 (KHTML, like Gecko) Version/18.5 Safari/605.1.15", True),
+                           (mac + "537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36", False),
+                           (mac + "537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0", False),
+                           (mac + "537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 OPR/124.0.0.0", False),
+                           (mac + "537.36 (KHTML, like Gecko) HeadlessChrome/141.0.0.0 Safari/537.36", False),
+                           ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:144.0) Gecko/20100101 Firefox/144.0", False),
+                           ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36", False)]:
+            self.assertEqual(bool(re.search(rule, ua, re.I)), safari, ua)
 
     def test_growth_also_while_drawing_and_once_seen(self):
         """The tree grows on a page opened while a run is drawing (it stood still there since 0.1.0, from when such a
@@ -369,7 +384,7 @@ class Render(unittest.TestCase):
         with open(build.TEMPLATE, encoding="utf-8") as f:
             html = f.read()
         zh = html[html.index("const W=ZH?{"):html.index("}:{", html.index("const W=ZH?{"))]
-        for key in ("noSummary", "gone", "pendingLate", "linkHint"):
+        for key in ("noSummary", "gone", "pendingLate"):
             self.assertRegex(zh, r"%s:[^\n]*?。'" % key, key)
         self.assertIn("已过 '+n+' 天", zh)
         self.assertNotIn("已等", zh)

@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-EPaeTqBrcnFQqTzp+1iNiVhLQTosIYXa993CAOnT0xM='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Y0XnZ0Atd/n4tHrECJj66C53kGZSIdYpvLS0K+CLbIs='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>treesight</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%23131417'/%3E%3Cg transform='translate%284.4 3.6%29 scale%28.78%29'%3E%3Cpath d='M20 37V16.5' stroke='%23E9E8E3' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M20 29C14 29 10.5 26 8 21M20 21C26 21 29.5 18 32 13' fill='none' stroke='%23E9E8E3' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='21' r='4.6' fill='%23C8FF00'/%3E%3Ccircle cx='32' cy='13' r='4.6' fill='%23C8FF00'/%3E%3Ccircle cx='20' cy='7.5' r='4.8' fill='none' stroke='%23C8FF00' stroke-width='3.2'/%3E%3C/g%3E%3C/svg%3E">
@@ -36,13 +36,18 @@ main{max-width:940px;margin:0 auto;padding:0 20px 60px}
 .xp{display:grid;gap:6px;max-width:420px;text-align:left;background:var(--panel);border-radius:12px;padding:10px 13px;font-size:13.5px}.row.l .xp{margin-left:auto}
 .ai{font-size:10.5px;line-height:1.3;border:1px solid var(--line2);border-radius:4px;padding:0 4px;cursor:help}
 .sum .ai,.card .ai{margin-right:6px;vertical-align:1px}.sum.none{color:var(--mut);font-size:12.5px}
-/* under the links: first that the browser asks before it opens Claude Code, after a click also the same command to copy */
+/* under the links after a click: which button the browser's prompt needs, and the same command to copy */
 .after{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--mut)}
 .cpy{all:unset;cursor:pointer;font-size:12px;color:var(--ink);background:var(--fill);border-radius:6px;padding:1px 9px}.cpy:hover{background:var(--line2)}
 .after code{font-family:var(--mono);font-size:12px;overflow-wrap:anywhere;user-select:all;color:var(--ink)}
-.acts{display:flex;flex-wrap:wrap;align-items:center;gap:0 8px;margin-top:4px}
+.acts{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:0 8px;margin-top:4px}
 .act{font-size:13px;text-decoration:none;color:var(--ink);border:1px solid var(--line2);border-radius:8px;padding:3px 12px}.act:hover{border-color:var(--mut)}
 .act.pri{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}.act.pri:hover{opacity:.9}
+/* before a click: one tip under both links, on hover or keyboard focus; the pointer can move onto it (the bridge spans the gap),
+   Esc hides it until the pointer or focus leaves, and after a click the line below takes over (WCAG 2.2 SC 1.4.13) */
+.ltip{position:absolute;z-index:5;left:0;top:calc(100% + 7px);width:max-content;max-width:min(300px,80vw);background:var(--fill);border:1px solid var(--line2);border-radius:8px;padding:6px 10px;font-size:12.5px;line-height:1.55;color:var(--ink);box-shadow:0 8px 28px rgba(0,0,0,.45);visibility:hidden;opacity:0;transition:opacity .15s,visibility .15s}
+.ltip::before{content:'';position:absolute;left:0;right:0;top:-8px;height:8px}
+.act:hover~.ltip,.act:focus-visible~.ltip,.ltip:hover{visibility:visible;opacity:1}.acts.asked>.ltip,.acts.esc>.ltip{display:none}.after:empty{margin-top:0}
 svg.sh{flex:none;display:block;overflow:visible}
 .tree{position:relative;padding:8px 0 30px}
 .trunk{position:absolute;left:50%;top:150px;bottom:46px;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--trunk)}
@@ -205,7 +210,7 @@ const W=ZH?{
   you:'你',recapBy:'自动回顾',compactBy:'压缩摘要',quote:'原话',wrote:(w,t)=>w+' '+t+' 写道：',start:d=>'起点 '+d,projStart:d=>'项目起点 '+d,showAll:n=>'显示全部 '+n+' 个',keyOnly:'只看重点',prompts:n=>n+' 次提问',nodes:n=>n+' 个节点',sessions:n=>n+' 个会话',
   current:'当前',currentSession:'当前会话',tipSum:'尚未生成树 · 点开看会话概况',tipGen:'尚未生成树 · 会话概况正在生成',tipNone:'尚未生成树',genSum:'会话概况正在生成，好了页面会自动更新。',copied:'已复制',selected:'已选中，可以直接复制',copyDraw:'复制生成树的命令',
   ai:'AI',aiTip:'AI 写的，可能不准',noSummary:'还没有会话概况，下次生成树时会顺带生成。',nodesOpen:(n,o)=>n+' 个节点 · '+o+' 件待完成',
-  draw:'生成树',openS:'打开会话',linkHint:'浏览器会先问是否打开 Claude Code，选「打开」或「允许」；命令会填进新终端，按回车才运行。',linkAsk:'在浏览器的提示里选「打开」或「允许」。没打开？',copyCmd:'复制命令',hiddenN:n=>'另有 '+n+' 个 claude -p 会话没有列出',span:(a,b)=>a===b?a:a+' 至 '+b,
+  draw:'生成树',openS:'打开会话',linkTip:b=>'浏览器会先询问：点「'+b+'」，再在终端按回车',linkAsk:b=>'在浏览器弹窗里点「'+b+'」，再在终端按回车。没打开？',btnOpen:'打开',btnAllow:'允许',copyCmd:'复制命令',hiddenN:n=>'另有 '+n+' 个 claude -p 会话没有列出',span:(a,b)=>a===b?a:a+' 至 '+b,
   sinceLast:(n,o,c,f)=>'上次生成：新增 '+n+' 个节点、'+o+' 件待完成'+(c?'，关掉 '+c+' 件':'')+(f?'，'+f+' 件待你确认':''),
   pHead:'正在生成树',pDetail:(t,m)=>'会话「'+t+'」 · 约 '+m+' 分钟 · 好了会自动更新',pLateHead:'可能已经中断',
   pDetailMany:(ts,m)=>ts.length+' 个会话：'+ts.map(t=>'「'+t+'」').join('')+' · 约 '+m+' 分钟 · 好了会自动更新',pause:'点一下暂停或继续动画',
@@ -223,7 +228,7 @@ const W=ZH?{
   you:'You',recapBy:'Recap',compactBy:'Compaction summary',quote:'quote',wrote:(w,t)=>w+' on '+t.replace(/ (\d\d:\d\d)$/,' at $1')+':',start:d=>'Started '+d,projStart:d=>'Project started '+d,showAll:n=>'Show all '+n,keyOnly:'Key nodes only',prompts:n=>n+' prompt'+(n===1?'':'s'),nodes:n=>n+' node'+(n===1?'':'s'),sessions:n=>n+' session'+(n===1?'':'s'),
   current:'Current',currentSession:'Current session',tipSum:'No tree yet · click for the session overview',tipGen:'No tree yet · overview being generated',tipNone:'No tree yet',genSum:'Generating the session overview; the page updates itself when it is ready.',copied:'Copied',selected:'Selected; copy it',copyDraw:'Copy the command that draws it',
   ai:'AI',aiTip:'Written by AI; it may be wrong',noSummary:'No session overview yet: the next run that draws a tree generates one.',nodesOpen:(n,o)=>n+' node'+(n===1?'':'s')+' · '+o+' still open',
-  draw:'Draw the tree',openS:'Open the session',linkHint:'Your browser first asks to open Claude Code: choose Open or Allow. The command then waits in a new terminal until you press Enter.',linkAsk:'Choose Open or Allow in your browser’s prompt. Nothing opened?',copyCmd:'Copy the command',hiddenN:n=>n+' claude -p session'+(n===1?'':'s')+' not listed',span:(a,b)=>a===b?a:a+' to '+b,
+  draw:'Draw the tree',openS:'Open the session',linkTip:b=>'Your browser asks first: click '+b+', then press Enter in the terminal',linkAsk:b=>'Click '+b+' in your browser’s prompt, then press Enter in the terminal. Nothing opened?',btnOpen:'Open',btnAllow:'Allow',copyCmd:'Copy the command',hiddenN:n=>n+' claude -p session'+(n===1?'':'s')+' not listed',span:(a,b)=>a===b?a:a+' to '+b,
   sinceLast:(n,o,c,f)=>'Last run: '+n+' new node'+(n===1?'':'s')+', '+o+' new open item'+(o===1?'':'s')+(c?', '+c+' closed':'')+(f?', '+f+' to confirm':''),
   pHead:'Drawing a tree',pDetail:(t,m)=>'Session “'+t+'” · about '+m+' min · updates itself when done',pLateHead:'May have stopped',
   pDetailMany:(ts,m)=>ts.length+' sessions: '+ts.map(t=>'“'+t+'”').join(', ')+' · about '+m+' min · updates itself when done',pause:'Click to pause or resume the animation',
@@ -465,11 +470,15 @@ function tree(){const s=document.createElementNS(NS,'svg');s.setAttribute('viewB
   return s}
 /* a session without a tree: its summary and two links that open Claude Code in a new terminal with the command typed in
    (claude-cli://, https://code.claude.com/docs/en/deep-links; nothing runs until Enter). Every browser asks before it hands
-   such a link to an app, and a page cannot turn that off, so a line under the links says so first (as Zoom's join page
-   does). A link can do nothing (Claude Code registers it on the first interactive prompt, and a setting turns it off), so a
-   click also offers that command to copy. */
+   such a link to an app, and a page cannot turn that off, so a tip says so before a click and a line after it, naming the
+   browser's button as Zoom's join page does. A link can do nothing (Claude Code registers it on the first interactive
+   prompt, and a setting turns it off), so a click also offers that command to copy. */
 const shq=s=>/^[\w@%+=:,.\/-]+$/.test(s)?s:"'"+s.replace(/'/g,"'\\''")+"'";
 const deep=q=>'claude-cli://open?cwd='+encodeURIComponent(D.project.path)+'&q='+encodeURIComponent(q);
+/* the prompt's button: Safari's says Allow; Chrome's and Edge's start with Open, Firefox's says Open Link, and Allow there is only
+   on the "Always allow" checkbox (Chromium's generated_resources.grd, Firefox's handlerDialog.ftl, read 2026-10-29) */
+const BTN=/^((?!chrome|chromium|crios|edg|fxios|firefox|android).)*safari/i.test(navigator.userAgent)?W.btnAllow:W.btnOpen;
+let tips=0;
 /* copies the command; where the clipboard is not allowed, shows it beside the button, selected, and the button keeps focus */
 function copyBtn(label,cmd){const b=$('button','cpy',label);b.title=cmd;
   b.onclick=e=>{e.stopPropagation();const show=()=>{let c=b.nextElementSibling;if(!c||c.tagName!=='CODE'){c=$('code',null,cmd);b.after(c)}
@@ -480,10 +489,13 @@ function notYet(s){const box=$('div','xp'),sm=$('div','sum');
   /* --no-open: the page is open already, so the run it starts updates it instead of asking for another tab */
   const draw='/treesight:treesight '+s.id.slice(0,8)+' --no-open',acts=$('div','acts');box.append(sm,acts);
   if(D.project.masked){acts.append(copyBtn(W.copyDraw,draw));return box}   /* a folder name that was masked cannot be opened */
-  const after=$('div','after',W.linkHint);after.setAttribute('role','status');   /* in the page from the start, so what it says after a click is announced */
+  const after=$('div','after');after.setAttribute('role','status');   /* in the page from the start, so what it says after a click is announced */
+  const tip=$('div','ltip',W.linkTip(BTN));tip.id='ltip'+(++tips);tip.setAttribute('role','tooltip');   /* both links make the browser ask: one tip for both */
   [[W.draw,'act pri',draw,draw],[W.openS,'act','/resume '+s.id,'cd '+shq(D.project.path)+' && claude -r '+s.id]].forEach(([label,cls,q,cmd])=>{
-    const a=$('a',cls,label);a.href=deep(q);a.addEventListener('click',e=>{e.stopPropagation();after.textContent='';after.append(W.linkAsk,copyBtn(W.copyCmd,cmd))});acts.append(a)});
-  acts.append(after);return box}
+    const a=$('a',cls,label);a.href=deep(q);a.setAttribute('aria-describedby',tip.id);
+    a.addEventListener('click',e=>{e.stopPropagation();acts.classList.add('asked');after.textContent='';after.append(W.linkAsk(BTN),copyBtn(W.copyCmd,cmd))});acts.append(a)});
+  ['mouseleave','focusout'].forEach(n=>acts.addEventListener(n,()=>acts.classList.remove('esc')));
+  acts.append(tip,after);return box}
 (function(){
   document.title='treesight · '+D.project.name;
   const back=document.getElementById('back');back.textContent=W.back;back.setAttribute('aria-label',W.backAria);
@@ -526,7 +538,7 @@ function notYet(s){const box=$('div','xp'),sm=$('div','sum');
   dc.onclick=closeDrawer;
   document.getElementById('drawer').addEventListener('click',e=>e.stopPropagation());
   document.addEventListener('click',closeDrawer);
-  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer()});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();document.querySelectorAll('.acts').forEach(a=>a.classList.add('esc'))}});
   back.onclick=()=>{if(fromP)history.back();else location.hash='p'};
   const route=()=>{const h=new URLSearchParams(location.hash.slice(1));showAll=!!h.get('all');CUR=null;
     const s=h.has('s')?byId8[h.get('s')]:HOME;

@@ -1,8 +1,8 @@
 // An open page follows what happens without a new tab: a correction reloads it in place, a run that starts or ends
 // shows that session. Also, with a mouse, an open node shows its sentence and a quote on request; a session without a
-// tree offers its command to copy once its link is clicked; every branch ends at its node's dot; and a page opened
-// while a run is drawing grows its tree, shows the line with the small tree (paused only by its button) and says which
-// session overviews are being generated.
+// tree shows a tip on its links and offers its command to copy once one is clicked; every branch ends at its node's dot;
+// and a page opened while a run is drawing grows its tree, shows the line with the small tree (paused only by its button)
+// and says which session overviews are being generated.
 // Builds the made-up tidepool project in a temporary folder and drives a headless Chromium.
 // usage: node dev/check_live.mjs <chromium>     (Node 22 or later; dev/check_page.py finds a browser)
 import {spawn, execFileSync} from 'node:child_process';
@@ -52,14 +52,24 @@ try {
     out.push({dy:Math.round(Math.abs(y-(b.top+b.height/2))*10)/10,gap:Math.round((r.classList.contains('l')?x-b.right:b.left-x)*10)/10})});return out})()`);
   for (const [view, rows] of [['session', await aligned()], ['project', (await ev(`location.hash='p'`), await sleep(800), await aligned())]])
     if (!rows || !rows.length || rows.some(r => r.dy > 1 || r.gap < 0 || r.gap > 5)) fail.push('every branch ends at its dot (' + view + ' view): ' + JSON.stringify(rows));
-  // a session without a tree: two links into Claude Code with a line that the browser asks first, and after a click the same command to copy
+  // a session without a tree: two links into Claude Code and one tip for both, on hover, that the browser asks first and
+  // which button to choose (Esc hides it); after a click a line says it again with the same command to copy
   await ev(`location.hash='p'`); await sleep(800);
-  const nt = await ev(`(()=>{const b=[...document.querySelectorAll('.node.pn')].find(n=>!n.getAttribute('href'));if(!b)return null;b.click();
-    const s=b.closest('.slot'),a=s.querySelector('a.act'),after=s.querySelector('.after'),hint=after.textContent;
-    const before=!after.childElementCount&&hint===W.linkHint&&after.offsetHeight>0;a.addEventListener('click',e=>e.preventDefault());a.click();
+  const nt0 = await ev(`(()=>{const b=[...document.querySelectorAll('.node.pn')].find(n=>!n.getAttribute('href'));if(!b)return null;b.click();
+    const s=b.closest('.slot'),as=[...s.querySelectorAll('a.act')],tip=s.querySelector('.ltip'),after=s.querySelector('.after');as[1].scrollIntoView({block:'center'});const r=as[1].getBoundingClientRect();
+    return {x:r.x+r.width/2,y:r.y+r.height/2,both:as.length===2&&as.every(a=>a.getAttribute('aria-describedby')===tip.id),text:tip.textContent===W.linkTip(BTN),rest:getComputedStyle(tip).visibility==='hidden'&&!after.textContent}})()`);
+  const tipNow = () => ev(`(t=>getComputedStyle(t).display==='none'?'none':getComputedStyle(t).visibility)(document.querySelector('.slot.open .ltip'))`);
+  const esc = {key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27};
+  let hover = null, dismissed = null;
+  if (nt0) {
+    await send('Input.dispatchMouseEvent', {type: 'mouseMoved', x: nt0.x, y: nt0.y}); await sleep(300); hover = await tipNow();
+    await send('Input.dispatchKeyEvent', {type: 'keyDown', ...esc}); await send('Input.dispatchKeyEvent', {type: 'keyUp', ...esc}); await sleep(100); dismissed = await tipNow();
+    await send('Input.dispatchMouseEvent', {type: 'mouseMoved', x: 1, y: 1}); await sleep(300) }
+  const nt = await ev(`(()=>{const s=document.querySelector('.slot.open'),a=s.querySelector('a.act'),after=s.querySelector('.after');a.addEventListener('click',e=>e.preventDefault());a.click();
     const drawn=document.querySelector('a.node.pn .card');
-    return {before,shown:after.offsetHeight>0,ask:after.textContent.startsWith(W.linkAsk),copy:!!after.querySelector('.cpy'),href:a.getAttribute('href'),ai:!!(drawn&&drawn.querySelector('.ai'))}})()`);
-  if (!nt || !nt.before || !nt.shown || !nt.ask || !nt.copy || !nt.ai || !/^claude-cli:\/\/open\?cwd=/.test(nt.href)) fail.push('a session without a tree links into Claude Code, says first that the browser asks, and a drawn one\'s summary is marked AI: ' + JSON.stringify(nt));
+    return {shown:after.offsetHeight>0,ask:after.textContent.startsWith(W.linkAsk(BTN)),copy:!!after.querySelector('.cpy'),tipGone:getComputedStyle(s.querySelector('.ltip')).display==='none',href:a.getAttribute('href'),ai:!!(drawn&&drawn.querySelector('.ai'))}})()`);
+  if (!nt0 || !nt0.both || !nt0.text || !nt0.rest || hover !== 'visible' || dismissed !== 'none' || !nt || !nt.shown || !nt.ask || !nt.copy || !nt.tipGone || !nt.ai || !/^claude-cli:\/\/open\?cwd=/.test(nt.href))
+    fail.push('a session without a tree links into Claude Code, a tip says first that the browser asks (Esc hides it), a click says it again with the command, and a drawn one\'s summary is marked AI: ' + JSON.stringify({nt0, hover, dismissed, nt}));
   await send('Page.navigate', {url: page + '#p'}); await sleep(1000);
   const first = (await state()).v;
   ts('edit', 'hide', 'Windows', 'support'); ts('build');
