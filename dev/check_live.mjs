@@ -27,7 +27,10 @@ try {
   if (!target) throw new Error('the browser gave no page to drive within 30 s' + (port ? ' (port ' + port + ')' : ''));
   const ws = new WebSocket(target.webSocketDebuggerUrl); await new Promise(r => ws.onopen = r);
   let seq = 0; const pend = new Map(); ws.onmessage = e => { const m = JSON.parse(e.data); if (m.id && pend.has(m.id)) { pend.get(m.id)(m.result); pend.delete(m.id) } };
-  const send = (method, params = {}) => new Promise(res => { const id = ++seq; pend.set(id, res); ws.send(JSON.stringify({id, method, params})) });
+  // an answer that never comes (once, with other browsers busy, a run hung until the test's timeout killed it and left
+  // its browser running) counts as an empty one after 10 s, so the check fails with a reason and still cleans up
+  const send = (method, params = {}) => new Promise(res => { const id = ++seq; pend.set(id, res); ws.send(JSON.stringify({id, method, params}));
+    setTimeout(() => { if (pend.delete(id)) res({}) }, 10000) });
   // a page in the middle of reloading has no answer yet: {} and the caller tries again
   const state = async () => { try { return JSON.parse((await send('Runtime.evaluate', {returnByValue: true, expression:
     `JSON.stringify((d=>({v:d.version,hash:location.hash,pending:!!d.pending,focus:(d.focus||'').slice(0,8)}))(JSON.parse(document.getElementById('data').textContent)))`})).result.value) } catch { return {} } };
@@ -52,24 +55,32 @@ try {
     out.push({dy:Math.round(Math.abs(y-(b.top+b.height/2))*10)/10,gap:Math.round((r.classList.contains('l')?x-b.right:b.left-x)*10)/10})});return out})()`);
   for (const [view, rows] of [['session', await aligned()], ['project', (await ev(`location.hash='p'`), await sleep(800), await aligned())]])
     if (!rows || !rows.length || rows.some(r => r.dy > 1 || r.gap < 0 || r.gap > 5)) fail.push('every branch ends at its dot (' + view + ' view): ' + JSON.stringify(rows));
-  // a session without a tree: two links into Claude Code and one tip for both, on hover, that the browser asks first and
-  // which button to choose (Esc hides it); after a click a line says it again with the same command to copy
+  // at a phone's width no tip widens the page: a hidden one still takes room, and rows on the right start mid-screen
   await ev(`location.hash='p'`); await sleep(800);
+  await send('Emulation.setDeviceMetricsOverride', {width: 375, height: 800, deviceScaleFactor: 1, mobile: false}); await sleep(300);
+  const narrow = await ev(`[...document.querySelectorAll('.node.pn')].filter(n=>!n.getAttribute('href')).map(b=>{b.click();return document.documentElement.scrollWidth-innerWidth})`);
+  await send('Emulation.clearDeviceMetricsOverride');
+  if (!narrow || !narrow.length || narrow.some(d => d > 0)) fail.push('at 375 px no session without a tree widens the page (px too wide): ' + JSON.stringify(narrow));
+  // a session without a tree: two links into Claude Code and one tip for both, on hover, that the browser asks first and
+  // which button to choose (Esc hides it, an Esc elsewhere does not); after a click a line says it again with the command
+  await send('Page.navigate', {url: page + '#p'}); await sleep(1000);
   const nt0 = await ev(`(()=>{const b=[...document.querySelectorAll('.node.pn')].find(n=>!n.getAttribute('href'));if(!b)return null;b.click();
-    const s=b.closest('.slot'),as=[...s.querySelectorAll('a.act')],tip=s.querySelector('.ltip'),after=s.querySelector('.after');as[1].scrollIntoView({block:'center'});const r=as[1].getBoundingClientRect();
-    return {x:r.x+r.width/2,y:r.y+r.height/2,both:as.length===2&&as.every(a=>a.getAttribute('aria-describedby')===tip.id),text:tip.textContent===W.linkTip(BTN),rest:getComputedStyle(tip).visibility==='hidden'&&!after.textContent}})()`);
+    const s=b.closest('.slot'),as=[...s.querySelectorAll('a.act')],tip=s.querySelector('.ltip'),after=s.querySelector('.after');as[0].scrollIntoView({block:'center'});
+    const at=a=>{const r=a.getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2]};
+    return {at:as.map(at),both:as.length===2&&as.every(a=>a.getAttribute('aria-describedby')===tip.id),text:tip.textContent===W.linkTip(BTN),rest:getComputedStyle(tip).visibility==='hidden'&&!after.textContent}})()`);
   const tipNow = () => ev(`(t=>getComputedStyle(t).display==='none'?'none':getComputedStyle(t).visibility)(document.querySelector('.slot.open .ltip'))`);
-  const esc = {key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27};
-  let hover = null, dismissed = null;
+  const move = async ([x, y]) => { await send('Input.dispatchMouseEvent', {type: 'mouseMoved', x, y}); await sleep(300) };
+  const esc = async () => { for (const type of ['keyDown', 'keyUp']) await send('Input.dispatchKeyEvent', {type, key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27}); await sleep(100) };
+  const tips = {};
   if (nt0) {
-    await send('Input.dispatchMouseEvent', {type: 'mouseMoved', x: nt0.x, y: nt0.y}); await sleep(300); hover = await tipNow();
-    await send('Input.dispatchKeyEvent', {type: 'keyDown', ...esc}); await send('Input.dispatchKeyEvent', {type: 'keyUp', ...esc}); await sleep(100); dismissed = await tipNow();
-    await send('Input.dispatchMouseEvent', {type: 'mouseMoved', x: 1, y: 1}); await sleep(300) }
+    await move([1, 1]); await esc(); await move(nt0.at[0]); tips.draw = await tipNow();
+    await move(nt0.at[1]); tips.open = await tipNow(); await esc(); tips.esc = await tipNow();
+    await move([1, 1]); await move(nt0.at[1]); tips.back = await tipNow(); await move([1, 1]) }
   const nt = await ev(`(()=>{const s=document.querySelector('.slot.open'),a=s.querySelector('a.act'),after=s.querySelector('.after');a.addEventListener('click',e=>e.preventDefault());a.click();
     const drawn=document.querySelector('a.node.pn .card');
     return {shown:after.offsetHeight>0,ask:after.textContent.startsWith(W.linkAsk(BTN)),copy:!!after.querySelector('.cpy'),tipGone:getComputedStyle(s.querySelector('.ltip')).display==='none',href:a.getAttribute('href'),ai:!!(drawn&&drawn.querySelector('.ai'))}})()`);
-  if (!nt0 || !nt0.both || !nt0.text || !nt0.rest || hover !== 'visible' || dismissed !== 'none' || !nt || !nt.shown || !nt.ask || !nt.copy || !nt.tipGone || !nt.ai || !/^claude-cli:\/\/open\?cwd=/.test(nt.href))
-    fail.push('a session without a tree links into Claude Code, a tip says first that the browser asks (Esc hides it), a click says it again with the command, and a drawn one\'s summary is marked AI: ' + JSON.stringify({nt0, hover, dismissed, nt}));
+  if (!nt0 || !nt0.both || !nt0.text || !nt0.rest || tips.draw !== 'visible' || tips.open !== 'visible' || tips.esc !== 'none' || tips.back !== 'visible' || !nt || !nt.shown || !nt.ask || !nt.copy || !nt.tipGone || !nt.ai || !/^claude-cli:\/\/open\?cwd=/.test(nt.href))
+    fail.push('a session without a tree links into Claude Code, a tip says first that the browser asks (Esc hides it), a click says it again with the command, and a drawn one\'s summary is marked AI: ' + JSON.stringify({nt0, tips, nt}));
   await send('Page.navigate', {url: page + '#p'}); await sleep(1000);
   const first = (await state()).v;
   ts('edit', 'hide', 'Windows', 'support'); ts('build');

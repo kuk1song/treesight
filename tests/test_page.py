@@ -174,9 +174,8 @@ class Render(unittest.TestCase):
         """Every browser asks before it hands a claude-cli:// link to an app, and a page cannot turn that off (Chromium's
         external protocol dialog); the author did not understand that prompt at first (2026-10-28) and then found a line
         shown at rest clutter (2026-10-29). So hovering or focusing either link shows one tip under both, and after a click
-        a line says it again before the command to copy. Both name the prompt's button: Safari's says Allow; Chrome's,
-        Edge's and Firefox's start with Open, and Allow there is only on the "Always allow" checkbox the page does not
-        suggest."""
+        a line says it again before the command to copy. Both name the prompt's button: Safari's says Allow; Chrome's and
+        Firefox's start with Open, and in Chrome Allow is only on the "Always allow" checkbox the page does not suggest."""
         with open(build.TEMPLATE, encoding="utf-8") as f:
             html = f.read()
         zh = html[html.index("const W=ZH?{"):html.index("}:{", html.index("const W=ZH?{"))]

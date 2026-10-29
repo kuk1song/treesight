@@ -37,17 +37,18 @@ main{max-width:940px;margin:0 auto;padding:0 20px 60px}
 .ai{font-size:10.5px;line-height:1.3;border:1px solid var(--line2);border-radius:4px;padding:0 4px;cursor:help}
 .sum .ai,.card .ai{margin-right:6px;vertical-align:1px}.sum.none{color:var(--mut);font-size:12.5px}
 /* under the links after a click: which button the browser's prompt needs, and the same command to copy */
-.after{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--mut)}
+.after{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--mut)}.after:empty{margin-top:0}
 .cpy{all:unset;cursor:pointer;font-size:12px;color:var(--ink);background:var(--fill);border-radius:6px;padding:1px 9px}.cpy:hover{background:var(--line2)}
 .after code{font-family:var(--mono);font-size:12px;overflow-wrap:anywhere;user-select:all;color:var(--ink)}
 .acts{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:0 8px;margin-top:4px}
 .act{font-size:13px;text-decoration:none;color:var(--ink);border:1px solid var(--line2);border-radius:8px;padding:3px 12px}.act:hover{border-color:var(--mut)}
 .act.pri{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}.act.pri:hover{opacity:.9}
-/* before a click: one tip under both links, on hover or keyboard focus; the pointer can move onto it (the bridge spans the gap),
-   Esc hides it until the pointer or focus leaves, and after a click the line below takes over (WCAG 2.2 SC 1.4.13) */
-.ltip{position:absolute;z-index:5;left:0;top:calc(100% + 7px);width:max-content;max-width:min(300px,80vw);background:var(--fill);border:1px solid var(--line2);border-radius:8px;padding:6px 10px;font-size:12.5px;line-height:1.55;color:var(--ink);box-shadow:0 8px 28px rgba(0,0,0,.45);visibility:hidden;opacity:0;transition:opacity .15s,visibility .15s}
+/* before a click: one tip under both links, on hover or keyboard focus, never wider than they are (hidden, it still takes room,
+   so a wider one widened a narrow page); the pointer can move onto it (the bridge spans the gap), Esc hides it until the
+   pointer or focus leaves, and after a click the line below takes over (WCAG 2.2 SC 1.4.13) */
+.ltip{position:absolute;z-index:5;left:0;top:calc(100% + 7px);width:max-content;max-width:min(300px,100%);background:var(--fill);border:1px solid var(--line2);border-radius:8px;padding:6px 10px;font-size:12.5px;line-height:1.55;color:var(--ink);box-shadow:0 8px 28px rgba(0,0,0,.45);visibility:hidden;opacity:0;transition:opacity .15s,visibility .15s}
 .ltip::before{content:'';position:absolute;left:0;right:0;top:-8px;height:8px}
-.act:hover~.ltip,.act:focus-visible~.ltip,.ltip:hover{visibility:visible;opacity:1}.acts.asked>.ltip,.acts.esc>.ltip{display:none}.after:empty{margin-top:0}
+.act:hover~.ltip,.act:focus-visible~.ltip,.ltip:hover{visibility:visible;opacity:1}.acts.asked>.ltip,.acts.esc>.ltip{display:none}
 svg.sh{flex:none;display:block;overflow:visible}
 .tree{position:relative;padding:8px 0 30px}
 .trunk{position:absolute;left:50%;top:150px;bottom:46px;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--trunk)}
@@ -475,8 +476,8 @@ function tree(){const s=document.createElementNS(NS,'svg');s.setAttribute('viewB
    prompt, and a setting turns it off), so a click also offers that command to copy. */
 const shq=s=>/^[\w@%+=:,.\/-]+$/.test(s)?s:"'"+s.replace(/'/g,"'\\''")+"'";
 const deep=q=>'claude-cli://open?cwd='+encodeURIComponent(D.project.path)+'&q='+encodeURIComponent(q);
-/* the prompt's button: Safari's says Allow; Chrome's and Edge's start with Open, Firefox's says Open Link, and Allow there is only
-   on the "Always allow" checkbox (Chromium's generated_resources.grd, Firefox's handlerDialog.ftl, read 2026-10-29) */
+/* the prompt's button: Safari's says Allow; Chrome's starts with Open and Firefox's says Open Link, and neither says Allow, which in
+   Chrome is only on the "Always allow" checkbox (Chromium's generated_resources.grd, Firefox's handlerDialog.ftl, read 2026-10-29) */
 const BTN=/^((?!chrome|chromium|crios|edg|fxios|firefox|android).)*safari/i.test(navigator.userAgent)?W.btnAllow:W.btnOpen;
 let tips=0;
 /* copies the command; where the clipboard is not allowed, shows it beside the button, selected, and the button keeps focus */
@@ -538,7 +539,7 @@ function notYet(s){const box=$('div','xp'),sm=$('div','sum');
   dc.onclick=closeDrawer;
   document.getElementById('drawer').addEventListener('click',e=>e.stopPropagation());
   document.addEventListener('click',closeDrawer);
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();document.querySelectorAll('.acts').forEach(a=>a.classList.add('esc'))}});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();document.querySelectorAll('.acts:hover,.acts:focus-within').forEach(a=>a.classList.add('esc'))}});
   back.onclick=()=>{if(fromP)history.back();else location.hash='p'};
   const route=()=>{const h=new URLSearchParams(location.hash.slice(1));showAll=!!h.get('all');CUR=null;
     const s=h.has('s')?byId8[h.get('s')]:HOME;
