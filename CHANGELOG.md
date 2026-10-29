@@ -2,6 +2,12 @@
 
 From 0.2.0 on, changes are grouped as in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `CONTRIBUTING.md` describes. Numbers in parentheses are pull requests.
 
+## Unreleased
+
+### Changed
+
+- The marketplace installs the latest release instead of `main`: its entry names the release's tag and commit, so a change merged after a release reaches new installs with the next release, not at once. (#24)
+
 ## 0.2.0 (2026-10-29)
 
 ### Before you update
