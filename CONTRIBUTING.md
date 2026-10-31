@@ -26,7 +26,7 @@ To try a change in Claude Code, start it with `claude --plugin-dir <a clean chec
 ## Pull requests
 
 - Branch from `main` and open a pull request; `main` only changes through pull requests whose CI passes.
-- Note user-visible changes under `## Unreleased` in `CHANGELOG.md`. Keep `README.md` and `README.zh-CN.md` saying the same things.
+- Keep `README.md` and `README.zh-CN.md` saying the same things.
 - Pull requests are squash-merged, so the title becomes the commit message.
 
 ## Releases

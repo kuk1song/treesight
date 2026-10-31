@@ -44,7 +44,7 @@ Open the session you want to see (for example with `claude --resume`) and run:
 /treesight:treesight
 ```
 
-Within seconds treesight asks your browser to open the page, and the session's tree appears there when the background run is done, a few minutes for most sessions. Keep working meanwhile. When it is done, two short lines in your conversation say what changed, with the page's link. Later runs and corrections in the same conversation update that page instead of opening another tab.
+Within seconds treesight asks your browser to open the page, and the session's tree appears there when the background run is done, a few minutes for most sessions. Keep working meanwhile. When it is done, two short lines in your conversation say what changed, with the page's link, and a third when something needs you. Later runs and corrections in the same conversation update that page instead of opening another tab.
 
 - **Another session of this project:** add its id or words from its title, in any order, as in `/treesight:treesight 0a182a7b` or `/treesight:treesight release`. The project page lists the project's sessions: click one without a tree for its session overview, and for links that open Claude Code with the command to draw it, or to resume it, typed in.
 - **Run it again** to read only what is new. A run started while another is still going runs in the foreground, so your conversation waits for it. If you stopped a run, add `--restart` to start that session again.

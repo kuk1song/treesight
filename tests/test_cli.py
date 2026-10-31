@@ -74,6 +74,18 @@ class Cli(unittest.TestCase):
             os.environ.pop(k, None)
         shutil.rmtree(self.tmp)
 
+    def test_session_words_may_start_with_two_dashes(self):
+        """The skill passes the user's words as --session="<words>": with a space instead of the equals sign,
+        /treesight:treesight --no-open (or --restart alone) was refused by the argument parser."""
+        for words in ("--no-open", "--restart --no-open", "0a182a7b --no-open", ""):
+            code, out = run("prepare", "--session=" + words, *self.common)
+            self.assertEqual(out["session"], S2 if "0a182a7b" in words else S1, words)
+
+    def test_an_unexpected_error_is_an_answer_not_a_traceback(self):
+        """What nobody foresaw (a transcript format change, say) reaches the skill as {"ok": false}, with its kind."""
+        with mock.patch.object(treesight, "list_sessions", side_effect=TypeError("boom")):
+            self.assertEqual(run("list", *self.common), (1, {"ok": False, "error": "unexpected TypeError: boom"}))
+
     def first_run(self, *common):
         common = common or self.common
         code, out = run("prepare", *common)

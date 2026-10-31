@@ -21,7 +21,10 @@ import sys
 
 # ---------- scrubbing ----------
 _SECRETS = [
-    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----", re.S),
+    # PEM, OpenSSH and PGP private keys; the search for the end stops at the next BEGIN, which keeps many BEGIN lines
+    # without an end linear
+    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY(?: BLOCK)?-----(?:(?!-----BEGIN )[\s\S])*?-----END [A-Z ]*PRIVATE KEY(?: BLOCK)?-----"),
+    re.compile(r"Private-Lines: \d+\r?\n(?:[A-Za-z0-9+/=]{1,128}(?:\r?\n|$))+"),     # the private part of a PuTTY key file
     re.compile(r"\b(?:sk|pk|rk)-[A-Za-z0-9_-]{20,}"),                      # OpenAI, Anthropic and similar API keys
     re.compile(r"\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,}"),             # Stripe secret and restricted keys
     re.compile(r"\bglpat-[A-Za-z0-9_-]{20,}"),                             # GitLab personal access token
@@ -65,9 +68,15 @@ _SECRETS = [
                                                                            # the bound keeps long dotted runs linear)
     re.compile(r"\b(?:vless|vmess|trojan|ss|ssr|hysteria2?|tuic)://\S+"),  # proxy share links
 ]
+# word boundaries in ASCII terms: Python counts Chinese and Japanese characters as word characters, so 密钥是sk-… had no
+# boundary before the key and was left as it was
+_SECRETS = [re.compile(rx.pattern, (rx.flags & ~re.UNICODE) | re.ASCII) for rx in _SECRETS]
 _IPV4 = re.compile(r"(?<![\d.])(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}(?![\d.]*\d)")
 # starting only where a run of address characters starts: the same matches, in linear time on a long run without @
 _EMAIL = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[A-Za-z]{2,}")
+# the same in ASCII terms first: Chinese right before an address (发邮件到foo@…) is then not taken into it, and the
+# pattern above still masks a name in other letters (张三@…)
+_EMAIL_ASCII = re.compile(_EMAIL.pattern, re.ASCII)
 
 
 def scrub(text):
@@ -75,7 +84,7 @@ def scrub(text):
         text = rx.sub("[secret]", text)
     masked = None
     while masked != text:       # again after a mask: an address right after another starts a new run there
-        masked, text = text, _EMAIL.sub("[email]", text)
+        masked, text = text, _EMAIL.sub("[email]", _EMAIL_ASCII.sub("[email]", text))
     return _IPV4.sub("x.x.x.x", text)
 
 
@@ -92,14 +101,40 @@ def records(path):
             except ValueError:
                 continue
             if isinstance(rec, dict):
-                yield rec
+                if "\\ud" in line or "\\uD" in line:     # a lone surrogate is valid JSON but no text, and fails every later write
+                    rec = json.loads(json.dumps(rec, ensure_ascii=False).encode("utf-8", "replace").decode("utf-8"))
+                yield _tidy(rec)
+
+
+_TIME = re.compile(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(Z|[+-]\d\d:\d\d)?\Z")
+_ID = re.compile(r"[0-9A-Za-z][0-9A-Za-z-]{7,63}\Z")
+
+
+def _tidy(rec):
+    """A record as the readers expect it, whatever a format change brings: a time with its zone (one without is taken as
+    UTC, as Claude Code writes its times) or none, so the record is skipped; a message that is an object; text where text
+    is read; and a session id that cannot reach outside a folder when it names a file."""
+    at = rec.get("timestamp")
+    m = _TIME.match(at) if isinstance(at, str) else None
+    if m is None:
+        rec.pop("timestamp", None)
+    elif not m.group(1):
+        rec["timestamp"] = at + "Z"
+    if not isinstance(rec.get("message"), dict):
+        rec.pop("message", None)
+    for k in ("customTitle", "aiTitle", "content", "cwd", "uuid", "subtype", "type", "entrypoint"):
+        if k in rec and not isinstance(rec[k], str):
+            rec.pop(k)
+    if not (isinstance(rec.get("sessionId"), str) and _ID.match(rec["sessionId"])):
+        rec.pop("sessionId", None)
+    return rec
 
 
 def _text_blocks(content):
     if isinstance(content, str):
         return content
     if isinstance(content, list):
-        return "\n".join(x.get("text", "") for x in content if isinstance(x, dict) and x.get("type") == "text")
+        return "\n".join(x["text"] for x in content if isinstance(x, dict) and x.get("type") == "text" and isinstance(x.get("text"), str))
     return ""
 
 

@@ -573,6 +573,9 @@ def main(argv=None):
     except (Problem, ValueError, OSError) as e:     # the skill reads {"ok": false} rather than a traceback
         print(json.dumps({"ok": False, "error": str(e)}, ensure_ascii=False))
         return 1
+    except Exception as e:      # what nobody foresaw (a transcript format change, say): still an answer, with its kind
+        print(json.dumps({"ok": False, "error": "unexpected %s: %s" % (type(e).__name__, e)}, ensure_ascii=False))
+        return 1
     if res is not None:
         if isinstance(res, dict):
             res.setdefault("seconds", round(time.time() - t0, 2))

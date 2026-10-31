@@ -2,6 +2,26 @@
 
 From 0.2.0 on, changes are grouped as in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with "Before you update" first and "Development" last, and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `CONTRIBUTING.md` describes. Numbers in parentheses are pull requests.
 
+## 0.2.2 (2026-10-31)
+
+### Security
+
+- Keys and tokens written right after Chinese or Japanese text are masked: `密钥是sk-…` was kept whole in the digest, the ledger and the page, because Python counts those characters as part of a word. PGP private key blocks and the private part of PuTTY key files are masked too. (#28)
+
+### Fixed
+
+- Masking an address right after Chinese text no longer takes the Chinese with it (发邮件到 was lost). (#28)
+- A ledger write that fails part way, on a full disk say, is cut back off, so a run is never kept with only some of its nodes. (#28)
+- Odd transcript records (a time that is null, a number or without its zone; a message that is not an object; text that is not a string; a lone surrogate; a session id that is a path) are read instead of stopping the whole project with a traceback, and anything else unexpected is reported as an error. (#28)
+- `/treesight:treesight --no-open` or `--restart` on its own was refused: the skill now passes the words with an equals sign. (#28)
+- Page, with the keyboard: the drawer takes the focus when it opens and gives it back when Esc or × closes it; the crown's button, "Show all" and × show where the focus is; "Show all" keeps the focus. The drawer no longer slides when motion is reduced, and from 641 to 660 px hover cards no longer widen the page. (#28)
+- Masking many BEGIN lines of a private key without an END took seconds; it is linear now. (#28)
+- README: a run's report has a third line when something needs you. (#28)
+
+### Development
+
+- `dev/check_page.py` fails when the page's script does not run (a wrong script hash left a blank page that passed); `dev/check_live.mjs` drives the drawer from the keyboard and checks the width at 650 px; CI checkouts keep no token. (#28)
+
 ## 0.2.1 (2026-10-29)
 
 ### Changed

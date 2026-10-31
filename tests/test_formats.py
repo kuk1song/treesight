@@ -159,6 +159,35 @@ class Transcript(unittest.TestCase):
             os.unlink(path)
         self.assertEqual((meta["prompts"]["total"], [e["msg"] for e in entries]), (1, ids))
 
+    def test_odd_records_are_read_without_a_crash(self):
+        """The format is Claude Code's own and may change: a time that is null, a number or has no zone, a message that
+        is a string, text or a title that is not a string, a lone surrogate (valid JSON, but not text) and a session id
+        that is a path stopped the project with a traceback or, for the id, named a file outside its folder."""
+        path, ids = write_transcript([("Plan the release", ["Planned."])])
+        odd = [{"type": "user", "timestamp": None, "message": {"role": "user", "content": "a time of null"}},
+               {"type": "user", "timestamp": 1729500000, "message": {"role": "user", "content": "a time as a number"}},
+               {"type": "user", "uuid": "u-str", "timestamp": "2026-09-14T10:00:00.000Z", "message": "a message as a string"},
+               {"type": "assistant", "uuid": "u-num", "timestamp": "2026-09-14T10:00:01.000Z",
+                "message": {"role": "assistant", "content": [{"type": "text", "text": 42}]}},
+               {"type": "ai-title", "aiTitle": ["not", "a", "string"]},
+               {"type": "user", "uuid": "u-naive", "sessionId": "../../escaped", "origin": {"kind": "human"},
+                "timestamp": "2026-09-14T10:00:02", "message": {"role": "user", "content": "a time without its zone"}}]
+        try:
+            with open(path, "a", encoding="utf-8") as f:
+                f.write("".join(json.dumps(r) + "\n" for r in odd))
+                f.write('{"type": "custom-title", "customTitle": "half \\ud83c a title"}\n')
+                f.write('{"type": "user", "uuid": "u-sur", "origin": {"kind": "human"}, "timestamp": "2026-09-14T10:00:03.000Z", '
+                        '"message": {"role": "user", "content": "half \\ud83c of an emoji"}}\n')
+            meta, entries = transcript.read_session(path)
+        finally:
+            os.unlink(path)
+        self.assertEqual(meta["id"], "11111111-2222-4333-8444-555555555555")
+        self.assertEqual(meta["title"], "half ? a title")
+        self.assertEqual([(e["msg"], e["at"]) for e in entries if e["k"] == "P"][1:],
+                         [("u-naive", "2026-09-14T10:00:02Z"), ("u-sur", "2026-09-14T10:00:03.000Z")])
+        self.assertEqual(entries[-1]["text"], "half ? of an emoji")
+        json.dumps(entries).encode("utf-8")     # writable, as the digest and the ledger need
+
     def test_substantive(self):
         self.assertFalse(transcript.is_substantive("继续"))
         self.assertFalse(transcript.is_substantive("go on"))
@@ -215,11 +244,35 @@ class Transcript(unittest.TestCase):
             self.assertEqual(s(text), text)
         self.assertEqual(s("GitHub token: hunter2hunter2，下一步部署"), "GitHub [secret]，下一步部署")
 
+    def test_secrets_right_after_chinese_or_japanese_are_masked(self):
+        """Python counts Chinese and Japanese characters as word characters, so a key written right after them (密钥是sk-…)
+        had no word boundary before it and was kept whole in the digest, the ledger and the page. An address right after
+        Chinese took the Chinese with it."""
+        s = transcript.scrub
+        key = "sk-" + "ant-" + "api03-" + "abcdefghij" * 3
+        for text, want in (("我的密钥是" + key + "，别外传", "我的密钥是[secret]，别外传"), ("キーは" + key + "です", "キーは[secret]です"),
+                           ("令牌" + "ghp_" + "a1" * 18 + "已换", "令牌[secret]已换"), ("用" + "AKIA" + "ABCDEFGH" * 2 + "登录", "用[secret]登录"),
+                           ("这个token=" + "abcd1234" * 2, "这个[secret]"), ("请发邮件到a.b@example.com，谢谢", "请发邮件到[email]，谢谢"),
+                           ("邮箱：张三@example.com", "邮箱：[email]"), ("task-" + "abcdefghij" * 3, "task-" + "abcdefghij" * 3)):
+            self.assertEqual(s(text), want, text)
+
+    def test_pgp_and_putty_private_keys_are_masked(self):
+        """The private key pattern expected "PRIVATE KEY-----", but PGP blocks say "PRIVATE KEY BLOCK-----"; a PuTTY key file
+        has no such lines at all."""
+        pgp = "-----BEGIN PGP " + "PRIVATE KEY BLOCK-----\n\nlQOYBF4x\n=ab12\n-----END PGP " + "PRIVATE KEY BLOCK-----"
+        self.assertEqual(transcript.scrub("key:\n" + pgp + "\nend"), "key:\n[secret]\nend")
+        putty = ("PuTTY-User-Key-File-3: ssh-ed25519\nEncryption: none\nPublic-Lines: 1\nAAAAC3Nza\nPrivate-" + "Lines: 1\n"
+                 + "AAAAIGxy" + "z9" * 12 + "=\nPrivate-MAC: 0a1b2c")
+        out = transcript.scrub(putty)
+        self.assertNotIn("AAAAIGxy", out)
+        self.assertIn("AAAAC3Nza", out)      # the public part stays
+
     def test_scrubbing_takes_linear_time(self):
         """Long runs without spaces (minified code, base64, dotted names) took seconds to minutes: the email, URL,
-        Discord and token-name patterns each tried every start in the run and scanned to its end."""
+        Discord and token-name patterns each tried every start in the run and scanned to its end; the private key
+        pattern scanned to the end from each of many BEGIN lines without an END (8,000 took 8 to 10 s)."""
         import time
-        for text in ("Na-" * 20000, "a." * 30000, "password" * 7500, "x" * 60000 + "@"):
+        for text in ("Na-" * 20000, "a." * 30000, "password" * 7500, "x" * 60000 + "@", ("-----BEGIN RSA " + "PRIVATE KEY-----\n") * 8000):
             t0 = time.time()
             transcript.scrub(text)
             self.assertLess(time.time() - t0, 2, text[:12])     # about 0.1 s each; 5 to 17 s before
