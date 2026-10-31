@@ -8,8 +8,8 @@
       "source": {
         "source": "github",
         "repo": "kuk1song/treesight",
-        "ref": "v0.2.1",
-        "sha": "59dd7ca9b95f65578dca067c9fec26cacf2fd71f"
+        "ref": "v0.2.2",
+        "sha": "7413a549762fd7abea4bfabb6859bdc312bacc60"
       },
       "description": "Recall what each session did and what it left open: a tree per session and one list of what is still open across the project, on a local page with no network requests.",
       "author": {"name": "kuk1song", "url": "https://github.com/kuk1song"},
