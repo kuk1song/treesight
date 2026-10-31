@@ -55,12 +55,29 @@ try {
     out.push({dy:Math.round(Math.abs(y-(b.top+b.height/2))*10)/10,gap:Math.round((r.classList.contains('l')?x-b.right:b.left-x)*10)/10})});return out})()`);
   for (const [view, rows] of [['session', await aligned()], ['project', (await ev(`location.hash='p'`), await sleep(800), await aligned())]])
     if (!rows || !rows.length || rows.some(r => r.dy > 1 || r.gap < 0 || r.gap > 5)) fail.push('every branch ends at its dot (' + view + ' view): ' + JSON.stringify(rows));
-  // at a phone's width no tip widens the page: a hidden one still takes room, and rows on the right start mid-screen
+  // with the keyboard: Enter on the crown's button opens the drawer with focus on its close button, Esc closes it and
+  // gives focus back, and each of them shows where the focus is
   await ev(`location.hash='p'`); await sleep(800);
-  await send('Emulation.setDeviceMetricsOverride', {width: 375, height: 800, deviceScaleFactor: 1, mobile: false}); await sleep(300);
-  const narrow = await ev(`[...document.querySelectorAll('.node.pn')].filter(n=>!n.getAttribute('href')).map(b=>{b.click();return document.documentElement.scrollWidth-innerWidth})`);
+  const key = async (k, code, vk, text) => { for (const type of ['keyDown', 'keyUp']) await send('Input.dispatchKeyEvent', {type, key: k, code, windowsVirtualKeyCode: vk, ...(type === 'keyDown' && text ? {text} : {})}); await sleep(120) };
+  const where = () => ev(`(e=>({at:e.id||e.className,ring:getComputedStyle(e).outlineStyle}))(document.activeElement)`);
+  const kb = {crown: await ev(`(()=>{const b=document.querySelector('.todo');if(!b)return false;b.focus();return true})()`)};
+  if (kb.crown) { await key('Enter', 'Enter', 13, '\r'); kb.open = await where(); await key('Escape', 'Escape', 27); kb.closed = await where() }
+  if (!kb.crown || !kb.open || kb.open.at !== 'dclose' || kb.open.ring !== 'solid' || !kb.closed || !/\btodo\b/.test(kb.closed.at) || kb.closed.ring !== 'solid')
+    fail.push('the drawer opens from the keyboard with focus on its close button, Esc gives focus back, and both show it: ' + JSON.stringify(kb));
+  // at a phone's width no tip widens the page (a hidden one still takes room, and rows on the right start mid-screen),
+  // and just above it no hover card does (from 641 to 660 px a 300 px card ran past the left edge)
+  await ev(`location.hash='p'`); await sleep(800);
+  const narrow = {};
+  for (const width of [375, 650]) {
+    await send('Emulation.setDeviceMetricsOverride', {width, height: 800, deviceScaleFactor: 1, mobile: false}); await sleep(300);
+    narrow[width] = await ev(`(()=>{const over=()=>document.documentElement.scrollWidth-innerWidth,d=[over()];
+      [...document.querySelectorAll('.node.pn')].filter(n=>!n.getAttribute('href')).forEach(b=>{b.click();d.push(over())});return d})()`) }
+  // and the drawer's cards, a sheet at the bottom there too, stay inside the window
+  narrow.drawer = await ev(`(()=>{const b=document.querySelector('.todo');if(!b)return null;b.click();
+    return [...document.querySelectorAll('.drawer .oi .card')].map(c=>{const r=c.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight})})()`);
+  await key('Escape', 'Escape', 27);
   await send('Emulation.clearDeviceMetricsOverride');
-  if (!narrow || !narrow.length || narrow.some(d => d > 0)) fail.push('at 375 px no session without a tree widens the page (px too wide): ' + JSON.stringify(narrow));
+  if (Object.entries(narrow).some(([k, d]) => !d || !d.length || d.some(x => k === 'drawer' ? x !== true : x > 0))) fail.push('at 375 and 650 px nothing widens the page (px too wide) and the drawer\'s cards are in the window: ' + JSON.stringify(narrow));
   // a session without a tree: two links into Claude Code and one tip for both, on hover, that the browser asks first and
   // which button to choose (Esc hides it, an Esc elsewhere does not); after a click a line says it again with the command
   await send('Page.navigate', {url: page + '#p'}); await sleep(1000);

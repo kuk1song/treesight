@@ -9,6 +9,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
@@ -497,6 +498,27 @@ class Ledger(unittest.TestCase):
             f.write(b"{broken\n" + after[-10:])
         with self.assertRaises(ValueError):
             ledger._read(path)
+
+    def test_a_write_that_fails_part_way_leaves_nothing(self):
+        """A full disk part way through a run's events kept the run's end mark with only some of its nodes, and applying
+        again was refused because the ledger said those entries were read; now the write is cut back off."""
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d)
+        path = os.path.join(d, "p", "ledger.jsonl")
+        ledger._append(path, [{"v": 1, "ev": "noop"}])
+        with open(path, "rb") as f:
+            before = f.read()
+        write = os.write
+
+        def full(fd, data):
+            write(fd, bytes(data[:len(data) // 2]))
+            raise OSError(28, "No space left on device")
+        with mock.patch.object(ledger.os, "write", full), self.assertRaises(OSError):
+            ledger._append(path, [{"v": 1, "ev": "run", "pad": "x" * 5000}, {"v": 1, "ev": "node"}])
+        with open(path, "rb") as f:
+            self.assertEqual(f.read(), before)
+        ledger._append(path, [{"v": 1, "ev": "noop"}])
+        self.assertEqual(len(ledger._read(path)), 2)
 
     def test_a_session_that_is_not_a_string_is_a_problem_not_a_crash(self):
         bad = dict(copy.deepcopy(EXTRACT1), session=[EXTRACT1["session"]])

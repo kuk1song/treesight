@@ -30,9 +30,9 @@ The user is correcting the page by hand; their corrections always win over extra
 
 ## Otherwise: extract and draw
 
-The arguments, if any, name the session to draw (an id, an id prefix, or words from its title); with none, it is the current session. Pass them as `--session "<arguments>"`. If they end with `--restart`, leave that word out of `--session` (with nothing else, that leaves `--session ""`) and add `--restart` to the prepare command: the user stopped an earlier run of this session and is starting again. Leave `--no-open` (the page's own links add it) inside `--session`; the script reads it.
+The arguments, if any, name the session to draw (an id, an id prefix, or words from its title); with none, it is the current session. Pass them all as `--session="<arguments>"`, with the equals sign, so that arguments starting with `--` stay its value (with none, `--session=""`). The script reads two of them itself: `--restart` (the user stopped an earlier run of this session and is starting again) and `--no-open` (the page's own links add it).
 
-1. **Prepare.** Run `T prepare --session "<arguments>" --current ... --cache ...`. It prints JSON.
+1. **Prepare.** Run `T prepare --session="<arguments>" --current ... --cache ...`. It prints JSON.
    - `"ok": false`: report the error and stop.
    - `"busy": true`: another run has been drawing this session since `"started_at"`. Run `T build --open --session <the "session" id> --current ... --cache ...`, report in one line that it is already being drawn and the page updates when that run is done; if the user stopped that run, they can start again now with `/treesight:treesight <the first 8 characters of the session id> --restart`, and otherwise it counts as stopped in `"free_in_min"` minutes. Then stop.
    - `"nothing_new": true`: run `T build --open --session <the "session" id> --current ... --cache ...`, report in one line that the page is up to date, and stop. If it also says `"empty": true`, the session has no prompt yet: say instead that there is nothing in it to draw, and that another session can be drawn by adding words from its title or its id to the command (the page lists the project's sessions).

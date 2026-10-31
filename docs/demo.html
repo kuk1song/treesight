@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-YTVNnFwANxxQihTMqFyGh3Ysn+A2+b+kXOYiYijGdqk='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-v6tMDVRZXf3hx/isHQGIXqe3ZJ6CFN89vFeRsUPYJWM='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>treesight</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%23131417'/%3E%3Cg transform='translate%284.4 3.6%29 scale%28.78%29'%3E%3Cpath d='M20 37V16.5' stroke='%23E9E8E3' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M20 29C14 29 10.5 26 8 21M20 21C26 21 29.5 18 32 13' fill='none' stroke='%23E9E8E3' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='21' r='4.6' fill='%23C8FF00'/%3E%3Ccircle cx='32' cy='13' r='4.6' fill='%23C8FF00'/%3E%3Ccircle cx='20' cy='7.5' r='4.8' fill='none' stroke='%23C8FF00' stroke-width='3.2'/%3E%3C/g%3E%3C/svg%3E">
@@ -31,7 +31,9 @@ main{max-width:940px;margin:0 auto;padding:0 20px 60px}
 .where{text-align:center;margin:6px 0 0;display:grid;justify-items:center;gap:4px}
 .where b{font-size:15px;font-weight:600;overflow-wrap:anywhere}.where small{font-family:var(--mono);font-size:11.5px;color:var(--mut)}
 .where .since{font-family:var(--f);font-size:12px;color:var(--mut)}
-.oit:focus-visible,.pz:focus-visible,.act:focus-visible,.cpy:focus-visible,.qm:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+/* buttons reset with all:unset lose the outline above, so it is given back to each */
+.oit:focus-visible,.pz:focus-visible,.act:focus-visible,.cpy:focus-visible,.qm:focus-visible,.todo:focus-visible,.rest:focus-visible,.back:focus-visible,.drawer header button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.back:focus-visible{outline-offset:-2px}   /* it sits on the window's left edge on a wide screen */
 /* an expanded node or session: one panel beside the trunk, its text flush left on both sides (a ragged left edge is hard to read) */
 .xp{display:grid;gap:6px;max-width:420px;text-align:left;background:var(--panel);border-radius:12px;padding:10px 13px;font-size:13.5px}.row.l .xp{margin-left:auto}
 .ai{font-size:10.5px;line-height:1.3;border:1px solid var(--line2);border-radius:4px;padding:0 4px;cursor:help}
@@ -126,9 +128,10 @@ a.node{color:inherit;text-decoration:none}
 #ovl{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:3}
 #ovl path{fill:none;stroke:var(--overturn);stroke-width:2;stroke-dasharray:5 5}
 /* the open-items drawer: one column, axis on the left */
-.drawer{position:fixed;top:0;right:0;bottom:0;width:min(460px,100vw);background:var(--panel);z-index:30;transform:translateX(100%);visibility:hidden;transition:transform .22s ease-out,visibility .22s;display:flex;flex-direction:column}
-.drawer.on{transform:none;visibility:visible;box-shadow:-10px 0 40px rgba(0,0,0,.45)}
-@media (prefers-reduced-motion:reduce){.drawer{transition:none}}
+/* visible at once when it opens, so its close button can take focus, and hidden only once it has slid away */
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(460px,100vw);background:var(--panel);z-index:30;transform:translateX(100%);visibility:hidden;transition:transform .22s ease-out,visibility 0s .22s;display:flex;flex-direction:column}
+.drawer.on{transform:none;visibility:visible;box-shadow:-10px 0 40px rgba(0,0,0,.45);transition:transform .22s ease-out}
+@media (prefers-reduced-motion:reduce){.drawer,.drawer.on{transition:none}}
 .drawer header{display:flex;align-items:baseline;justify-content:space-between;padding:16px 18px 6px}
 .drawer header b{font-size:16px}.drawer header small{font-family:var(--mono);color:var(--mut);font-size:11.5px;margin-left:8px}
 .drawer header button{all:unset;cursor:pointer;color:var(--mut);font-size:20px;line-height:1;padding:2px 6px;border-radius:6px}
@@ -177,8 +180,9 @@ a.node{color:inherit;text-decoration:none}
 @media (hover:none){.pz{opacity:1}}
 @media (prefers-reduced-motion:reduce){.grow .gt *{animation:none}}
 footer{max-width:940px;margin:0 auto;padding:0 20px 30px;text-align:center;font-size:11.5px;color:var(--faint)}
-@media (max-width:640px){:root{--tc:15.2px}.row{grid-template-columns:1fr 30px 1fr}.node .t{font-size:14px}
-  .card,.card.up,.row.l .card,.row.r .card{position:fixed;left:16px;right:16px;top:auto;bottom:16px;width:auto;margin:0}}
+@media (max-width:640px){:root{--tc:15.2px}.row{grid-template-columns:1fr 30px 1fr}.node .t{font-size:14px}}
+/* hover cards become a sheet at the bottom up to 680 px, the drawer's too: from 641 to 660 px a 300 px card still ran past the left edge */
+@media (max-width:680px){.card,.card.up,.row.l .card,.row.r .card,.oi .card{position:fixed;left:16px;right:16px;top:auto;bottom:16px;width:auto;margin:0}}
 </style></head>
 <body>
 <div class="bar">
@@ -360,7 +364,9 @@ function crown(open,o={}){
     it(1,W.lgTree+' '+o.gen);it(0,W.lgNoTree+' '+o.rest);c.append(l)}
   return c}
 function toggleDrawer(open,btn){const dr=document.getElementById('drawer');if(dr.classList.contains('on')){closeDrawer();return}openDrawer(open);btn.setAttribute('aria-expanded','true');btn.textContent=btn.dataset.base+W.hide}
-function closeDrawer(){const dr=document.getElementById('drawer');dr.classList.remove('on');dr.setAttribute('aria-hidden','true');document.querySelectorAll('.todo').forEach(b=>{b.setAttribute('aria-expanded','false');if(b.dataset.base)b.textContent=b.dataset.base+W.show})}
+/* closed with Esc or its button, focus goes back to what opened it; a click elsewhere keeps its own focus */
+let drawerFrom=null;
+function closeDrawer(){const dr=document.getElementById('drawer'),back=dr.classList.contains('on')&&(dr.contains(document.activeElement)||document.activeElement===document.body);dr.classList.remove('on');if(back&&drawerFrom&&drawerFrom.isConnected)drawerFrom.focus({preventScroll:true});dr.setAttribute('aria-hidden','true');document.querySelectorAll('.todo').forEach(b=>{b.setAttribute('aria-expanded','false');if(b.dataset.base)b.textContent=b.dataset.base+W.show})}
 function openDrawer(open){
   const dr=document.getElementById('drawer'),ax=dr.querySelector('.ax');ax.textContent='';
   document.getElementById('dscope').textContent=CUR?W.thisSession:W.wholeProject(S.filter(s=>s.generated).length);
@@ -390,7 +396,7 @@ function openDrawer(open){
   /* legend: only the marks this list uses */
   const dl=document.getElementById('dlg');dl.textContent='';const has=f=>open.some(f);
   [[has(x=>!dead(x)&&x.kind!=='wait'),'todo',W.lgTodo],[has(x=>!dead(x)&&x.kind==='wait'),'wait',W.lgWait],[has(dead),'late',deadName(open)]].forEach(([ok,k,t])=>{if(!ok)return;const s=$('span');s.append(shape(k,13),document.createTextNode(t));dl.append(s)});
-  dr.classList.add('on');dr.setAttribute('aria-hidden','false');document.getElementById('dclose').focus({preventScroll:true})}
+  if(!dr.classList.contains('on'))drawerFrom=document.activeElement;dr.classList.add('on');dr.setAttribute('aria-hidden','false');document.getElementById('dclose').focus({preventScroll:true})}
 /* ---------- motion ---------- */
 /* the build this project's page last grew for: one key per project (keys used to be one per build, and never went away) */
 const RM=matchMedia('(prefers-reduced-motion: reduce)').matches,SEEN='treesight-grown:'+D.project.path;
@@ -444,7 +450,7 @@ function sessionView(s){
   const rows=$('div','rows');shown.forEach((n,i)=>rows.append(nodeRow(n,i,{byId})));
   tr.append($('div','trunk'),crown(s.open.map(o=>Object.assign({session:s.id},o))),rows);
   const rt=rootEl(W.start(fdate(s.first_at)));
-  if(all.length>N){const tg=$('button','rest',showAll?W.keyOnly:W.showAll(all.length));tg.onclick=()=>{settle();const prev=new Set(nodeEls.vis),more=!showAll;showAll=more;sessionView(s);if(more)run(450,prev)};rt.prepend(tg)}
+  if(all.length>N){const tg=$('button','rest',showAll?W.keyOnly:W.showAll(all.length));tg.onclick=()=>{settle();const prev=new Set(nodeEls.vis),more=!showAll;showAll=more;sessionView(s);document.querySelector('.rest').focus({preventScroll:true});if(more)run(450,prev)};rt.prepend(tg)}   /* the view is rebuilt: focus stays on the toggle */
   tr.append(rt,ovl);m.append(tr);fixTrunk(tr)}
 function projectView(){
   CUR=null;closeDrawer();document.getElementById('back').hidden=true;legend(null);

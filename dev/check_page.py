@@ -84,7 +84,11 @@ def errors(ch, url, lang, tmp):
     if os.path.basename(ch) != "chrome-headless-shell":
         args[1:1] = ["--headless=new", "--disable-gpu"] + (["--no-sandbox"] if sys.platform.startswith("linux") else [])
     r = subprocess.run(args, capture_output=True, text=True, timeout=60)
-    return [line.strip() for line in r.stderr.splitlines() if "CONSOLE" in line and ("Uncaught" in line or "Error" in line)]
+    bad = [line.strip() for line in r.stderr.splitlines() if "CONSOLE" in line and ("Uncaught" in line or "Error" in line)]
+    # a script the Content Security Policy blocks logs nothing here and leaves a blank page: the title it sets tells
+    if "canary" not in url and "<title>treesight · " not in r.stdout:
+        bad.append("the page's script did not run")
+    return bad
 
 
 def main():

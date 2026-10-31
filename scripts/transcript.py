@@ -20,8 +20,18 @@ import re
 import sys
 
 # ---------- scrubbing ----------
+# a word character that is not Chinese, Japanese or Korean (the ranges schema.units counts), and a word boundary that
+# treats those as spaces: Python counts them as word characters, so 密钥是sk-… had no boundary before the key
+_CJK_RANGES = "\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uf900-\ufaff"
+_W = "[^\\W%s]" % _CJK_RANGES
+_B = "(?:(?<!%s)(?=%s)|(?<=%s)(?!%s))" % (_W, _W, _W, _W)
 _SECRETS = [
-    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----", re.S),
+    # PEM, OpenSSH and PGP private keys. The search for the end stops at the next BEGIN, which keeps many BEGIN lines
+    # linear; a key without its end (cut off, or pasted in part) loses its BEGIN line and the lines that look like its body
+    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY(?: BLOCK)?-----(?:(?:(?!-----BEGIN )[\s\S])*?-----END [A-Z ]*PRIVATE KEY(?: BLOCK)?-----"
+               r"|(?:\r?\n(?:[A-Za-z0-9+/=]{4,}|(?:Proc-Type|DEK-Info|Comment|Version|Hash|Charset): [^\r\n]*|)[ \t]*(?=\r?\n|\Z))*)"),
+    # the private lines of a PuTTY key file, also indented or quoted with >
+    re.compile(r"(?m)^[ \t>]*Private-Lines: [0-9]{1,4}[ \t]*$(?:\r?\n[ \t>]*[A-Za-z0-9+/=]+[ \t]*$)+"),
     re.compile(r"\b(?:sk|pk|rk)-[A-Za-z0-9_-]{20,}"),                      # OpenAI, Anthropic and similar API keys
     re.compile(r"\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,}"),             # Stripe secret and restricted keys
     re.compile(r"\bglpat-[A-Za-z0-9_-]{20,}"),                             # GitLab personal access token
@@ -65,9 +75,13 @@ _SECRETS = [
                                                                            # the bound keeps long dotted runs linear)
     re.compile(r"\b(?:vless|vmess|trojan|ss|ssr|hysteria2?|tuic)://\S+"),  # proxy share links
 ]
+_SECRETS = [re.compile(rx.pattern.replace(r"\b", _B).replace(r"(?<![\w-])", r"(?<!%s)(?<!-)" % _W), rx.flags) for rx in _SECRETS]
 _IPV4 = re.compile(r"(?<![\d.])(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}(?![\d.]*\d)")
 # starting only where a run of address characters starts: the same matches, in linear time on a long run without @
 _EMAIL = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[A-Za-z]{2,}")
+# first one whose name has no Chinese, Japanese or Korean: the Chinese right before an address (发邮件到foo@…) is then
+# not taken into it, and the pattern above still masks a name in those letters (张三@…)
+_EMAIL_LATIN = re.compile(r"(?<!%s)(?<![.+-])(?:%s|[.+-])+@[\w-]+(?:\.[\w-]+)*\.[A-Za-z]{2,}" % (_W, _W))
 
 
 def scrub(text):
@@ -75,7 +89,7 @@ def scrub(text):
         text = rx.sub("[secret]", text)
     masked = None
     while masked != text:       # again after a mask: an address right after another starts a new run there
-        masked, text = text, _EMAIL.sub("[email]", text)
+        masked, text = text, _EMAIL.sub("[email]", _EMAIL_LATIN.sub("[email]", text))
     return _IPV4.sub("x.x.x.x", text)
 
 
@@ -92,14 +106,46 @@ def records(path):
             except ValueError:
                 continue
             if isinstance(rec, dict):
-                yield rec
+                if "\\ud" in line or "\\uD" in line:     # a lone surrogate is valid JSON but no text, and fails every later write
+                    rec = json.loads(json.dumps(rec, ensure_ascii=False).encode("utf-8", "replace").decode("utf-8"))
+                yield _tidy(rec)
+
+
+_TIME = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?\Z")
+_ID = re.compile(r"[0-9A-Za-z][0-9A-Za-z-]{7,63}\Z")
+
+
+def _tidy(rec):
+    """A record as the readers expect it, whatever a format change brings: a time with its zone (one without is taken as
+    UTC, as Claude Code writes its times) or none, so the record is skipped; a message that is an object; text where text
+    is read; and a session id that cannot reach outside a folder when it names a file."""
+    at = rec.get("timestamp")
+    m = _TIME.match(at) if isinstance(at, str) else None
+    if m and not m.group(1):
+        at += "Z"
+    try:
+        m and instant(at)       # a real time: month 13 or hour 25 has the right shape, and failed every later comparison
+    except ValueError:
+        m = None
+    if m:
+        rec["timestamp"] = at
+    else:
+        rec.pop("timestamp", None)
+    if not isinstance(rec.get("message"), dict):
+        rec.pop("message", None)
+    for k in ("customTitle", "aiTitle", "content", "cwd", "uuid", "subtype", "type", "entrypoint"):
+        if k in rec and not isinstance(rec[k], str):
+            rec.pop(k)
+    if not (isinstance(rec.get("sessionId"), str) and _ID.match(rec["sessionId"])):
+        rec.pop("sessionId", None)
+    return rec
 
 
 def _text_blocks(content):
     if isinstance(content, str):
         return content
     if isinstance(content, list):
-        return "\n".join(x.get("text", "") for x in content if isinstance(x, dict) and x.get("type") == "text")
+        return "\n".join(x["text"] for x in content if isinstance(x, dict) and x.get("type") == "text" and isinstance(x.get("text"), str))
     return ""
 
 

@@ -272,20 +272,27 @@ def _end_last_line(path, fd):
 
 
 def _append(path, events):
+    """All of the events or none: a write that fails part way (a full disk) is cut back off, so a run is never kept
+    with only some of its nodes while its end mark says the entries were read."""
     private_dir(os.path.dirname(path))
-    data = "".join(json.dumps(e, ensure_ascii=False) + "\n" for e in events)
+    data = "".join(json.dumps(e, ensure_ascii=False) + "\n" for e in events).encode("utf-8")
     fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
-    os.chmod(path, 0o600)
-    with os.fdopen(fd, "a", encoding="utf-8") as f:
+    try:
+        os.chmod(path, 0o600)
         if fcntl:
-            fcntl.flock(f, fcntl.LOCK_EX)
+            fcntl.flock(fd, fcntl.LOCK_EX)
+        data = _end_last_line(path, fd).encode("utf-8") + data
+        start = os.fstat(fd).st_size
         try:
-            f.write(_end_last_line(path, f.fileno()) + data)
-            f.flush()
-            os.fsync(f.fileno())
-        finally:
-            if fcntl:
-                fcntl.flock(f, fcntl.LOCK_UN)
+            left = memoryview(data)
+            while left:
+                left = left[os.write(fd, left):]
+            os.fsync(fd)
+        except BaseException:
+            os.ftruncate(fd, start)
+            raise
+    finally:
+        os.close(fd)     # also lets go of the lock
 
 
 def _now():
