@@ -160,9 +160,10 @@ class Transcript(unittest.TestCase):
         self.assertEqual((meta["prompts"]["total"], [e["msg"] for e in entries]), (1, ids))
 
     def test_odd_records_are_read_without_a_crash(self):
-        """The format is Claude Code's own and may change: a time that is null, a number or has no zone, a message that
-        is a string, text or a title that is not a string, a lone surrogate (valid JSON, but not text) and a session id
-        that is a path stopped the project with a traceback or, for the id, named a file outside its folder."""
+        """The format is Claude Code's own and may change: a time that is null, a number, no real time or without its
+        zone, a message that is a string, text or a title that is not a string, a lone surrogate (valid JSON, but not
+        text) and a session id that is a path stopped the project with a traceback or, for the id, named a file outside
+        its folder."""
         path, ids = write_transcript([("Plan the release", ["Planned."])])
         odd = [{"type": "user", "timestamp": None, "message": {"role": "user", "content": "a time of null"}},
                {"type": "user", "timestamp": 1729500000, "message": {"role": "user", "content": "a time as a number"}},
@@ -170,6 +171,10 @@ class Transcript(unittest.TestCase):
                {"type": "assistant", "uuid": "u-num", "timestamp": "2026-09-14T10:00:01.000Z",
                 "message": {"role": "assistant", "content": [{"type": "text", "text": 42}]}},
                {"type": "ai-title", "aiTitle": ["not", "a", "string"]},
+               {"type": "user", "uuid": "u-month13", "origin": {"kind": "human"}, "timestamp": "2026-13-45T25:61:61Z",
+                "message": {"role": "user", "content": "a time that is no time"}},
+               {"type": "user", "uuid": "u-wide", "origin": {"kind": "human"}, "timestamp": "２０２６-09-14T10:00:00Z",
+                "message": {"role": "user", "content": "a time in full-width digits"}},
                {"type": "user", "uuid": "u-naive", "sessionId": "../../escaped", "origin": {"kind": "human"},
                 "timestamp": "2026-09-14T10:00:02", "message": {"role": "user", "content": "a time without its zone"}}]
         try:

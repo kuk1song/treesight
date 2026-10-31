@@ -33,6 +33,7 @@ main{max-width:940px;margin:0 auto;padding:0 20px 60px}
 .where .since{font-family:var(--f);font-size:12px;color:var(--mut)}
 /* buttons reset with all:unset lose the outline above, so it is given back to each */
 .oit:focus-visible,.pz:focus-visible,.act:focus-visible,.cpy:focus-visible,.qm:focus-visible,.todo:focus-visible,.rest:focus-visible,.back:focus-visible,.drawer header button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.back:focus-visible{outline-offset:-2px}   /* it sits on the window's left edge on a wide screen */
 /* an expanded node or session: one panel beside the trunk, its text flush left on both sides (a ragged left edge is hard to read) */
 .xp{display:grid;gap:6px;max-width:420px;text-align:left;background:var(--panel);border-radius:12px;padding:10px 13px;font-size:13.5px}.row.l .xp{margin-left:auto}
 .ai{font-size:10.5px;line-height:1.3;border:1px solid var(--line2);border-radius:4px;padding:0 4px;cursor:help}
@@ -180,8 +181,8 @@ a.node{color:inherit;text-decoration:none}
 @media (prefers-reduced-motion:reduce){.grow .gt *{animation:none}}
 footer{max-width:940px;margin:0 auto;padding:0 20px 30px;text-align:center;font-size:11.5px;color:var(--faint)}
 @media (max-width:640px){:root{--tc:15.2px}.row{grid-template-columns:1fr 30px 1fr}.node .t{font-size:14px}}
-/* hover cards become a sheet at the bottom up to 680 px: from 641 to 660 px a 300 px card still ran past the left edge */
-@media (max-width:680px){.card,.card.up,.row.l .card,.row.r .card{position:fixed;left:16px;right:16px;top:auto;bottom:16px;width:auto;margin:0}}
+/* hover cards become a sheet at the bottom up to 680 px, the drawer's too: from 641 to 660 px a 300 px card still ran past the left edge */
+@media (max-width:680px){.card,.card.up,.row.l .card,.row.r .card,.oi .card{position:fixed;left:16px;right:16px;top:auto;bottom:16px;width:auto;margin:0}}
 </style></head>
 <body>
 <div class="bar">

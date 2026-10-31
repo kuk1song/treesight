@@ -72,8 +72,12 @@ try {
     await send('Emulation.setDeviceMetricsOverride', {width, height: 800, deviceScaleFactor: 1, mobile: false}); await sleep(300);
     narrow[width] = await ev(`(()=>{const over=()=>document.documentElement.scrollWidth-innerWidth,d=[over()];
       [...document.querySelectorAll('.node.pn')].filter(n=>!n.getAttribute('href')).forEach(b=>{b.click();d.push(over())});return d})()`) }
+  // and the drawer's cards, a sheet at the bottom there too, stay inside the window
+  narrow.drawer = await ev(`(()=>{const b=document.querySelector('.todo');if(!b)return null;b.click();
+    return [...document.querySelectorAll('.drawer .oi .card')].map(c=>{const r=c.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight})})()`);
+  await key('Escape', 'Escape', 27);
   await send('Emulation.clearDeviceMetricsOverride');
-  if (Object.values(narrow).some(d => !d || d.length < 2 || d.some(x => x > 0))) fail.push('at 375 and 650 px nothing widens the page (px too wide): ' + JSON.stringify(narrow));
+  if (Object.entries(narrow).some(([k, d]) => !d || !d.length || d.some(x => k === 'drawer' ? x !== true : x > 0))) fail.push('at 375 and 650 px nothing widens the page (px too wide) and the drawer\'s cards are in the window: ' + JSON.stringify(narrow));
   // a session without a tree: two links into Claude Code and one tip for both, on hover, that the browser asks first and
   // which button to choose (Esc hides it, an Esc elsewhere does not); after a click a line says it again with the command
   await send('Page.navigate', {url: page + '#p'}); await sleep(1000);

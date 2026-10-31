@@ -106,7 +106,7 @@ def records(path):
                 yield _tidy(rec)
 
 
-_TIME = re.compile(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(Z|[+-]\d\d:\d\d)?\Z")
+_TIME = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?\Z")
 _ID = re.compile(r"[0-9A-Za-z][0-9A-Za-z-]{7,63}\Z")
 
 
@@ -116,10 +116,16 @@ def _tidy(rec):
     is read; and a session id that cannot reach outside a folder when it names a file."""
     at = rec.get("timestamp")
     m = _TIME.match(at) if isinstance(at, str) else None
-    if m is None:
+    if m and not m.group(1):
+        at += "Z"
+    try:
+        m and instant(at)       # a real time: month 13 or hour 25 has the right shape, and failed every later comparison
+    except ValueError:
+        m = None
+    if m:
+        rec["timestamp"] = at
+    else:
         rec.pop("timestamp", None)
-    elif not m.group(1):
-        rec["timestamp"] = at + "Z"
     if not isinstance(rec.get("message"), dict):
         rec.pop("message", None)
     for k in ("customTitle", "aiTitle", "content", "cwd", "uuid", "subtype", "type", "entrypoint"):
