@@ -16,7 +16,7 @@ From 0.2.0 on, changes are grouped as in [Keep a Changelog](https://keepachangel
 - `/treesight:treesight --no-open` or `--restart` on its own was refused: the skill now passes the words with an equals sign. (#28)
 - Page, with the keyboard: the drawer takes the focus when it opens and gives it back when Esc or × closes it; the crown's button, "Show all" and × show where the focus is; "Show all" keeps the focus. The drawer no longer slides when motion is reduced, and from 641 to 660 px hover cards no longer widen the page. (#28)
 - Masking many BEGIN lines of a private key without an END took seconds; it is linear now. (#28)
-- README: a run's report has a third line when something needs you. (#28)
+- README: a run's report has a third line when something needs you, and session overviews come only from a run that has something new to read (after updating from 0.1.x, draw a session with new prompts or one not drawn yet). (#28)
 
 ### Development
 

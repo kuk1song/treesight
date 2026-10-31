@@ -278,7 +278,8 @@ class Render(unittest.TestCase):
         self.assertIn("@media (max-width:640px){:root{--tc:%gpx}" % round(int(node) + 14 * 1.6 / 2, 1), css)
         self.assertIn(".dw{flex:none;display:flex;align-items:center;justify-content:center;height:1.6em}", css)
         self.assertIn(".arm{grid-column:2;height:26px;position:relative;top:calc(var(--tc) - 9px)}", css)
-        self.assertIn("M0 24 C 12 24, 20 20, 34 9", css + open(build.TEMPLATE, encoding="utf-8").read())     # the tip is 9 px down the arm
+        with open(build.TEMPLATE, encoding="utf-8") as f:
+            self.assertIn("M0 24 C 12 24, 20 20, 34 9", css + f.read())     # the tip is 9 px down the arm
 
     def test_english_wording(self):
         node = shutil.which("node")

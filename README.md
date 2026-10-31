@@ -75,7 +75,7 @@ Extraction counts against your Claude Code plan. treesight favours finding every
 - Extraction is not deterministic, so the ledger keeps the first result rather than redrawing it.
 - The page waits for the model's first reply before it opens; once in testing that took 3.4 minutes.
 - The run's report comes back to your conversation. The plugin's hook asks Claude to pass it on as it is, which a model can still ignore; where the hook does not run, Claude may comment on it or check things on its own.
-- Overviews of sessions without a tree are written from a short excerpt and can be wrong, so they are marked AI.
+- Overviews of sessions without a tree are written from a short excerpt and can be wrong, so they are marked AI. They are written only by a run that has something new to read, up to 30 a run: after updating from 0.1.x, draw a session with new prompts, or one not drawn yet, to get them.
 - The links into Claude Code need its `claude-cli://` handler, which Claude Code registers on your first interactive prompt. Your browser asks before it opens Claude Code; the command is typed into a new terminal and runs only when you press Enter, and if nothing opens, the page offers it to copy. Tried in Chrome and Terminal on macOS; a run that draws a tree, started from a link, has not been tried yet, nor have other browsers and systems. Sessions run with `claude -p` or the Agent SDK are listed only once drawn.
 - The transcript format is internal to Claude Code and may change in any release.
 - The page has a dark theme only.
