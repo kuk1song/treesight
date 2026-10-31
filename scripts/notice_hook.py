@@ -7,7 +7,7 @@ skill sends when it finishes (https://code.claude.com/docs/en/hooks.md, UserProm
 stdin and keeps nothing. Only a notice that a /treesight:treesight run completed with a report that starts with the
 skill's fixed first line gets an answer: the report from its third line on, inside an instruction added to Claude's
 context. Anything else, an error included, prints nothing and exits 0, so the prompt goes on as it would without the
-hook. Started with python3 -I -S, it takes about 13 ms (measured on 2026-10-26).
+hook. Started with python3 -I -S; what that costs per prompt depends on the python3 it finds (docs/design.md).
 
 Tested on Claude Code 2.1.299 on 2026-10-26: a skill's own frontmatter hook never ran for a forked skill, so this is a
 plugin hook; blocking the notice instead shows the user "UserPromptSubmit operation blocked by hook:" in warning

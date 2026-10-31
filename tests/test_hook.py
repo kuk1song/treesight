@@ -73,7 +73,7 @@ class Process(unittest.TestCase):
         self.assertIn("发布 0.3.0", json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"])
 
     def test_it_is_quick(self):
-        """It runs on every prompt of every session where the plugin is enabled: about 13 ms on 2026-10-26."""
+        """It runs on every prompt of every session where the plugin is enabled (its cost per prompt: docs/design.md)."""
         times = [hook(json.dumps({"prompt": "Please refactor the parser " * 200}))[1] for _ in range(7)]
         self.assertLess(statistics.median(times), 300, times)      # generous for slow CI machines
 
