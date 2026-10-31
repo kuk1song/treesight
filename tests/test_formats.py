@@ -260,6 +260,13 @@ class Transcript(unittest.TestCase):
                            ("这个token=" + "abcd1234" * 2, "这个[secret]"), ("请发邮件到a.b@example.com，谢谢", "请发邮件到[email]，谢谢"),
                            ("邮箱：张三@example.com", "邮箱：[email]"), ("task-" + "abcdefghij" * 3, "task-" + "abcdefghij" * 3)):
             self.assertEqual(s(text), want, text)
+        # only those letters count as spaces: other spaces still separate a name from its value, accented letters still
+        # belong to a word, and an address with them is masked whole
+        for text, want in (("see --password\u00a0" + "Hunter2" * 2 + " now", "see [secret] now"),
+                           ("DB_PASSWORD\u3000=\u3000" + "hunter2" * 2, "[secret]"), ("Bearer\u3000" + "AbCd" * 5, "[secret]"),
+                           ("Rísk-assessment-framework-for-teams-2026", "Rísk-assessment-framework-for-teams-2026"),
+                           ("josé.garcia@example.com", "[email]"), ("ss://YWVzLTI1Ng\u3000后面的话", "[secret]\u3000后面的话")):
+            self.assertEqual(s(text), want, text)
 
     def test_pgp_and_putty_private_keys_are_masked(self):
         """The private key pattern expected "PRIVATE KEY-----", but PGP blocks say "PRIVATE KEY BLOCK-----"; a PuTTY key file
@@ -271,6 +278,10 @@ class Transcript(unittest.TestCase):
         out = transcript.scrub(putty)
         self.assertNotIn("AAAAIGxy", out)
         self.assertIn("AAAAC3Nza", out)      # the public part stays
+        self.assertEqual(transcript.scrub("> Private-" + "Lines: 1\n> AAAAIGxy" + "z9" * 12 + "\n> Private-MAC: 0a"), "[secret]\n> Private-MAC: 0a")
+        # a key cut off before its end, then a whole one: the first one's body went through
+        begin, end = "-----BEGIN RSA " + "PRIVATE KEY-----", "-----END RSA " + "PRIVATE KEY-----"
+        self.assertEqual(transcript.scrub(begin + "\nMIIEowIBAAKCAQEA\n(cut)\n" + begin + "\nAAAA\n" + end), "[secret]\n(cut)\n[secret]")
 
     def test_scrubbing_takes_linear_time(self):
         """Long runs without spaces (minified code, base64, dotted names) took seconds to minutes: the email, URL,

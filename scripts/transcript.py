@@ -20,11 +20,18 @@ import re
 import sys
 
 # ---------- scrubbing ----------
+# a word character that is not Chinese, Japanese or Korean (the ranges schema.units counts), and a word boundary that
+# treats those as spaces: Python counts them as word characters, so 密钥是sk-… had no boundary before the key
+_CJK_RANGES = "\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uf900-\ufaff"
+_W = "[^\\W%s]" % _CJK_RANGES
+_B = "(?:(?<!%s)(?=%s)|(?<=%s)(?!%s))" % (_W, _W, _W, _W)
 _SECRETS = [
-    # PEM, OpenSSH and PGP private keys; the search for the end stops at the next BEGIN, which keeps many BEGIN lines
-    # without an end linear
-    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY(?: BLOCK)?-----(?:(?!-----BEGIN )[\s\S])*?-----END [A-Z ]*PRIVATE KEY(?: BLOCK)?-----"),
-    re.compile(r"Private-Lines: \d+\r?\n(?:[A-Za-z0-9+/=]{1,128}(?:\r?\n|$))+"),     # the private part of a PuTTY key file
+    # PEM, OpenSSH and PGP private keys. The search for the end stops at the next BEGIN, which keeps many BEGIN lines
+    # linear; a key without its end (cut off, or pasted in part) loses its BEGIN line and the lines that look like its body
+    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY(?: BLOCK)?-----(?:(?:(?!-----BEGIN )[\s\S])*?-----END [A-Z ]*PRIVATE KEY(?: BLOCK)?-----"
+               r"|(?:\r?\n(?:[A-Za-z0-9+/=]{4,}|(?:Proc-Type|DEK-Info|Comment|Version|Hash|Charset): [^\r\n]*|)[ \t]*(?=\r?\n|\Z))*)"),
+    # the private lines of a PuTTY key file, also indented or quoted with >
+    re.compile(r"(?m)^[ \t>]*Private-Lines: [0-9]{1,4}[ \t]*$(?:\r?\n[ \t>]*[A-Za-z0-9+/=]+[ \t]*$)+"),
     re.compile(r"\b(?:sk|pk|rk)-[A-Za-z0-9_-]{20,}"),                      # OpenAI, Anthropic and similar API keys
     re.compile(r"\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,}"),             # Stripe secret and restricted keys
     re.compile(r"\bglpat-[A-Za-z0-9_-]{20,}"),                             # GitLab personal access token
@@ -68,15 +75,13 @@ _SECRETS = [
                                                                            # the bound keeps long dotted runs linear)
     re.compile(r"\b(?:vless|vmess|trojan|ss|ssr|hysteria2?|tuic)://\S+"),  # proxy share links
 ]
-# word boundaries in ASCII terms: Python counts Chinese and Japanese characters as word characters, so 密钥是sk-… had no
-# boundary before the key and was left as it was
-_SECRETS = [re.compile(rx.pattern, (rx.flags & ~re.UNICODE) | re.ASCII) for rx in _SECRETS]
+_SECRETS = [re.compile(rx.pattern.replace(r"\b", _B).replace(r"(?<![\w-])", r"(?<!%s)(?<!-)" % _W), rx.flags) for rx in _SECRETS]
 _IPV4 = re.compile(r"(?<![\d.])(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}(?![\d.]*\d)")
 # starting only where a run of address characters starts: the same matches, in linear time on a long run without @
 _EMAIL = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[A-Za-z]{2,}")
-# the same in ASCII terms first: Chinese right before an address (发邮件到foo@…) is then not taken into it, and the
-# pattern above still masks a name in other letters (张三@…)
-_EMAIL_ASCII = re.compile(_EMAIL.pattern, re.ASCII)
+# first one whose name has no Chinese, Japanese or Korean: the Chinese right before an address (发邮件到foo@…) is then
+# not taken into it, and the pattern above still masks a name in those letters (张三@…)
+_EMAIL_LATIN = re.compile(r"(?<!%s)(?<![.+-])(?:%s|[.+-])+@[\w-]+(?:\.[\w-]+)*\.[A-Za-z]{2,}" % (_W, _W))
 
 
 def scrub(text):
@@ -84,7 +89,7 @@ def scrub(text):
         text = rx.sub("[secret]", text)
     masked = None
     while masked != text:       # again after a mask: an address right after another starts a new run there
-        masked, text = text, _EMAIL.sub("[email]", _EMAIL_ASCII.sub("[email]", text))
+        masked, text = text, _EMAIL.sub("[email]", _EMAIL_LATIN.sub("[email]", text))
     return _IPV4.sub("x.x.x.x", text)
 
 
