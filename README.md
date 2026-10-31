@@ -34,7 +34,7 @@ claude plugin install treesight --marketplace kuk1song/treesight
 
 It works in Claude Code on your own computer: tested in the terminal, while the desktop app's Code tab and the IDE extensions should work but are untested. It does not run in cloud sessions, Cowork, claude.ai chat or other coding agents ([details](docs/design.md#5-delivery)).
 
-treesight also needs `python3` 3.9 or later (Apple's, from the Command Line Tools, works) on macOS or Linux; Windows is untested. Tested with Claude Code 2.1.299. Updates are off by default for a marketplace like this one: turn them on in `/plugin`, or run `claude plugin marketplace update treesight` and `claude plugin update treesight@treesight`, then `/reload-plugins` or a new session.
+treesight also needs `python3` 3.9 or later (Apple's, from the Command Line Tools, works) on macOS or Linux; Windows is untested. Tested with Claude Code 2.1.299. Updates are off by default for a marketplace like this one: turn them on in `/plugin`, or run `claude plugin marketplace update treesight` and `claude plugin update treesight@treesight`, then `/reload-plugins` or a new session. If installing or updating fails while cloning over SSH, run the command again with `CLAUDE_CODE_PLUGIN_PREFER_HTTPS=1` in front (Claude Code clones over SSH when you have an SSH key for github.com).
 
 ## Use
 
